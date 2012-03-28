@@ -1,0 +1,16 @@
+             sthttpd - tiny/turbo/throttling HTTP server
+                    version 2.26 of 1apr2012
+
+sthttpd is a fork of Jef Poskanzer's popular thttpd server.  This fork aims
+to simple maintain the original codebase as bugs or security issues are found.
+
+Please read README.thttpd for more information.
+
+Credits:
+
+1. The original codebase is by Jef Poskanzer <jef@mail.acme.com>  http://www.acme.com/jef/
+Please send all kudos to him.
+
+2. The fork is by Anthony G. Basile <blueness@gentoo.org> http://dev.gentoo.org/~blueness
+Send all blame to him.  Feel free to open a bug regarding sthttpd at http://bugs.gentoo.org.
+
