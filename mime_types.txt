@@ -95,7 +95,7 @@ mxu	video/vnd.mpegurl
 nc	application/x-netcdf
 o	application/octet-stream
 oda	application/oda
-ogg	application/x-ogg
+ogg	application/ogg
 pac	application/x-ns-proxy-autoconfig
 pbm	image/x-portable-bitmap
 pdb	chemical/x-pdb
