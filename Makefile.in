@@ -47,10 +47,9 @@ CGIBINDIR =	$(WEBDIR)/cgi-bin
 # You shouldn't need to edit anything below here.
 
 CC =		@CC@
-CCOPT =		@V_CCOPT@
 DEFS =		@DEFS@
 INCLS =		-I.
-CFLAGS =	$(CCOPT) $(DEFS) $(INCLS)
+CFLAGS +=	$(DEFS) $(INCLS)
 LDFLAGS =	@LDFLAGS@
 LIBS =		@LIBS@
 NETLIBS =	@V_NETLIBS@

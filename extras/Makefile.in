@@ -32,11 +32,9 @@ CGIBINDIR =	$(WEBDIR)/cgi-bin
 MANDIR =	@mandir@
 
 CC =		@CC@
-CCOPT =		@V_CCOPT@
 DEFS =		@DEFS@
 INCLS =		-I..
-CFLAGS =	$(CCOPT) $(DEFS) $(INCLS)
-STATICFLAG =	@V_STATICFLAG@
+CFLAGS +=	$(DEFS) $(INCLS)
 LDFLAGS =	@LDFLAGS@
 LIBS =		@LIBS@
 NETLIBS =	@V_NETLIBS@
@@ -59,7 +57,7 @@ makeweb.o:	makeweb.c ../config.h
 	$(CC) $(CFLAGS) -DWEBDIR=\"$(WEBDIR)\" -c makeweb.c
 
 htpasswd:	htpasswd.o
-	$(CC) $(LDFLAGS) $(STATICFLAG) htpasswd.o -o htpasswd $(LIBS)
+	$(CC) $(LDFLAGS) htpasswd.o -o htpasswd $(LIBS)
 
 htpasswd.o:	htpasswd.c ../config.h
 	$(CC) $(CFLAGS) -DWEBDIR=\"$(WEBDIR)\" -c htpasswd.c
