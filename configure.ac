@@ -6,11 +6,14 @@ AM_INIT_AUTOMAKE([1.11 foreign])
 
 # Checks for programs.
 AC_PROG_CC
+AC_PROG_INSTALL
 
 # Checks for libraries.
 
 # Checks for header files.
-AC_CHECK_HEADERS([arpa/inet.h fcntl.h memory.h netdb.h netinet/in.h stdlib.h string.h sys/param.h sys/socket.h sys/time.h syslog.h unistd.h])
+AC_CHECK_HEADERS([arpa/inet.h fcntl.h grp.h memory.h netdb.h netinet/in.h osreldate.h paths.h poll.h stdlib.h string.h sys/devpoll.h sys/event.h sys/param.h sys/poll.h sys/socket.h sys/time.h syslog.h unistd.h])
+AC_HEADER_TIME
+AC_HEADER_DIRENT
 
 # Checks for typedefs, structures, and compiler characteristics.
 AC_TYPE_UID_T
@@ -27,7 +30,7 @@ AC_FUNC_LSTAT_FOLLOWS_SLASHED_SYMLINK
 AC_FUNC_MALLOC
 AC_FUNC_MMAP
 AC_FUNC_WAIT3
-AC_CHECK_FUNCS([alarm bzero clock_gettime dup2 getcwd gethostbyname gethostname getpass gettimeofday inet_ntoa memmove memset mkdir munmap select socket strcasecmp strchr strcspn strdup strerror strncasecmp strpbrk strrchr strspn strstr tzset])
+AC_CHECK_FUNCS([alarm atoll bzero clock_gettime daemon dup2 gai_strerror getcwd getaddrinfo gethostbyname gethostname getnameinfo getpass gettimeofday inet_ntoa kqueue memmove memset mkdir munmap select setlogin setsid sigset socket strcasecmp strchr strcspn strdup strerror strncasecmp strpbrk strrchr strspn strstr tzset vsnprintf waitpid])
 
 AC_CONFIG_FILES([Makefile
                  docs/Makefile
@@ -41,19 +44,8 @@ AC_OUTPUT
 
 dnl AC_CHECK_FUNC(crypt, , AC_CHECK_LIB(crypt, crypt))
 dnl AC_CHECK_FUNC(hstrerror, , AC_CHECK_LIB(resolv, hstrerror, V_NETLIBS="-lresolv $V_NETLIBS"))
+dnl AC_SUBST(V_NETLIBS)
 
 dnl AC_REPLACE_FUNCS(strerror)
 
 dnl AC_CHECK_LIB(rt, clock_gettime)
-
-dnl AC_ACME_TM_GMTOFF
-dnl AC_ACME_INT64T
-dnl AC_ACME_SOCKLENT
-
-dnl AC_PROG_MAKE_SET
-dnl AC_PROG_INSTALL
-
-dnl AC_SUBST(DEFS)
-dnl AC_SUBST(V_CCOPT)
-dnl AC_SUBST(V_STATICFLAG)
-dnl AC_SUBST(V_NETLIBS)

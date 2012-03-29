@@ -45,10 +45,6 @@
 #include "mmc.h"
 #include "libhttpd.h"
 
-#ifndef HAVE_INT64T
-typedef long long int64_t;
-#endif
-
 
 /* Defines. */
 #ifndef DEFAULT_EXPIRE_AGE

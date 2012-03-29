@@ -64,10 +64,6 @@
 #define SHUT_WR 1
 #endif
 
-#ifndef HAVE_INT64T
-typedef long long int64_t;
-#endif
-
 
 static char* argv0;
 static int debug;

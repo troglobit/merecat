@@ -98,14 +98,6 @@ extern char* crypt( const char* key, const char* setting );
 #define SHUT_WR 1
 #endif
 
-#ifndef HAVE_INT64T
-typedef long long int64_t;
-#endif
-
-#ifndef HAVE_SOCKLENT
-typedef int socklen_t;
-#endif
-
 #ifdef __CYGWIN__
 #define timezone  _timezone
 #endif
@@ -3934,12 +3926,7 @@ make_log_entry( httpd_conn* hc, struct timeval* nowP )
 	*/
 	t = localtime( &now );
 	(void) strftime( date_nozone, sizeof(date_nozone), cernfmt_nozone, t );
-#ifdef HAVE_TM_GMTOFF
 	zone = t->tm_gmtoff / 60L;
-#else
-	zone = -timezone / 60L;
-	/* Probably have to add something about daylight time here. */
-#endif
 	if ( zone >= 0 )
 	    sign = '+';
 	else
