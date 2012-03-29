@@ -3277,7 +3277,7 @@ cgi_interpose_output( httpd_conn* hc, int rfd )
 	cp += strspn( cp, " \t" );
 	status = atoi( cp );
 	}
-    if ( ( cp = strstr( headers, "Location:" ) ) != (char*) 0 &&
+    else if ( ( cp = strstr( headers, "Location:" ) ) != (char*) 0 &&
 	 cp < br &&
 	 ( cp == headers || *(cp-1) == '\012' ) )
 	status = 302;
