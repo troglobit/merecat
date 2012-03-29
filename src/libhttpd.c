@@ -26,7 +26,7 @@
 */
 
 
-#include "config.h"
+#include <config.h>
 #include "version.h"
 
 #ifdef SHOW_SERVER_VERSION

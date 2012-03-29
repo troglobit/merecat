@@ -26,7 +26,7 @@
 */
 
 
-#include "config.h"
+#include <config.h>
 #include "version.h"
 
 #include <sys/param.h>

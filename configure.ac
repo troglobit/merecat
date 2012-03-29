@@ -1,6 +1,6 @@
 AC_PREREQ([2.68])
 AC_INIT([sthttpd], [2.26], [httpd://bugs.gentoo.org])
-AC_CONFIG_SRCDIR([thttpd.c])
+AC_CONFIG_SRCDIR([src/thttpd.c])
 AC_CONFIG_HEADERS([config.h])
 AM_INIT_AUTOMAKE([1.11 foreign])
 
@@ -30,8 +30,13 @@ AC_FUNC_WAIT3
 AC_CHECK_FUNCS([alarm bzero clock_gettime dup2 getcwd gethostbyname gethostname getpass gettimeofday inet_ntoa memmove memset mkdir munmap select socket strcasecmp strchr strcspn strdup strerror strncasecmp strpbrk strrchr strspn strstr tzset])
 
 AC_CONFIG_FILES([Makefile
-                 cgi-src/Makefile
-                 extras/Makefile])
+                 docs/Makefile
+                 extras/Makefile
+                 scripts/Makefile
+                 src/Makefile
+                 www/Makefile
+                 www/cgi-bin/Makefile])
+
 AC_OUTPUT
 
 dnl AC_CHECK_FUNC(crypt, , AC_CHECK_LIB(crypt, crypt))
