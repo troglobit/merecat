@@ -106,4 +106,7 @@ extern void tmr_destroy( void );
 /* Generate debugging statistics syslog message. */
 extern void tmr_logstats( long secs );
 
+/* Fill timeval structure for further usage by the package. */
+extern void tmr_prepare_timeval( struct timeval *tv );
+
 #endif /* _TIMERS_H_ */

@@ -742,7 +742,7 @@ main( int argc, char** argv )
 	}
 
     /* Main loop. */
-    (void) gettimeofday( &tv, (struct timezone*) 0 );
+    tmr_prepare_timeval( &tv );
     while ( ( ! terminate ) || num_connects > 0 )
 	{
 	/* Do we need to re-open the log file? */
@@ -761,7 +761,7 @@ main( int argc, char** argv )
 	    syslog( LOG_ERR, "fdwatch - %m" );
 	    exit( 1 );
 	    }
-	(void) gettimeofday( &tv, (struct timezone*) 0 );
+	tmr_prepare_timeval( &tv );
 
 	if ( num_ready == 0 )
 	    {

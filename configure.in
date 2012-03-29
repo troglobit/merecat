@@ -123,6 +123,8 @@ solaris*)
 	;;
 esac
 
+AC_CHECK_LIB(rt, clock_gettime)
+
 AC_ACME_TM_GMTOFF
 AC_ACME_INT64T
 AC_ACME_SOCKLENT

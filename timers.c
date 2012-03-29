@@ -41,7 +41,13 @@ static int alloc_count, active_count, free_count;
 
 ClientData JunkClientData;
 
-
+#undef HAVE_LIBRT_MONO
+#if defined(HAVE_LIBRT) && defined(CLOCK_MONOTONIC)
+#define HAVE_LIBRT_MONO
+#include <time.h>
+static int use_monotonic = 0;		/* monotonic clock runtime availability flag */
+static struct timeval tv_diff;		/* system time - monotonic difference at start */
+#endif
 
 static unsigned int
 hash( Timer* t )
@@ -145,6 +151,26 @@ tmr_init( void )
 	timers[h] = (Timer*) 0;
     free_timers = (Timer*) 0;
     alloc_count = active_count = free_count = 0;
+
+    /* Check for monotonic clock availability */
+#ifdef HAVE_LIBRT_MONO
+    struct timespec ts;
+    struct timeval tv_start, tv;
+    
+    /* Try to get monotonic clock time */
+    if (clock_gettime(CLOCK_MONOTONIC, &ts) == 0) {
+	use_monotonic = 1;
+
+	/* Get current system time */
+	(void) gettimeofday( &tv_start , (struct timezone*) 0 );
+	tv.tv_sec = ts.tv_sec;
+	tv.tv_usec = ts.tv_nsec / 1000L;
+	/* Calculate and save the difference: tv_start is since the Epoch, so tv_start > ts
+	    tv_diff = tv_start - tv	*/
+	timersub( &tv_start, &tv, &tv_diff );
+    }
+#endif
+
     }
 
 
@@ -176,7 +202,7 @@ tmr_create(
     if ( nowP != (struct timeval*) 0 )
 	t->time = *nowP;
     else
-	(void) gettimeofday( &t->time, (struct timezone*) 0 );
+	tmr_prepare_timeval( &t->time );
     t->time.tv_sec += msecs / 1000L;
     t->time.tv_usec += ( msecs % 1000L ) * 1000L;
     if ( t->time.tv_usec >= 1000000L )
@@ -349,3 +375,27 @@ tmr_logstats( long secs )
     if ( active_count + free_count != alloc_count )
 	syslog( LOG_ERR, "timer counts don't add up!" );
     }
+
+/* Fill timeval structure for further usage by the package. */
+void
+tmr_prepare_timeval( struct timeval *tv )
+{
+#ifdef HAVE_LIBRT_MONO
+    struct timespec ts;
+    struct timeval tv0;
+
+    if (use_monotonic) {	/* use monotonic clock source ? */
+	if (clock_gettime(CLOCK_MONOTONIC,&ts) < 0) {
+	    perror("clock_gettime"); return;
+	}
+	tv0.tv_sec = ts.tv_sec;
+	tv0.tv_usec = ts.tv_nsec / 1000L;
+	/* Return system time value like it was running accurately */
+	timeradd( &tv_diff, &tv0, tv );
+    } else {
+#endif
+	(void) gettimeofday( tv , (struct timezone*) 0 );
+#ifdef HAVE_LIBRT_MONO
+    }
+#endif
+}
