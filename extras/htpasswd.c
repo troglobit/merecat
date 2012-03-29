@@ -151,6 +151,7 @@ void interrupted(int signo) {
 int main(int argc, char *argv[]) {
     FILE *tfp,*f;
     char user[MAX_STRING_LEN];
+    char pwfilename[MAX_STRING_LEN];
     char line[MAX_STRING_LEN];
     char l[MAX_STRING_LEN];
     char w[MAX_STRING_LEN];
@@ -168,6 +169,25 @@ int main(int argc, char *argv[]) {
             perror("fopen");
             exit(1);
         }
+        if (strlen(argv[2]) > (sizeof(pwfilename) - 1)) {
+            fprintf(stderr, "%s: filename is too long\n", argv[0]);
+	    exit(1);
+        }
+        if (((strchr(argv[2], ';')) != NULL) || ((strchr(argv[2], '>')) != NULL)) {
+	    fprintf(stderr, "%s: filename contains an illegal character\n",
+		argv[0]);
+	    exit(1);
+        }
+        if (strlen(argv[3]) > (sizeof(user) - 1)) {
+	    fprintf(stderr, "%s: username is too long\n", argv[0],
+		sizeof(user) - 1);
+	    exit(1);
+        }
+        if ((strchr(argv[3], ':')) != NULL) {
+            fprintf(stderr, "%s: username contains an illegal character\n",
+                argv[0]);
+            exit(1);
+        }
         printf("Adding password for %s.\n",argv[3]);
         add_password(argv[3],tfp);
         fclose(tfp);
@@ -180,6 +200,25 @@ int main(int argc, char *argv[]) {
         exit(1);
     }
 
+    if (strlen(argv[1]) > (sizeof(pwfilename) - 1)) {
+        fprintf(stderr, "%s: filename is too long\n", argv[0]);
+        exit(1);
+    }
+    if (((strchr(argv[1], ';')) != NULL) || ((strchr(argv[1], '>')) != NULL)) {
+        fprintf(stderr, "%s: filename contains an illegal character\n",
+                argv[0]);
+        exit(1);
+    }
+    if (strlen(argv[2]) > (sizeof(user) - 1)) {
+        fprintf(stderr, "%s: username is too long\n", argv[0],
+                sizeof(user) - 1);
+        exit(1);
+    }
+    if ((strchr(argv[2], ':')) != NULL) {
+        fprintf(stderr, "%s: username contains an illegal character\n",
+                argv[0]);
+        exit(1);
+    }
     if(!(f = fopen(argv[1],"r"))) {
         fprintf(stderr,
                 "Could not open passwd file %s for reading.\n",argv[1]);
