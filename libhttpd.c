@@ -2549,7 +2549,7 @@ figure_mime( httpd_conn* hc )
     size_t ext_len, encodings_len;
     int i, top, bot, mid;
     int r;
-    char* default_type = "text/plain; charset=%s";
+    char* default_type = "application/octet-stream";
 
     /* Peel off encoding extensions until there aren't any more. */
     n_me_indexes = 0;
