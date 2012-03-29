@@ -1469,7 +1469,7 @@ expand_symlinks( char* path, char** restP, int no_symlink_check, int tildemapped
 	    httpd_realloc_str( &checked, &maxchecked, checkedlen );
 	    (void) strcpy( checked, path );
 	    /* Trim trailing slashes. */
-	    while ( checked[checkedlen - 1] == '/' )
+	    while ( checkedlen && checked[checkedlen - 1] == '/' )
 		{
 		checked[checkedlen - 1] = '\0';
 		--checkedlen;
@@ -1488,7 +1488,7 @@ expand_symlinks( char* path, char** restP, int no_symlink_check, int tildemapped
     restlen = strlen( path );
     httpd_realloc_str( &rest, &maxrest, restlen );
     (void) strcpy( rest, path );
-    if ( rest[restlen - 1] == '/' )
+    if ( restlen && rest[restlen - 1] == '/' )
 	rest[--restlen] = '\0';         /* trim trailing slash */
     if ( ! tildemapped )
 	/* Remove any leading slashes. */
