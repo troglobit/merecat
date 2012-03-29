@@ -2207,6 +2207,12 @@ httpd_parse_request( httpd_conn* hc )
 		if ( strcasecmp( cp, "keep-alive" ) == 0 )
 		    hc->keep_alive = 1;
 		}
+	    else if ( strncasecmp( buf, "X-Forwarded-For:", 16 ) == 0 )
+		{ // Use real IP if available 
+		cp = &buf[16];
+		cp += strspn( cp, " \t" );
+		inet_aton( cp, &(hc->client_addr.sa_in.sin_addr) );
+	        }
 #ifdef LOG_UNKNOWN_HEADERS
 	    else if ( strncasecmp( buf, "Accept-Charset:", 15 ) == 0 ||
 		      strncasecmp( buf, "Accept-Language:", 16 ) == 0 ||
