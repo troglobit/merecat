@@ -55,6 +55,7 @@
 #include <unistd.h>
 
 #include "fdwatch.h"
+#include "thttpd.h"
 #include "libhttpd.h"
 #include "mmc.h"
 #include "timers.h"

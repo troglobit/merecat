@@ -38,7 +38,7 @@
 #include <string.h>
 #include <syslog.h>
 
-#include "config.h"
+#include <config.h>
 
 static char* argv0;
 

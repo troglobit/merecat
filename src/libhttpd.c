@@ -79,6 +79,7 @@
 extern char* crypt( const char* key, const char* setting );
 
 #include "libhttpd.h"
+#include "thttpd.h"
 #include "mmc.h"
 #include "timers.h"
 #include "match.h"

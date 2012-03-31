@@ -55,14 +55,14 @@ See below for details.
 Specifies an alternate port number to listen on.
 The default is 80.
 The config-file option name for this flag is "port",
-and the config.h option is DEFAULT_PORT.
+and the thttpd.h option is DEFAULT_PORT.
 .TP
 .B -d
 Specifies a directory to chdir() to at startup.
 This is merely a convenience - you could just as easily
 do a cd in the shell script that invokes the program.
 The config-file option name for this flag is "dir",
-and the config.h options are WEBDIR, USE_USER_DIR.
+and the thttpd.h options are WEBDIR, USE_USER_DIR.
 .TP
 .B -r
 Do a chroot() at initialization time, restricting file access
@@ -70,7 +70,7 @@ to the program's current directory.
 If -r is the compiled-in default, then -nor disables it.
 See below for details.
 The config-file option names for this flag are "chroot" and "nochroot",
-and the config.h option is ALWAYS_CHROOT.
+and the thttpd.h option is ALWAYS_CHROOT.
 .TP
 .B -dd
 Specifies a directory to chdir() to after chrooting.
@@ -97,7 +97,7 @@ Do el-cheapo virtual hosting.
 If -v is the compiled-in default, then -nov disables it.
 See below for details.
 The config-file option names for this flag are "vhost" and "novhost",
-and the config.h option is ALWAYS_VHOST.
+and the thttpd.h option is ALWAYS_VHOST.
 .TP
 .B -g
 Use a global passwd file.
@@ -111,20 +111,20 @@ exist either then serving the file without any password.
 If -g is the compiled-in default, then -nog disables it.
 The config-file option names for this flag are "globalpasswd" and
 "noglobalpasswd",
-and the config.h option is ALWAYS_GLOBAL_PASSWD.
+and the thttpd.h option is ALWAYS_GLOBAL_PASSWD.
 .TP
 .B -u
 Specifies what user to switch to after initialization when started as root.
 The default is "nobody".
 The config-file option name for this flag is "user",
-and the config.h option is DEFAULT_USER.
+and the thttpd.h option is DEFAULT_USER.
 .TP
 .B -c
 Specifies a wildcard pattern for CGI programs, for instance "**.cgi"
 or "/cgi-bin/*".
 See below for details.
 The config-file option name for this flag is "cgipat",
-and the config.h option is CGI_PATTERN.
+and the thttpd.h option is CGI_PATTERN.
 .TP
 .B -t
 Specifies a file of throttle settings.
@@ -136,7 +136,7 @@ Specifies a hostname to bind to, for multihoming.
 The default is to bind to all hostnames supported on the local machine.
 See below for details.
 The config-file option name for this flag is "host",
-and the config.h option is SERVER_NAME.
+and the thttpd.h option is SERVER_NAME.
 .TP
 .B -l
 Specifies a file for logging.
@@ -155,7 +155,7 @@ The config-file option name for this flag is "pidfile".
 Specifies the character set to use with text MIME types.
 The default is iso-8859-1.
 The config-file option name for this flag is "charset",
-and the config.h option is DEFAULT_CHARSET.
+and the thttpd.h option is DEFAULT_CHARSET.
 .TP
 .B -P
 Specifies a P3P server privacy header to be returned with all responses.
@@ -230,7 +230,7 @@ Don't worry about creating the log socket, syslogd wants to do that itself.
 (You may need to create the dev directory.)
 In Linux the flag is -a instead of -l, and there may be other differences.
 .PP
-Relevant config.h option: ALWAYS_CHROOT.
+Relevant thttpd.h option: ALWAYS_CHROOT.
 .SH "CGI"
 .PP
 thttpd supports the CGI 1.1 spec.
@@ -261,7 +261,7 @@ Note: the current working directory when a CGI program gets run is
 the directory that the CGI program lives in.
 This isn't in the CGI 1.1 spec, but it's what most other HTTP servers do.
 .PP
-Relevant config.h options: CGI_PATTERN, CGI_TIMELIMIT, CGI_NICE, CGI_PATH, CGI_LD_LIBRARY_PATH, CGIBINDIR.
+Relevant thttpd.h options: CGI_PATTERN, CGI_TIMELIMIT, CGI_NICE, CGI_PATH, CGI_LD_LIBRARY_PATH, CGIBINDIR.
 .SH "BASIC AUTHENTICATION"
 .PP
 Basic Authentication is available as an option at compile time.
@@ -273,7 +273,7 @@ The protection does not carry over to subdirectories.
 The utility program htpasswd(1) is included to help create and
 modify .htpasswd files.
 .PP
-Relevant config.h option: AUTH_FILE
+Relevant thttpd.h option: AUTH_FILE
 .SH "THROTTLING"
 .PP
 The throttle file lets you set maximum byte rates on URLs or URL groups.
@@ -379,7 +379,7 @@ If your OS's version of ifconfig doesn't have an alias command, you're
 probably out of luck (but see http://www.acme.com/software/thttpd/notes.html).
 .PP
 Third and last, you must set up thttpd to handle the multiple hosts.
-The easiest way is with the -v flag, or the ALWAYS_VHOST config.h option.
+The easiest way is with the -v flag, or the ALWAYS_VHOST thttpd.h option.
 This works with either CNAME multihosting or multiple-IP multihosting.
 What it does is send each incoming request to a subdirectory based on the
 hostname it's intended for.
@@ -530,7 +530,7 @@ Note that thttpd does not translate numeric IP addresses into domain names.
 This is both to save time and as a minor security measure (the numeric
 address is harder to spoof).
 .PP
-Relevant config.h option: LOG_FACILITY.
+Relevant thttpd.h option: LOG_FACILITY.
 .PP
 If you'd rather log directly to a file, you can use the -l command-line
 flag.  But note that error messages still go to syslog.

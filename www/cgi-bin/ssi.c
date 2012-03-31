@@ -32,8 +32,8 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 
-#include "config.h"
-#include "match.h"
+#include <config.h>
+#include <src/match.h>
 
 
 #define ST_GROUND 0
