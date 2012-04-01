@@ -1,4 +1,4 @@
-bin_PROGRAMS = thttpd
+sbin_PROGRAMS = thttpd
 thttpd_SOURCES = thttpd.c thttpd.h \
 	fdwatch.c fdwatch.h \
 	libhttpd.c libhttpd.h \

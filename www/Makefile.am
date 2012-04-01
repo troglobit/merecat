@@ -1,2 +1,3 @@
+wwwdir = $(prefix)/www
 SUBDIRS = cgi-bin
-EXTRA_DIST = index.html
+dist_www_DATA = index.html
