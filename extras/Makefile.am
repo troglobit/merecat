@@ -1,4 +1,4 @@
-AM_CPPFLAGS = -DWEBDIR='"$(docdir)/www"'
+AM_CPPFLAGS = -DWEBDIR='"$(prefix)/www"'
 
 sbin_PROGRAMS = makeweb htpasswd
 makeweb_SOURCES = makeweb.c
