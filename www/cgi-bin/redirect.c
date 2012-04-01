@@ -57,14 +57,16 @@
 ** the binary lives.  Perhaps CGI 1.2 will address this.
 */
 
-#include <sys/types.h>
+#include <config.h>
 
+//system headers
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/types.h>
 
-#include <config.h>
-
+//local headers
+#include <thttpd.h>
 
 static char* argv0;
 

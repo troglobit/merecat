@@ -15,13 +15,15 @@
  * WARRANTIES OF MERCHANTIBILITY AND FITNESS FOR A PARTICULAR PURPOSE.
  */
 
+#include <config.h>
+
 #if defined(LIBC_SCCS) && !defined(lint)
 static char sccsid[] = "@(#)strerror.c  5.1 (Berkeley) 4/9/89";
 #endif /* LIBC_SCCS and not lint */
 
-#include <sys/types.h>
-
+//system libraries
 #include <stdio.h>
+#include <sys/types.h>
 
 char *
 strerror(errnum)

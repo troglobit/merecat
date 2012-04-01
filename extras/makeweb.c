@@ -32,16 +32,17 @@
 */
 
 
-#include "../config.h"
+#include <config.h>
 
-#include <stdlib.h>
-#include <unistd.h>
-#include <stdio.h>
-#include <string.h>
-#include <pwd.h>
+//system headers
 #include <errno.h>
-#include <sys/types.h>
+#include <pwd.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 #include <sys/stat.h>
+#include <sys/types.h>
+#include <unistd.h>
 
 
 #define LINK "public_html"

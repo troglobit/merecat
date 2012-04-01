@@ -16,6 +16,7 @@ AC_CHECK_LIB(rt, clock_gettime)
 AC_CHECK_HEADERS([arpa/inet.h fcntl.h grp.h memory.h netdb.h netinet/in.h osreldate.h paths.h poll.h stdlib.h string.h sys/devpoll.h sys/event.h sys/param.h sys/poll.h sys/socket.h sys/time.h syslog.h unistd.h])
 AC_HEADER_TIME
 AC_HEADER_DIRENT
+AC_PROG_RANLIB
 
 # Checks for typedefs, structures, and compiler characteristics.
 AC_TYPE_UID_T

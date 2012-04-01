@@ -27,10 +27,13 @@
 ** SUCH DAMAGE.
 */
 
+#include <config.h>
 
+//system headers
 #include <string.h>
 
-#include "match.h"
+//local headers
+#include <match.h>
 
 static int match_one( const char* pattern, int patternlen, const char* string );
 

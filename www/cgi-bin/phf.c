@@ -33,12 +33,16 @@
 ** SUCH DAMAGE.
 */
 
+#include <config.h>
+
+//system headers
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <syslog.h>
 
-#include <config.h>
+//local headers
+#include <thttpd.h>
 
 static char* argv0;
 

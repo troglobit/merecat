@@ -27,6 +27,7 @@
 
 #include <config.h>
 
+//system headers
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <sys/time.h>
@@ -42,8 +43,9 @@
 #include <sys/mman.h>
 #endif /* HAVE_MMAP */
 
-#include "mmc.h"
-#include "libhttpd.h"
+//local hdeaders
+#include <libhttpd.h>
+#include <mmc.h>
 
 
 /* Defines. */

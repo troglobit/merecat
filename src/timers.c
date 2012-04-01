@@ -25,13 +25,16 @@
 ** SUCH DAMAGE.
 */
 
-#include <sys/types.h>
+#include <config.h>
 
+//system headers
 #include <stdlib.h>
 #include <stdio.h>
 #include <syslog.h>
+#include <sys/types.h>
 
-#include "timers.h"
+//local headers
+#include <timers.h>
 
 
 #define HASH_SIZE 67

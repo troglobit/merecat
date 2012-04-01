@@ -8,11 +8,14 @@
 ** if stdin is a pipe or file.  This is necessary for use from CGI.
 */
 
-#include <sys/types.h>
-#include <stdio.h>
-#include <string.h>
+#include <config.h>
+
+//system headers
 #include <signal.h>
+#include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
+#include <sys/types.h>
 #include <time.h>
 #include <unistd.h>
 

@@ -27,8 +27,8 @@
 
 
 #include <config.h>
-#include "version.h"
 
+//system headers
 #include <sys/param.h>
 #include <sys/types.h>
 #include <sys/time.h>
@@ -54,12 +54,14 @@
 #endif
 #include <unistd.h>
 
-#include "fdwatch.h"
-#include "thttpd.h"
-#include "libhttpd.h"
-#include "mmc.h"
-#include "timers.h"
-#include "match.h"
+//local headers
+#include <fdwatch.h>
+#include <libhttpd.h>
+#include <match.h>
+#include <mmc.h>
+#include <thttpd.h>
+#include <timers.h>
+#include <version.h>
 
 #ifndef SHUT_WR
 #define SHUT_WR 1

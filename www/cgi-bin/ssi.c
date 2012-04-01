@@ -25,15 +25,19 @@
 ** SUCH DAMAGE.
 */
 
+#include <config.h>
+
+//system headers
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
-#include <sys/types.h>
 #include <sys/stat.h>
+#include <sys/types.h>
 
-#include <config.h>
-#include <src/match.h>
+//local headers
+#include <thttpd.h>
+#include <match.h>
 
 
 #define ST_GROUND 0

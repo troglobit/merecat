@@ -1,5 +1,13 @@
 bin_PROGRAMS = redirect ssi phf
+
 redirect_SOURCES = redirect.c
-ssi_SOURCES = ssi.c ../match.o
+redirect_CPPFLAGS = -I$(top_srcdir)/src
+
+ssi_SOURCES = ssi.c
+ssi_CPPFLAGS = -I$(top_srcdir)/src
+ssi_LDADD = ../../src/libmatch.a
+
 phf_SOURCES = phf.c
+phf_CPPFLAGS = -I$(top_srcdir)/src
+
 EXTRA_DIST = printenv
