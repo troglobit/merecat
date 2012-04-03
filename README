@@ -1,6 +1,6 @@
 
       sthttpd - a fork of thttpd, a tiny/turbo/throttling HTTP server
-                    version 2.26 of  April 3, 2012
+                    version 2.27 of  April 3, 2012
 
 sthttpd is a fork of Jef Poskanzer's popular thttpd server.  This fork aims
 to simply maintain the original codebase as bugs or security issues are found.
