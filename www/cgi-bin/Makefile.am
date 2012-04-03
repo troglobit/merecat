@@ -1,4 +1,4 @@
-cgidir = $(prefix)/www/cgi-bin
+cgidir = $(WEBDIR)/cgi-bin
 
 cgi_PROGRAMS = redirect ssi phf
 
