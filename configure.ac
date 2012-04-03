@@ -1,5 +1,5 @@
 AC_PREREQ([2.68])
-AC_INIT([sthttpd], [2.26], [httpd://bugs.gentoo.org])
+AC_INIT([sthttpd], [2.26], [http://opensource.dyc.edu/bugzilla3])
 AC_CONFIG_SRCDIR([src/thttpd.c])
 AC_CONFIG_HEADERS([config.h])
 AM_INIT_AUTOMAKE([1.11 foreign])
@@ -11,6 +11,7 @@ AC_PROG_INSTALL
 # Checks for libraries.
 AC_CHECK_LIB(crypt, crypt)
 AC_CHECK_LIB(rt, clock_gettime)
+AC_CHECK_LIB(hstrerror, resolv)
 
 # Checks for header files.
 AC_CHECK_HEADERS([arpa/inet.h fcntl.h grp.h memory.h netdb.h netinet/in.h osreldate.h paths.h poll.h stdlib.h string.h sys/devpoll.h sys/event.h sys/param.h sys/poll.h sys/socket.h sys/time.h syslog.h unistd.h])
@@ -44,8 +45,3 @@ AC_CONFIG_FILES([Makefile
                  www/cgi-bin/Makefile])
 
 AC_OUTPUT
-
-dnl AC_CHECK_FUNC(hstrerror, , AC_CHECK_LIB(resolv, hstrerror, V_NETLIBS="-lresolv $V_NETLIBS"))
-dnl AC_SUBST(V_NETLIBS)
-dnl AC_REPLACE_FUNCS(strerror)
-
