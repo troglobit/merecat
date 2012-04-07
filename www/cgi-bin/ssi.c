@@ -265,7 +265,10 @@ check_filename( char* filename )
 	*cp = '\0';
     authname = malloc( strlen( dirname ) + 1 + sizeof(AUTH_FILE) );
     if ( authname == (char*) 0 )
+	{
+	free( dirname );
 	return 0;	/* out of memory */
+	}
     (void) sprintf( authname, "%s/%s", dirname, AUTH_FILE );
     r = stat( authname, &sb );
     free( dirname );
