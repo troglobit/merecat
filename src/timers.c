@@ -44,9 +44,9 @@ static int alloc_count, active_count, free_count;
 
 ClientData JunkClientData;
 
-#undef HAVE_LIBRT_MONO
-#if defined(HAVE_LIBRT) && defined(CLOCK_MONOTONIC)
-#define HAVE_LIBRT_MONO
+#undef HAVE_CLOCK_MONO
+#if defined(HAVE_CLOCK_GETTIME) && defined(CLOCK_MONOTONIC)
+#define HAVE_CLOCK_MONO
 static int use_monotonic = 0;		/* monotonic clock runtime availability flag */
 static struct timeval tv_diff;		/* system time - monotonic difference at start */
 #endif
@@ -155,7 +155,7 @@ tmr_init( void )
     alloc_count = active_count = free_count = 0;
 
     /* Check for monotonic clock availability */
-#ifdef HAVE_LIBRT_MONO
+#ifdef HAVE_CLOCK_MONO
     struct timespec ts;
     struct timeval tv_start, tv;
     
@@ -382,7 +382,7 @@ tmr_logstats( long secs )
 void
 tmr_prepare_timeval( struct timeval *tv )
 {
-#ifdef HAVE_LIBRT_MONO
+#ifdef HAVE_CLOCK_MONO
     struct timespec ts;
     struct timeval tv0;
 
@@ -397,7 +397,7 @@ tmr_prepare_timeval( struct timeval *tv )
     } else {
 #endif
 	(void) gettimeofday( tv , (struct timezone*) 0 );
-#ifdef HAVE_LIBRT_MONO
+#ifdef HAVE_CLOCK_MONO
     }
 #endif
 }
