@@ -42,7 +42,6 @@
 #include <ctype.h>
 #include <errno.h>
 #include <fcntl.h>
-#include <time.h>
 #ifdef HAVE_MEMORY_H
 #include <memory.h>
 #endif /* HAVE_MEMORY_H */

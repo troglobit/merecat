@@ -29,6 +29,7 @@
 #define _TIMERS_H_
 
 #include <sys/time.h>
+#include <time.h>
 
 #ifndef INFTIM
 #define INFTIM -1

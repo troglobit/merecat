@@ -31,7 +31,6 @@
 //system headers
 #include <sys/param.h>
 #include <sys/types.h>
-#include <sys/time.h>
 #include <sys/stat.h>
 #include <sys/wait.h>
 #include <sys/uio.h>
@@ -49,9 +48,6 @@
 #include <stdlib.h>
 #include <string.h>
 #include <syslog.h>
-#ifdef TIME_WITH_SYS_TIME
-#include <time.h>
-#endif
 #include <unistd.h>
 
 //local headers

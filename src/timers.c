@@ -47,7 +47,6 @@ ClientData JunkClientData;
 #undef HAVE_LIBRT_MONO
 #if defined(HAVE_LIBRT) && defined(CLOCK_MONOTONIC)
 #define HAVE_LIBRT_MONO
-#include <time.h>
 static int use_monotonic = 0;		/* monotonic clock runtime availability flag */
 static struct timeval tv_diff;		/* system time - monotonic difference at start */
 #endif
