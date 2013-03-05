@@ -1017,6 +1017,7 @@ auth_check2( httpd_conn* hc, char* dirname  )
     static size_t maxprevuser = 0;
     static char* prevcryp;
     static size_t maxprevcryp = 0;
+    char *crypt_result;
 
     /* Construct auth filename. */
     httpd_realloc_str(
@@ -1063,7 +1064,10 @@ auth_check2( httpd_conn* hc, char* dirname  )
 	 strcmp( authinfo, prevuser ) == 0 )
 	{
 	/* Yes.  Check against the cached encrypted password. */
-	if ( strcmp( crypt( authpass, prevcryp ), prevcryp ) == 0 )
+        crypt_result = crypt( authpass, prevcryp );
+        if ( ! crypt_result )
+            return -1;
+	if ( strcmp( crypt_result, prevcryp ) == 0 )
 	    {
 	    /* Ok! */
 	    httpd_realloc_str(
@@ -1112,7 +1116,10 @@ auth_check2( httpd_conn* hc, char* dirname  )
 	    /* Yes. */
 	    (void) fclose( fp );
 	    /* So is the password right? */
-	    if ( strcmp( crypt( authpass, cryp ), cryp ) == 0 )
+            crypt_result = crypt( authpass, cryp );
+            if ( ! crypt_result )
+                return -1;
+	    if ( strcmp( crypt_result, cryp ) == 0 )
 		{
 		/* Ok! */
 		httpd_realloc_str(

@@ -136,7 +136,10 @@ add_password( char* user, FILE* f )
     (void) srandom( (int) time( (time_t*) 0 ) );
     to64( &salt[0], random(), 2 );
     cpw = crypt( pw, salt );
-    (void) fprintf( f, "%s:%s\n", user, cpw );
+    if (cpw)
+        (void) fprintf( f, "%s:%s\n", user, cpw );
+    else
+        (void) fprintf( stderr, "crypt() returned NULL, sorry\n" );
     }
 
 static void usage(void) {
