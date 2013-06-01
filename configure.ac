@@ -7,6 +7,10 @@ AM_INIT_AUTOMAKE([1.11 foreign])
 # Checks for programs.
 AC_PROG_CC
 AC_PROG_INSTALL
+AN_MAKEVAR([AR], [AC_PROG_AR])
+AN_PROGRAM([ar], [AC_PROG_AR])
+AC_DEFUN([AC_PROG_AR], [AC_CHECK_TOOL(AR, ar, :)])
+AC_PROG_AR
 
 # Checks for libraries.
 AC_CHECK_LIB(crypt, crypt)
