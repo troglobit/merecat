@@ -2554,16 +2554,14 @@ figure_mime( httpd_conn* hc )
 
     /* Peel off encoding extensions until there aren't any more. */
     n_me_indexes = 0;
+    hc->type = default_type;
     for ( prev_dot = &hc->expnfilename[strlen(hc->expnfilename)]; ; prev_dot = dot )
 	{
 	for ( dot = prev_dot - 1; dot >= hc->expnfilename && *dot != '.'; --dot )
 	    ;
 	if ( dot < hc->expnfilename )
 	    {
-	    /* No dot found.  No more encoding extensions, and no type
-	    ** extension either.
-	    */
-	    hc->type = default_type;
+	    /* No dot found.  No more extensions.  */
 	    goto done;
 	    }
 	ext = dot + 1;
@@ -2580,38 +2578,32 @@ figure_mime( httpd_conn* hc )
 		    me_indexes[n_me_indexes] = i;
 		    ++n_me_indexes;
 		    }
-		goto next;
+		break;
 		}
 	    }
-	/* No encoding extension found.  Break and look for a type extension. */
-	break;
-
-	next: ;
+        /* Binary search for a matching type extension. */
+        top = n_typ_tab - 1;
+        bot = 0;
+        while ( top >= bot )
+            {
+            mid = ( top + bot ) / 2;
+            r = strncasecmp( ext, typ_tab[mid].ext, ext_len );
+            if ( r < 0 )
+                top = mid - 1;
+            else if ( r > 0 )
+                bot = mid + 1;
+            else
+                if ( ext_len < typ_tab[mid].ext_len )
+                    top = mid - 1;
+                else if ( ext_len > typ_tab[mid].ext_len )
+                    bot = mid + 1;
+                else
+                    {
+                    hc->type = typ_tab[mid].val;
+                    goto done;
+                    }
+            }
 	}
-
-    /* Binary search for a matching type extension. */
-    top = n_typ_tab - 1;
-    bot = 0;
-    while ( top >= bot )
-	{
-	mid = ( top + bot ) / 2;
-	r = strncasecmp( ext, typ_tab[mid].ext, ext_len );
-	if ( r < 0 )
-	    top = mid - 1;
-	else if ( r > 0 )
-	    bot = mid + 1;
-	else
-	    if ( ext_len < typ_tab[mid].ext_len )
-		top = mid - 1;
-	    else if ( ext_len > typ_tab[mid].ext_len )
-		bot = mid + 1;
-	    else
-		{
-		hc->type = typ_tab[mid].val;
-		goto done;
-		}
-	}
-    hc->type = default_type;
 
     done:
 
