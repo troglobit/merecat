@@ -720,7 +720,7 @@ httpd_realloc_str( char** strP, size_t* maxsizeP, size_t size )
     if ( *strP == (char*) 0 )
 	{
 	syslog(
-	    LOG_ERR, "out of memory reallocating a string to %d bytes",
+	    LOG_ERR, "out of memory reallocating a string to %zu bytes",
 	    *maxsizeP );
 	exit( 1 );
 	}
