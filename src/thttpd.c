@@ -516,7 +516,7 @@ main( int argc, char** argv )
 	    exit( 0 );
 	    }
 #ifdef HAVE_SETSID
-        (void) setsid();
+	(void) setsid();
 #endif /* HAVE_SETSID */
 #endif /* HAVE_DAEMON */
 	}
@@ -526,7 +526,7 @@ main( int argc, char** argv )
 	** process.
 	*/
 #ifdef HAVE_SETSID
-        (void) setsid();
+	(void) setsid();
 #endif /* HAVE_SETSID */
 	}
 
@@ -699,7 +699,7 @@ main( int argc, char** argv )
 	    syslog( LOG_WARNING, "initgroups - %m" );
 #ifdef HAVE_SETLOGIN
 	/* Set login name. */
-        (void) setlogin( user );
+	(void) setlogin( user );
 #endif /* HAVE_SETLOGIN */
 	/* Set uid. */
 	if ( setuid( uid ) < 0 )

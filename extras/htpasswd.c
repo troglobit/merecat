@@ -43,7 +43,7 @@ static void getword(char *word, char *line, char stop) {
     int x = 0,y;
 
     for(x=0;((line[x]) && (line[x] != stop));x++)
-        word[x] = line[x];
+	word[x] = line[x];
 
     word[x] = '\0';
     if(line[x]) ++x;
@@ -56,16 +56,16 @@ static int get_line(char *s, int n, FILE *f) {
     register int i=0;
 
     while(1) {
-        s[i] = (char)fgetc(f);
+	s[i] = (char)fgetc(f);
 
-        if(s[i] == CR)
-            s[i] = fgetc(f);
+	if(s[i] == CR)
+	    s[i] = fgetc(f);
 
-        if((s[i] == 0x4) || (s[i] == LF) || (i == (n-1))) {
-            s[i] = '\0';
-            return (feof(f) ? 1 : 0);
-        }
-        ++i;
+	if((s[i] == 0x4) || (s[i] == LF) || (i == (n-1))) {
+	    s[i] = '\0';
+	    return (feof(f) ? 1 : 0);
+	}
+	++i;
     }
 }
 
@@ -79,12 +79,12 @@ static void putline(FILE *f,char *l) {
 
 /* From local_passwd.c (C) Regents of Univ. of California blah blah */
 static unsigned char itoa64[] =         /* 0 ... 63 => ascii - 64 */
-        "./0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
+	"./0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
 
 static void to64(register char *s, register long v, register int n) {
     while (--n >= 0) {
-        *s++ = itoa64[v&0x3f];
-        v >>= 6;
+	*s++ = itoa64[v&0x3f];
+	v >>= 6;
     }
 }
 
@@ -137,9 +137,9 @@ add_password( char* user, FILE* f )
     to64( &salt[0], random(), 2 );
     cpw = crypt( pw, salt );
     if (cpw)
-        (void) fprintf( f, "%s:%s\n", user, cpw );
+	(void) fprintf( f, "%s:%s\n", user, cpw );
     else
-        (void) fprintf( stderr, "crypt() returned NULL, sorry\n" );
+	(void) fprintf( stderr, "crypt() returned NULL, sorry\n" );
     }
 
 static void usage(void) {
@@ -167,93 +167,93 @@ int main(int argc, char *argv[]) {
     tfd = -1;
     signal(SIGINT,(void (*)(int))interrupted);
     if(argc == 4) {
-        if(strcmp(argv[1],"-c"))
-            usage();
-        if(!(tfp = fopen(argv[2],"w"))) {
-            fprintf(stderr,"Could not open passwd file %s for writing.\n",
-                    argv[2]);
-            perror("fopen");
-            exit(1);
-        }
-        if (strlen(argv[2]) > (sizeof(pwfilename) - 1)) {
-            fprintf(stderr, "%s: filename is too long\n", argv[0]);
+	if(strcmp(argv[1],"-c"))
+	    usage();
+	if(!(tfp = fopen(argv[2],"w"))) {
+	    fprintf(stderr,"Could not open passwd file %s for writing.\n",
+		    argv[2]);
+	    perror("fopen");
 	    exit(1);
-        }
-        if (((strchr(argv[2], ';')) != NULL) || ((strchr(argv[2], '>')) != NULL)) {
+	}
+	if (strlen(argv[2]) > (sizeof(pwfilename) - 1)) {
+	    fprintf(stderr, "%s: filename is too long\n", argv[0]);
+	    exit(1);
+	}
+	if (((strchr(argv[2], ';')) != NULL) || ((strchr(argv[2], '>')) != NULL)) {
 	    fprintf(stderr, "%s: filename contains an illegal character\n",
 		argv[0]);
 	    exit(1);
-        }
-        if (strlen(argv[3]) > (sizeof(user) - 1)) {
+	}
+	if (strlen(argv[3]) > (sizeof(user) - 1)) {
 	    fprintf(stderr, "%s: username is too long\n", argv[0],
 		sizeof(user) - 1);
 	    exit(1);
-        }
-        if ((strchr(argv[3], ':')) != NULL) {
-            fprintf(stderr, "%s: username contains an illegal character\n",
-                argv[0]);
-            exit(1);
-        }
-        printf("Adding password for %s.\n",argv[3]);
-        add_password(argv[3],tfp);
-        fclose(tfp);
-        exit(0);
+	}
+	if ((strchr(argv[3], ':')) != NULL) {
+	    fprintf(stderr, "%s: username contains an illegal character\n",
+		argv[0]);
+	    exit(1);
+	}
+	printf("Adding password for %s.\n",argv[3]);
+	add_password(argv[3],tfp);
+	fclose(tfp);
+	exit(0);
     } else if(argc != 3) usage();
 
     tfd = mkstemp(temp_template);
     if(!(tfp = fdopen(tfd,"w"))) {
-        fprintf(stderr,"Could not open temp file.\n");
-        exit(1);
+	fprintf(stderr,"Could not open temp file.\n");
+	exit(1);
     }
 
     if (strlen(argv[1]) > (sizeof(pwfilename) - 1)) {
-        fprintf(stderr, "%s: filename is too long\n", argv[0]);
-        exit(1);
+	fprintf(stderr, "%s: filename is too long\n", argv[0]);
+	exit(1);
     }
     if (((strchr(argv[1], ';')) != NULL) || ((strchr(argv[1], '>')) != NULL)) {
-        fprintf(stderr, "%s: filename contains an illegal character\n",
-                argv[0]);
-        exit(1);
+	fprintf(stderr, "%s: filename contains an illegal character\n",
+		argv[0]);
+	exit(1);
     }
     if (strlen(argv[2]) > (sizeof(user) - 1)) {
-        fprintf(stderr, "%s: username is too long\n", argv[0],
-                sizeof(user) - 1);
-        exit(1);
+	fprintf(stderr, "%s: username is too long\n", argv[0],
+		sizeof(user) - 1);
+	exit(1);
     }
     if ((strchr(argv[2], ':')) != NULL) {
-        fprintf(stderr, "%s: username contains an illegal character\n",
-                argv[0]);
-        exit(1);
+	fprintf(stderr, "%s: username contains an illegal character\n",
+		argv[0]);
+	exit(1);
     }
     if(!(f = fopen(argv[1],"r"))) {
-        fprintf(stderr,
-                "Could not open passwd file %s for reading.\n",argv[1]);
-        fprintf(stderr,"Use -c option to create new one.\n");
-        exit(1);
+	fprintf(stderr,
+		"Could not open passwd file %s for reading.\n",argv[1]);
+	fprintf(stderr,"Use -c option to create new one.\n");
+	exit(1);
     }
     strcpy(user,argv[2]);
 
     found = 0;
     while(!(get_line(line,MAX_STRING_LEN,f))) {
-        if(found || (line[0] == '#') || (!line[0])) {
-            putline(tfp,line);
-            continue;
-        }
-        strcpy(l,line);
-        getword(w,l,':');
-        if(strcmp(user,w)) {
-            putline(tfp,line);
-            continue;
-        }
-        else {
-            printf("Changing password for user %s\n",user);
-            add_password(user,tfp);
-            found = 1;
-        }
+	if(found || (line[0] == '#') || (!line[0])) {
+	    putline(tfp,line);
+	    continue;
+	}
+	strcpy(l,line);
+	getword(w,l,':');
+	if(strcmp(user,w)) {
+	    putline(tfp,line);
+	    continue;
+	}
+	else {
+	    printf("Changing password for user %s\n",user);
+	    add_password(user,tfp);
+	    found = 1;
+	}
     }
     if(!found) {
-        printf("Adding user %s\n",user);
-        add_password(user,tfp);
+	printf("Adding user %s\n",user);
+	add_password(user,tfp);
     }
     fclose(f);
     fclose(tfp);

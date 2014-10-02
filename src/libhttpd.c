@@ -1064,9 +1064,9 @@ auth_check2( httpd_conn* hc, char* dirname  )
 	 strcmp( authinfo, prevuser ) == 0 )
 	{
 	/* Yes.  Check against the cached encrypted password. */
-        crypt_result = crypt( authpass, prevcryp );
-        if ( ! crypt_result )
-            return -1;
+	crypt_result = crypt( authpass, prevcryp );
+	if ( ! crypt_result )
+	    return -1;
 	if ( strcmp( crypt_result, prevcryp ) == 0 )
 	    {
 	    /* Ok! */
@@ -1116,9 +1116,9 @@ auth_check2( httpd_conn* hc, char* dirname  )
 	    /* Yes. */
 	    (void) fclose( fp );
 	    /* So is the password right? */
-            crypt_result = crypt( authpass, cryp );
-            if ( ! crypt_result )
-                return -1;
+	    crypt_result = crypt( authpass, cryp );
+	    if ( ! crypt_result )
+		return -1;
 	    if ( strcmp( crypt_result, cryp ) == 0 )
 		{
 		/* Ok! */
@@ -2213,7 +2213,7 @@ httpd_parse_request( httpd_conn* hc )
 		cp = &buf[16];
 		cp += strspn( cp, " \t" );
 		inet_aton( cp, &(hc->client_addr.sa_in.sin_addr) );
-	        }
+		}
 #ifdef LOG_UNKNOWN_HEADERS
 	    else if ( strncasecmp( buf, "Accept-Charset:", 15 ) == 0 ||
 		      strncasecmp( buf, "Accept-Language:", 16 ) == 0 ||
@@ -2581,28 +2581,28 @@ figure_mime( httpd_conn* hc )
 		break;
 		}
 	    }
-        /* Binary search for a matching type extension. */
-        top = n_typ_tab - 1;
-        bot = 0;
-        while ( top >= bot )
-            {
-            mid = ( top + bot ) / 2;
-            r = strncasecmp( ext, typ_tab[mid].ext, ext_len );
-            if ( r < 0 )
-                top = mid - 1;
-            else if ( r > 0 )
-                bot = mid + 1;
-            else
-                if ( ext_len < typ_tab[mid].ext_len )
-                    top = mid - 1;
-                else if ( ext_len > typ_tab[mid].ext_len )
-                    bot = mid + 1;
-                else
-                    {
-                    hc->type = typ_tab[mid].val;
-                    goto done;
-                    }
-            }
+	/* Binary search for a matching type extension. */
+	top = n_typ_tab - 1;
+	bot = 0;
+	while ( top >= bot )
+	    {
+	    mid = ( top + bot ) / 2;
+	    r = strncasecmp( ext, typ_tab[mid].ext, ext_len );
+	    if ( r < 0 )
+		top = mid - 1;
+	    else if ( r > 0 )
+		bot = mid + 1;
+	    else
+		if ( ext_len < typ_tab[mid].ext_len )
+		    top = mid - 1;
+		else if ( ext_len > typ_tab[mid].ext_len )
+		    bot = mid + 1;
+		else
+		    {
+		    hc->type = typ_tab[mid].val;
+		    goto done;
+		    }
+	    }
 	}
 
     done:
