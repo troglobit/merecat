@@ -185,8 +185,7 @@ int main(int argc, char *argv[]) {
 	    exit(1);
 	}
 	if (strlen(argv[3]) > (sizeof(user) - 1)) {
-	    fprintf(stderr, "%s: username is too long\n", argv[0],
-		sizeof(user) - 1);
+	    fprintf(stderr, "%s: username is too long\n", argv[0]);
 	    exit(1);
 	}
 	if ((strchr(argv[3], ':')) != NULL) {
@@ -216,8 +215,7 @@ int main(int argc, char *argv[]) {
 	exit(1);
     }
     if (strlen(argv[2]) > (sizeof(user) - 1)) {
-	fprintf(stderr, "%s: username is too long\n", argv[0],
-		sizeof(user) - 1);
+	fprintf(stderr, "%s: username is too long\n", argv[0]);
 	exit(1);
     }
     if ((strchr(argv[2], ':')) != NULL) {
