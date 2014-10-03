@@ -1,5 +1,5 @@
 AC_PREREQ([2.68])
-AC_INIT([sthttpd], [2.27], [http://opensource.dyc.edu/bugzilla3])
+AC_INIT([sthttpd], [2.27.0], [http://opensource.dyc.edu/bugzilla3])
 AC_CONFIG_SRCDIR([src/thttpd.c])
 AC_CONFIG_HEADERS([config.h])
 AM_INIT_AUTOMAKE([1.11 foreign])
