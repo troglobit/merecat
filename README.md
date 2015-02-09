@@ -11,17 +11,15 @@ Credits:
 
 1. The original codebase is by
 
-	Jef Poskanzer <jef@mail.acme.com>  http://www.acme.com/jef/
+* Jef Poskanzer <jef@mail.acme.com>  http://www.acme.com/jef/
 
 Please send all kudos to him.
 
 2. The fork is by
 
-	Anthony G. Basile <blueness@gentoo.org> http://opensource.dyc.edu/sthttpd
+* Anthony G. Basile <blueness@gentoo.org> https://github.com/blueness/sthttpd
 
-Send all blame to him.  Feel free to open a bug regarding sthttpd at
-
-	http://opensource.dyc.edu/bugzilla3/
+Send all blame to him.
 
 3. thttpd is released under a BSD license.  Any extended code added by sthttpd is
 also released under the same license.  Here's a copy of it from the src/thttpd.c
@@ -51,3 +49,7 @@ file:
 ** LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
 ** OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
 ** SUCH DAMAGE.
+
+## Build status
+[![Build Status](https://travis-ci.org/blueness/sthttpd.svg?branch=master)](https://travis-ci.org/blueness/sthttpd)
+
