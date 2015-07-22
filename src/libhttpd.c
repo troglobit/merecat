@@ -28,12 +28,6 @@
 
 #include <config.h>
 
-#ifdef SHOW_SERVER_VERSION
-#define EXPOSED_SERVER_SOFTWARE SERVER_SOFTWARE
-#else /* SHOW_SERVER_VERSION */
-#define EXPOSED_SERVER_SOFTWARE "thttpd"
-#endif /* SHOW_SERVER_VERSION */
-
 //system headers
 #include <sys/types.h>
 #include <sys/param.h>
@@ -85,6 +79,12 @@ extern char* crypt( const char* key, const char* setting );
 #include <thttpd.h>
 #include <timers.h>
 #include <version.h>
+
+#ifdef SHOW_SERVER_VERSION
+#define EXPOSED_SERVER_SOFTWARE SERVER_SOFTWARE
+#else /* SHOW_SERVER_VERSION */
+#define EXPOSED_SERVER_SOFTWARE "sthttpd"
+#endif /* SHOW_SERVER_VERSION */
 
 #ifndef STDIN_FILENO
 #define STDIN_FILENO 0
