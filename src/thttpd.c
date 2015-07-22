@@ -572,7 +572,7 @@ main( int argc, char** argv )
 	    {
 	    if ( strncmp( logfile, cwd, strlen( cwd ) ) == 0 )
 		{
-		(void) strcpy( logfile, &logfile[strlen( cwd ) - 1] );
+		(void) memmove( logfile, &logfile[strlen( cwd ) - 1], strlen(logfile) - (strlen( cwd ) - 1) + 1 );
 		/* (We already guaranteed that cwd ends with a slash, so leaving
 		** that slash in logfile makes it an absolute pathname within
 		** the chroot tree.)
@@ -1421,9 +1421,9 @@ read_throttlefile( char* throttlefile )
 
 	/* Nuke any leading slashes in pattern. */
 	if ( pattern[0] == '/' )
-	    (void) strcpy( pattern, &pattern[1] );
+	    (void) memmove( pattern, &pattern[1], strlen(pattern) );
 	while ( ( cp = strstr( pattern, "|/" ) ) != (char*) 0 )
-	    (void) strcpy( cp + 1, cp + 2 );
+	    (void) memmove( cp + 1, cp + 2, strlen(cp) - 1 );
 
 	/* Check for room in throttles. */
 	if ( numthrottles >= maxthrottles )

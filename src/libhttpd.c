@@ -288,7 +288,8 @@ httpd_initialize(
 	    }
 	/* Nuke any leading slashes in the cgi pattern. */
 	while ( ( cp = strstr( hs->cgi_pattern, "|/" ) ) != (char*) 0 )
-	    (void) strcpy( cp + 1, cp + 2 );
+	    /* -2 for the offset, +1 for the '\0' */
+	    (void) memmove( cp + 1, cp + 2, strlen( cp ) - 1 );
 	}
     hs->cgi_limit = cgi_limit;
     hs->cgi_count = 0;
@@ -1495,7 +1496,8 @@ expand_symlinks( char* path, char** restP, int no_symlink_check, int tildemapped
 	/* Remove any leading slashes. */
 	while ( rest[0] == '/' )
 	    {
-	    (void) strcpy( rest, &(rest[1]) );
+	    /*One more for '\0', one less for the eaten first*/
+	    (void) memmove( rest, &(rest[1]), strlen(rest) );
 	    --restlen;
 	    }
     r = rest;
@@ -2341,8 +2343,8 @@ httpd_parse_request( httpd_conn* hc )
 		 hc->expnfilename, hc->hs->cwd, strlen( hc->hs->cwd ) ) == 0 )
 	    {
 	    /* Elide the current directory. */
-	    (void) strcpy(
-		hc->expnfilename, &hc->expnfilename[strlen( hc->hs->cwd )] );
+	    (void) memmove(
+		hc->expnfilename, &hc->expnfilename[strlen( hc->hs->cwd )], strlen(hc->expnfilename) - strlen( hc->hs->cwd ) + 1 );
 	    }
 #ifdef TILDE_MAP_2
 	else if ( hc->altdir[0] != '\0' &&
@@ -2413,15 +2415,15 @@ de_dotdot( char* file )
 
     /* Remove leading ./ and any /./ sequences. */
     while ( strncmp( file, "./", 2 ) == 0 )
-	(void) strcpy( file, file + 2 );
+	(void) memmove( file, file + 2, strlen( file ) - 1 );
     while ( ( cp = strstr( file, "/./") ) != (char*) 0 )
-	(void) strcpy( cp, cp + 2 );
+	(void) memmove( cp, cp + 2, strlen( file ) - 1 );
 
     /* Alternate between removing leading ../ and removing xxx/../ */
     for (;;)
 	{
 	while ( strncmp( file, "../", 3 ) == 0 )
-	    (void) strcpy( file, file + 3 );
+	    (void) memmove( file, file + 3, strlen( file ) - 2 );
 	cp = strstr( file, "/../" );
 	if ( cp == (char*) 0 )
 	    break;
@@ -4078,7 +4080,7 @@ httpd_ntoa( httpd_sockaddr* saP )
 	}
     else if ( IN6_IS_ADDR_V4MAPPED( &saP->sa_in6.sin6_addr ) && strncmp( str, "::ffff:", 7 ) == 0 )
 	/* Elide IPv6ish prefix for IPv4 addresses. */
-	(void) strcpy( str, &str[7] );
+	(void) memmove( str, &str[7], strlen( str ) - 6 );
 
     return str;
 
