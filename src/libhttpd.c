@@ -3507,11 +3507,7 @@ cgi_child( httpd_conn* hc )
 	}
 
     /* Default behavior for SIGPIPE. */
-#ifdef HAVE_SIGSET
-    (void) sigset( SIGPIPE, SIG_DFL );
-#else /* HAVE_SIGSET */
     (void) signal( SIGPIPE, SIG_DFL );
-#endif /* HAVE_SIGSET */
 
     /* Run the program. */
     (void) execve( binary, argp, envp );

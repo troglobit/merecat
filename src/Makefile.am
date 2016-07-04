@@ -7,8 +7,9 @@ merecat_SOURCES = thttpd.c thttpd.h \
 	timers.c timers.h \
 	tdate_parse.c tdate_parse.h \
 	mime_encodings.h mime_types.h version.h
-merecat_CFLAGS  = -W -Wall -Wextra
-merecat_LDADD   = libmatch.a
+merecat_CFLAGS   = -W -Wall -Wextra
+merecat_CPPFLAGS = -D_POSIX_SOURCE -D_BSD_SOURCE
+merecat_LDADD    = libmatch.a
 
 noinst_LIBRARIES = libmatch.a
 libmatch_a_SOURCES = match.c match.h

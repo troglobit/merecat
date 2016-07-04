@@ -63,6 +63,10 @@
 #define SHUT_WR 1
 #endif
 
+#define SIGNAL(signo, cb)		\
+	sa.sa_flags   = SA_RESTART;	\
+	sa.sa_handler = cb;		\
+	(void)sigaction(signo, &sa, NULL)
 
 static char* argv0;
 static int debug;
@@ -168,12 +172,12 @@ static void thttpd_logstats( long secs );
 
 /* SIGTERM and SIGINT say to exit immediately. */
 static void
-handle_term( int sig )
+handle_term( int signo )
     {
     /* Don't need to set up the handler again, since it's a one-shot. */
 
     shut_down();
-    syslog( LOG_NOTICE, "exiting due to signal %d", sig );
+    syslog( LOG_NOTICE, "exiting due to signal %d", signo );
     closelog();
     exit( 1 );
     }
@@ -181,16 +185,11 @@ handle_term( int sig )
 
 /* SIGCHLD - a chile process exitted, so we need to reap the zombie */
 static void
-handle_chld( int sig )
+handle_chld( int signo )
     {
     const int oerrno = errno;
     pid_t pid;
     int status;
-
-#ifndef HAVE_SIGSET
-    /* Set up handler again. */
-    (void) signal( SIGCHLD, handle_chld );
-#endif /* ! HAVE_SIGSET */
 
     /* Reap defunct children until there aren't any more. */
     for (;;)
@@ -234,14 +233,9 @@ handle_chld( int sig )
 
 /* SIGHUP says to re-open the log file. */
 static void
-handle_hup( int sig )
+handle_hup( int signo )
     {
     const int oerrno = errno;
-
-#ifndef HAVE_SIGSET
-    /* Set up handler again. */
-    (void) signal( SIGHUP, handle_hup );
-#endif /* ! HAVE_SIGSET */
 
     /* Just set a flag that we got the signal. */
     got_hup = 1;
@@ -253,7 +247,7 @@ handle_hup( int sig )
 
 /* SIGUSR1 says to exit as soon as all current connections are done. */
 static void
-handle_usr1( int sig )
+handle_usr1( int signo )
     {
     /* Don't need to set up the handler again, since it's a one-shot. */
 
@@ -278,14 +272,9 @@ handle_usr1( int sig )
 
 /* SIGUSR2 says to generate the stats syslogs immediately. */
 static void
-handle_usr2( int sig )
+handle_usr2( int signo )
     {
     const int oerrno = errno;
-
-#ifndef HAVE_SIGSET
-    /* Set up handler again. */
-    (void) signal( SIGUSR2, handle_usr2 );
-#endif /* ! HAVE_SIGSET */
 
     logstats( (struct timeval*) 0 );
 
@@ -296,7 +285,7 @@ handle_usr2( int sig )
 
 /* SIGALRM is used as a watchdog. */
 static void
-handle_alrm( int sig )
+handle_alrm( int signo )
     {
     const int oerrno = errno;
 
@@ -310,10 +299,6 @@ handle_alrm( int sig )
 	}
     watchdog_flag = 0;
 
-#ifndef HAVE_SIGSET
-    /* Set up handler again. */
-    (void) signal( SIGALRM, handle_alrm );
-#endif /* ! HAVE_SIGSET */
     /* Set up alarm again. */
     (void) alarm( OCCASIONAL_TIME * 3 );
 
@@ -366,6 +351,7 @@ main( int argc, char** argv )
     httpd_sockaddr sa6;
     int gotv4, gotv6;
     struct timeval tv;
+    struct sigaction sa;
 
     argv0 = argv[0];
 
@@ -606,25 +592,15 @@ main( int argc, char** argv )
 	}
 
     /* Set up to catch signals. */
-#ifdef HAVE_SIGSET
-    (void) sigset( SIGTERM, handle_term );
-    (void) sigset( SIGINT, handle_term );
-    (void) sigset( SIGCHLD, handle_chld );
-    (void) sigset( SIGPIPE, SIG_IGN );          /* get EPIPE instead */
-    (void) sigset( SIGHUP, handle_hup );
-    (void) sigset( SIGUSR1, handle_usr1 );
-    (void) sigset( SIGUSR2, handle_usr2 );
-    (void) sigset( SIGALRM, handle_alrm );
-#else /* HAVE_SIGSET */
-    (void) signal( SIGTERM, handle_term );
-    (void) signal( SIGINT, handle_term );
-    (void) signal( SIGCHLD, handle_chld );
-    (void) signal( SIGPIPE, SIG_IGN );          /* get EPIPE instead */
-    (void) signal( SIGHUP, handle_hup );
-    (void) signal( SIGUSR1, handle_usr1 );
-    (void) signal( SIGUSR2, handle_usr2 );
-    (void) signal( SIGALRM, handle_alrm );
-#endif /* HAVE_SIGSET */
+    SIGNAL( SIGTERM, handle_term );
+    SIGNAL( SIGINT, handle_term );
+    SIGNAL( SIGCHLD, handle_chld );
+    SIGNAL( SIGPIPE, SIG_IGN );          /* get EPIPE instead */
+    SIGNAL( SIGHUP, handle_hup );
+    SIGNAL( SIGUSR1, handle_usr1 );
+    SIGNAL( SIGUSR2, handle_usr2 );
+    SIGNAL( SIGALRM, handle_alrm );
+
     got_hup = 0;
     got_usr1 = 0;
     watchdog_flag = 0;
