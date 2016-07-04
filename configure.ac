@@ -48,10 +48,10 @@ if test "x${WEBDIR}" = "x" ; then
 fi
 
 AC_CONFIG_FILES([Makefile
-                 docs/Makefile
+                 src/Makefile
+                 man/Makefile
                  extras/Makefile
                  scripts/Makefile
-                 src/Makefile
                  www/Makefile
                  www/cgi-bin/Makefile])
 
