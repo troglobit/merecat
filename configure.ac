@@ -47,12 +47,6 @@ if test "x${WEBDIR}" = "x" ; then
 	WEBDIR='/usr/local/www'
 fi
 
-AC_ARG_VAR(WEBGROUP, [The group that the web server will run as])
-
-if test "x${WEBGROUP}" = "x" ; then
-	WEBGROUP='thttpd'
-fi
-
 AC_CONFIG_FILES([Makefile
                  docs/Makefile
                  extras/Makefile
