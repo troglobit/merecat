@@ -1683,7 +1683,8 @@ static void
 handle_send( connecttab* c, struct timeval* tvP )
     {
     size_t max_bytes;
-    int sz, coast;
+    ssize_t sz;
+    int coast;
     ClientData client_data;
     time_t elapsed;
     httpd_conn* hc = c->hc;
@@ -1773,7 +1774,7 @@ handle_send( connecttab* c, struct timeval* tvP )
     if ( hc->responselen > 0 )
 	{
 	/* Yes; did we write only part of the headers? */
-	if ( sz < hc->responselen )
+	if ( (size_t)sz < hc->responselen )
 	    {
 	    /* Yes; move the unwritten part to the front of the buffer. */
 	    int newlen = hc->responselen - sz;

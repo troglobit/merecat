@@ -276,7 +276,7 @@ extern void httpd_clear_ndelay( int fd );
 extern int httpd_read_fully( int fd, void* buf, size_t nbytes );
 
 /* Write the requested buffer completely, accounting for interruptions. */
-extern int httpd_write_fully( int fd, const void* buf, size_t nbytes );
+extern size_t httpd_write_fully( int fd, const void* buf, size_t nbytes );
 
 /* Generate debugging statistics syslog message. */
 extern void httpd_logstats( long secs );

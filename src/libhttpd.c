@@ -562,7 +562,7 @@ httpd_write_response( httpd_conn* hc )
     /* Send the response, if necessary. */
     if ( hc->responselen > 0 )
 	{
-	(void) httpd_write_fully( hc->conn_fd, hc->response, hc->responselen );
+	httpd_write_fully( hc->conn_fd, hc->response, hc->responselen );
 	hc->responselen = 0;
 	}
     }
@@ -1444,7 +1444,8 @@ expand_symlinks( char* path, char** restP, int no_symlink_check, int tildemapped
     static char* rest;
     char link[5000];
     static size_t maxchecked = 0, maxrest = 0;
-    size_t checkedlen, restlen, linklen, prevcheckedlen, prevrestlen;
+    size_t checkedlen, restlen, prevcheckedlen, prevrestlen;
+    ssize_t linklen;
     int nlinks, i;
     char* r;
     char* cp1;
@@ -1748,7 +1749,7 @@ httpd_get_conn( httpd_server* hs, int listen_fd, httpd_conn* hc )
     hc->responselen = 0;
     hc->if_modified_since = (time_t) -1;
     hc->range_if = (time_t) -1;
-    hc->contentlength = -1;
+    hc->contentlength = 0;
     hc->type = "";
     hc->hostname = (char*) 0;
     hc->mime_flag = 1;
@@ -2195,7 +2196,7 @@ httpd_parse_request( httpd_conn* hc )
 	    else if ( strncasecmp( buf, "Content-Length:", 15 ) == 0 )
 		{
 		cp = &buf[15];
-		hc->contentlength = atol( cp );
+		hc->contentlength = (size_t)atol( cp );
 		}
 	    else if ( strncasecmp( buf, "Authorization:", 14 ) == 0 )
 		{
@@ -2548,8 +2549,8 @@ figure_mime( httpd_conn* hc )
     char* prev_dot;
     char* dot;
     char* ext;
-    int me_indexes[100], n_me_indexes;
-    size_t ext_len, encodings_len;
+    int me_indexes[100];
+    size_t ext_len, encodings_len, n_me_indexes;
     int i, top, bot, mid;
     int r;
     char* default_type = "application/octet-stream";
@@ -3069,7 +3070,7 @@ make_envp( httpd_conn* hc )
 	envp[envn++] = build_env( "CONTENT_TYPE=%s", hc->contenttype );
     if ( hc->hdrhost[0] != '\0' )
 	envp[envn++] = build_env( "HTTP_HOST=%s", hc->hdrhost );
-    if ( hc->contentlength != -1 )
+    if ( hc->contentlength > 0 )
 	{
 	(void) my_snprintf(
 	    buf, sizeof(buf), "%lu", (unsigned long) hc->contentlength );
@@ -3174,7 +3175,7 @@ cgi_interpose_input( httpd_conn* hc, int wfd )
 	    }
 	if ( r <= 0 )
 	    return;
-	if ( httpd_write_fully( wfd, buf, r ) != r )
+	if ( httpd_write_fully( wfd, buf, r ) != (size_t)r )
 	    return;
 	c += r;
 	}
@@ -3301,11 +3302,11 @@ cgi_interpose_output( httpd_conn* hc, int rfd )
 	case 503: title = httpd_err503title; break;
 	default: title = "Something"; break;
 	}
-    (void) my_snprintf( buf, sizeof(buf), "HTTP/1.0 %d %s\015\012", status, title );
-    (void) httpd_write_fully( hc->conn_fd, buf, strlen( buf ) );
+    my_snprintf( buf, sizeof(buf), "HTTP/1.0 %d %s\015\012", status, title );
+    httpd_write_fully( hc->conn_fd, buf, strlen( buf ) );
 
     /* Write the saved headers. */
-    (void) httpd_write_fully( hc->conn_fd, headers, headers_len );
+    httpd_write_fully( hc->conn_fd, headers, headers_len );
 
     /* Echo the rest of the output. */
     for (;;)
@@ -3318,7 +3319,7 @@ cgi_interpose_output( httpd_conn* hc, int rfd )
 	    }
 	if ( r <= 0 )
 	    break;
-	if ( httpd_write_fully( hc->conn_fd, buf, r ) != r )
+	if ( httpd_write_fully( hc->conn_fd, buf, r ) != (size_t)r )
 	    break;
 	}
     shutdown( hc->conn_fd, SHUT_WR );
@@ -3585,12 +3586,11 @@ really_start_request( httpd_conn* hc, struct timeval* nowP )
     static char* indexname;
     static size_t maxindexname = 0;
     static const char* index_names[] = { INDEX_NAMES };
-    int i;
 #ifdef AUTH_FILE
     static char* dirname;
     static size_t maxdirname = 0;
 #endif /* AUTH_FILE */
-    size_t expnlen, indxlen;
+    size_t expnlen, indxlen, i;
     char* cp;
     char* pi;
 
@@ -4170,7 +4170,7 @@ atoll( const char* str )
 int
 httpd_read_fully( int fd, void* buf, size_t nbytes )
     {
-    int nread;
+    size_t nread;
 
     nread = 0;
     while ( nread < nbytes )
@@ -4195,10 +4195,10 @@ httpd_read_fully( int fd, void* buf, size_t nbytes )
 
 
 /* Write the requested buffer completely, accounting for interruptions. */
-int
+size_t
 httpd_write_fully( int fd, const void* buf, size_t nbytes )
     {
-    int nwritten;
+    size_t nwritten;
 
     nwritten = 0;
     while ( nwritten < nbytes )
