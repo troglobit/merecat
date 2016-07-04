@@ -2922,7 +2922,7 @@ mode  links  bytes  last-changed  name\n\
 
 		/* And print. */
 		(void)  fprintf( fp,
-		   "%s %3ld  %10lld  %s  <A HREF=\"/%.500s%s\">%.80s</A>%s%s%s\n",
+		   "%s %3ld  %10ld  %s  <A HREF=\"/%.500s%s\">%.80s</A>%s%s%s\n",
 		    modestr, (long) lsb.st_nlink, (int64_t) lsb.st_size,
 		    timestr, encrname, S_ISDIR(sb.st_mode) ? "/" : "",
 		    nameptrs[i], linkprefix, link, fileclass );
