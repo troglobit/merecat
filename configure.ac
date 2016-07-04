@@ -6,6 +6,7 @@ AM_INIT_AUTOMAKE([1.11 foreign no-dist-gzip dist-xz])
 
 # Checks for programs.
 AC_PROG_CC
+AC_PROG_LN_S
 AC_PROG_INSTALL
 AN_MAKEVAR([AR], [AC_PROG_AR])
 AN_PROGRAM([ar], [AC_PROG_AR])
