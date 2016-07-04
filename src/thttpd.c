@@ -1480,7 +1480,6 @@ static int
 handle_newconnect( struct timeval* tvP, int listen_fd )
     {
     connecttab* c;
-    ClientData client_data;
 
     /* This loops until the accept() fails, trying to start new
     ** connections as fast as possible so we don't overrun the
@@ -1538,7 +1537,6 @@ handle_newconnect( struct timeval* tvP, int listen_fd )
 	first_free_connect = c->next_free_connect;
 	c->next_free_connect = -1;
 	++num_connects;
-	client_data.p = c;
 	c->active_at = tvP->tv_sec;
 	c->wakeup_timer = (Timer*) 0;
 	c->linger_timer = (Timer*) 0;
@@ -1561,7 +1559,6 @@ static void
 handle_read( connecttab* c, struct timeval* tvP )
     {
     int sz;
-    ClientData client_data;
     httpd_conn* hc = c->hc;
 
     /* Is there room in our buffer to read more bytes? */
@@ -1672,7 +1669,6 @@ handle_read( connecttab* c, struct timeval* tvP )
     c->conn_state = CNST_SENDING;
     c->started_at = tvP->tv_sec;
     c->wouldblock_delay = 0;
-    client_data.p = c;
 
     fdwatch_del_fd( hc->conn_fd );
     fdwatch_add_fd( hc->conn_fd, c, FDW_WRITE );
