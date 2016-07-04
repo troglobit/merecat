@@ -1,17 +1,34 @@
+Merecat Web Server
+==================
 
-      sthttpd - a fork of thttpd, a tiny/turbo/throttling HTTP server
-                    version 2.27.0 Oct 3, 2014
+[Merecat][] is a simple, small and fast HTTP server.  Once it was about
+as fast as the best full-featured web servers, and even today it remains
+sufficient for most use-case on the web.  It does not have a lot of
+special features, except for one extremely useful -- URL-traffic-based
+throttling -- something that few other web servers have.
 
-sthttpd is a fork of Jef Poskanzer's popular thttpd server.  This fork aims to simply maintain the original codebase as bugs or security issues are found.
+With its very low footprint it is very suitable for small and embedded
+systems, even those smaller than a Raspberry Pi.
 
-Please read README.thttpd for more information.
+Merecat is released under the [simplified 2-clause BSD license][license].
 
-Credits:
 
-* The original codebase is by * Jef Poskanzer <jef@mail.acme.com>  http://www.acme.com/jef/ Please send all kudos to him.
+Origin & References
+-------------------
 
-* The fork is by Anthony G. Basile <blueness@gentoo.org> https://github.com/blueness/sthttpd Send all blame to him.
+Merecat is a pun at [Mongoose][], and is not even a real Meerkat, merely
+a fork of [sthttpd][] by Anthony G. Basile, which in turn is a fork of
+[thttpd[[] -- the tiny/turbo/throttling HTTP server.  See README.thttpd
+for more information.
 
-* thttpd is released under a BSD license.  Any extended code added by sthttpd is also released under the same license.  Here's a copy of it from the src/thttpd.c file:
+* [thttpd][] was written by Jef Poskanzer <mailto:jef@mail.acme.com>
+* [sthttpd][] was created by Anthony G. Basile <mailto:blueness@gentoo.org>
+
+
+[Merecat]:  https://github.com/troglobit/merecat/
+[license]:  https://github.com/troglobit/merecat/blob/master/LICENSE
+[Mongoose]: https://github.com/cesanta/mongoose 
+[thttpd]:   http://www.acme.com/software/thttpd/
+[sthttpd]:  https://github.com/blueness/sthttpd/
 
 
