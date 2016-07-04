@@ -26,7 +26,7 @@
 */
 
 
-#include <config.h>
+#include "config.h"
 
 //system headers
 #include <sys/types.h>
@@ -78,12 +78,11 @@ extern char* crypt( const char* key, const char* setting );
 #include <tdate_parse.h>
 #include <thttpd.h>
 #include <timers.h>
-#include <version.h>
 
 #ifdef SHOW_SERVER_VERSION
 #define EXPOSED_SERVER_SOFTWARE SERVER_SOFTWARE
 #else /* SHOW_SERVER_VERSION */
-#define EXPOSED_SERVER_SOFTWARE "sthttpd"
+#define EXPOSED_SERVER_SOFTWARE PACKAGE_NAME
 #endif /* SHOW_SERVER_VERSION */
 
 #ifndef STDIN_FILENO
@@ -355,14 +354,11 @@ httpd_initialize(
 
     /* Done initializing. */
     if ( hs->binding_hostname == (char*) 0 )
-	syslog(
-	    LOG_NOTICE, "%.80s starting on port %d", SERVER_SOFTWARE,
-	    (int) hs->port );
+	syslog(LOG_NOTICE, "%.80s starting on port %d", PACKAGE_STRING, hs->port );
     else
-	syslog(
-	    LOG_NOTICE, "%.80s starting on %.80s, port %d", SERVER_SOFTWARE,
-	    httpd_ntoa( hs->listen4_fd != -1 ? sa4P : sa6P ),
-	    (int) hs->port );
+	syslog(LOG_NOTICE, "%.80s starting on %.80s, port %d", PACKAGE_STRING,
+	       httpd_ntoa( hs->listen4_fd != -1 ? sa4P : sa6P ),
+	       (int) hs->port );
     return hs;
     }
 

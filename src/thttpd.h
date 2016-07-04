@@ -25,8 +25,8 @@
 ** SUCH DAMAGE.
 */
 
-#ifndef _THTTPD_H_
-#define _THTTPD_H_
+#ifndef THTTPD_H_
+#define THTTPD_H_
 
 
 /* The following configuration settings are sorted in order of decreasing
@@ -38,6 +38,16 @@
 ** The idea here is that you re-enable it by just moving it outside
 ** of the ifdef.
 */
+
+/* CONFIGURE: Server software version, standard httpd version format.
+** You may want to add a build ID here, but probably not.
+*/
+#define SERVER_SOFTWARE PACKAGE "/" VERSION
+
+/* CONFIGURE: Server default address. This along with SERVER_SOFTWARE
+** is tacked on to error pages, see more below for how to disable.
+*/
+#define SERVER_ADDRESS "http://localhost"
 
 /* CONFIGURE: CGI programs must match this pattern to get executed.  It's
 ** a simple shell-style wildcard pattern, with * meaning any string not
@@ -395,4 +405,4 @@
 */
 #define MIN_WOULDBLOCK_DELAY 100L
 
-#endif /* _THTTPD_H_ */
+#endif /* THTTPD_H_ */

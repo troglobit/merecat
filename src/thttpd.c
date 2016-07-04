@@ -26,7 +26,7 @@
 */
 
 
-#include <config.h>
+#include "config.h"
 
 //system headers
 #include <sys/param.h>
@@ -57,7 +57,6 @@
 #include <mmc.h>
 #include <thttpd.h>
 #include <timers.h>
-#include <version.h>
 
 #ifndef SHUT_WR
 #define SHUT_WR 1
@@ -860,7 +859,7 @@ parse_args( int argc, char** argv )
 	{
 	if ( strcmp( argv[argn], "-V" ) == 0 )
 	    {
-	    (void) printf( "%s\n", SERVER_SOFTWARE );
+	    (void) printf( "%s\n", PACKAGE_VERSION );
 	    exit( 0 );
 	    }
 	else if ( strcmp( argv[argn], "-C" ) == 0 && argn + 1 < argc )
