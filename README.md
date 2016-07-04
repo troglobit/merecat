@@ -1,6 +1,8 @@
 Merecat Web Server
 ==================
 
+![I am only a mere cat web server](www/img/merecat.jpg "Day 37!")
+
 [Merecat][] is a simple, small and fast HTTP server.  Once it was about
 as fast as the best full-featured web servers, and even today it remains
 sufficient for most use-case on the web.  It does not have a lot of
