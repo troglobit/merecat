@@ -2,7 +2,7 @@ AC_PREREQ([2.68])
 AC_INIT([merecat], [2.27.0], [https://github.com/troglobit/merecat/issues])
 AC_CONFIG_SRCDIR([src/thttpd.c])
 AC_CONFIG_HEADERS([config.h])
-AM_INIT_AUTOMAKE([1.11 foreign])
+AM_INIT_AUTOMAKE([1.11 foreign no-dist-gzip dist-xz])
 
 # Checks for programs.
 AC_PROG_CC
