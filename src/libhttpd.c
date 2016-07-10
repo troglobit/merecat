@@ -1232,6 +1232,10 @@ static int vhost_map(httpd_conn *hc)
 	char *cp2;
 #endif				/* VHOST_DIRLEVELS */
 
+	/* Allow vhosts to use top level /icons/ */
+	if (!strncmp(hc->expnfilename, "/icons/", 7))
+		return 1;
+
 	/* Figure out the virtual hostname. */
 	if (hc->reqhost[0] != '\0')
 		hc->hostname = hc->reqhost;
@@ -2030,11 +2034,12 @@ int httpd_parse_request(httpd_conn *hc)
 	}
 
 	/* Virtual host mapping. */
-	if (hc->hs->vhost)
+	if (hc->hs->vhost) {
 		if (!vhost_map(hc)) {
 			httpd_send_err(hc, 500, err500title, "", err500form, hc->encodedurl);
 			return -1;
 		}
+	}
 
 	/* Expand all symbolic links in the filename.  This also gives us
 	 ** any trailing non-existing components, for pathinfo.
@@ -2461,7 +2466,7 @@ static int ls(httpd_conn *hc)
 				"<h1>Index of %.80s</h1>\n"
 				"<table>\n"
 				" <tr>"
-				"  <th valign=\"top\"><img src=\"/www/icons/blank.gif\" alt=\"[ICO]\"></th>\n"
+				"  <th valign=\"top\"><img src=\"/icons/blank.gif\" alt=\"[ICO]\"></th>\n"
 				"  <th><a href=\"?C=N;O=D\">Name</a></th>\n"
 				"  <th><a href=\"?C=M;O=A\">Last modified</a></th>\n"
 				"  <th><a href=\"?C=S;O=A\">Size</a></th>\n"
@@ -2525,11 +2530,11 @@ static int ls(httpd_conn *hc)
 				/* The ls -F file class. */
 				switch (sb.st_mode & S_IFMT) {
 				case S_IFDIR:
-					fileclass = "/www/icons/folder.gif";
+					fileclass = "/icons/folder.gif";
 					break;
 
 				default:
-					fileclass = "/www/icons/generic.gif";
+					fileclass = "/icons/generic.gif";
 					break;
 				}
 
@@ -2538,7 +2543,7 @@ static int ls(httpd_conn *hc)
 					continue;
 				if (!strcmp(nameptrs[i], ".."))
 					fprintf(fp, "<tr><td valign=\"top\">"
-						"<img src=\"/www/icons/back.gif\" alt=\"[PARENTDIR]\"></td><td><a href=\"/\">Parent Directory</a></td><td>&nbsp;</td><td align=\"right\">  - </td><td>&nbsp;</td></tr>\n");
+						"<img src=\"/icons/back.gif\" alt=\"[PARENTDIR]\"></td><td><a href=\"/\">Parent Directory</a></td><td>&nbsp;</td><td align=\"right\">  - </td><td>&nbsp;</td></tr>\n");
 				else
 					fprintf(fp, "<tr><td valign=\"top\"><img src=\"%s\" alt=\"[   ]\"></td>"
 						"<td><a href=\"%s%s\">%s</a></td><td align=\"right\">%s  </td><td align=\"right\">%s</td><td>%s</td></tr>",
