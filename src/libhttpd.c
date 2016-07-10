@@ -2414,14 +2414,14 @@ static int ls(httpd_conn *hc)
 				exit(1);
 			}
 
-			(void)fprintf(fp, "\
-<HTML>\n\
-<HEAD><TITLE>Index of %.80s</TITLE></HEAD>\n\
-<BODY BGCOLOR=\"#99cc99\" TEXT=\"#000000\" LINK=\"#2020ff\" VLINK=\"#4040cc\">\n\
-<H2>Index of %.80s</H2>\n\
-<PRE>\n\
-mode  links  bytes  last-changed  name\n\
-<HR>", hc->encodedurl, hc->encodedurl);
+			fprintf(fp,
+				"<html>\n"
+				"<head><title>Index of %.80s</title></head>\n"
+				"<body bgcolor=\"#99cc99\" text=\"#000000\" link=\"#2020ff\" vlink=\"#4040cc\">\n"
+				"<h2>Index of %.80s</h2>\n"
+				"<pre>\n"
+				"mode  links  bytes  last-changed  name\n"
+				"<hr>", hc->encodedurl, hc->encodedurl);
 
 			/* Read in names. */
 			nnames = 0;
@@ -2563,15 +2563,14 @@ mode  links  bytes  last-changed  name\n\
 				}
 
 				/* And print. */
-				(void)fprintf(fp,
-					      "%s %3ld  %10ld  %s  <A HREF=\"/%.500s%s\">%.80s</A>%s%s%s\n",
-					      modestr, (long)lsb.st_nlink, (int64_t) lsb.st_size,
-					      timestr, encrname, S_ISDIR(sb.st_mode) ? "/" : "",
-					      nameptrs[i], linkprefix, link, fileclass);
+				fprintf(fp, "%s %3ld  %10ld  %s  <a href=\"/%s%s\">%.80s</a>%s%s%s\n",
+					modestr, (long)lsb.st_nlink, (int64_t) lsb.st_size,
+					timestr, encrname, S_ISDIR(sb.st_mode) ? "/" : "",
+					nameptrs[i], linkprefix, link, fileclass);
 			}
 
-			(void)fprintf(fp, "</PRE></BODY>\n</HTML>\n");
-			(void)fclose(fp);
+			fprintf(fp, "</pre></body>\n</html>\n");
+			fclose(fp);
 			exit(0);
 		}
 
