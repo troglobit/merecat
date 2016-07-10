@@ -116,7 +116,7 @@ static void check_options(void);
 static void free_httpd_server(httpd_server *hs);
 static int initialize_listen_socket(httpd_sockaddr *saP);
 static void add_response(httpd_conn *hc, char *str);
-static void send_mime(httpd_conn *hc, int status, char *title, char *encodings, char *extraheads, char *type, off_t length,
+static void send_mime(httpd_conn *hc, int status, char *title, char *encodings, char *extraheads, const char *type, off_t length,
 		      time_t mod);
 static void send_response(httpd_conn *hc, int status, char *title, char *extraheads, char *form, char *arg);
 static void send_response_tail(httpd_conn *hc);
@@ -556,7 +556,7 @@ void httpd_clear_ndelay(int fd)
 
 
 static void
-send_mime(httpd_conn *hc, int status, char *title, char *encodings, char *extraheads, char *type, off_t length, time_t mod)
+send_mime(httpd_conn *hc, int status, char *title, char *encodings, char *extraheads, const char *type, off_t length, time_t mod)
 {
 	time_t now, expires;
 	const char *rfc1123fmt = "%a, %d %b %Y %H:%M:%S GMT";
@@ -2236,7 +2236,7 @@ static void figure_mime(httpd_conn *hc)
 	size_t ext_len, encodings_len, n_me_indexes;
 	int i, top, bot, mid;
 	int r;
-	char *default_type = "application/octet-stream";
+	const char *default_type = "text/plain; charset=%s";
 
 	/* Peel off encoding extensions until there aren't any more. */
 	n_me_indexes = 0;

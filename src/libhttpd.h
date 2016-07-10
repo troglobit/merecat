@@ -134,7 +134,7 @@ typedef struct {
 	size_t responselen;
 	time_t if_modified_since, range_if;
 	size_t contentlength;
-	char *type;		/* not malloc()ed */
+	const char *type;	/* not malloc()ed */
 	char *hostname;		/* not malloc()ed */
 	int mime_flag;
 	int one_one;		/* HTTP/1.1 or better */
