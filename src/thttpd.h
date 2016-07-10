@@ -149,7 +149,7 @@
 ** You can override this in the config file with the "charset" setting,
 ** or on the command like with the -T flag.
 */
-#define DEFAULT_CHARSET "iso-8859-1"
+#define DEFAULT_CHARSET "UTF-8"
 
 
 /* Most people won't want to change anything below here. */
