@@ -1099,10 +1099,13 @@ char *httpd_method_str(int method)
 	switch (method) {
 	case METHOD_GET:
 		return "GET";
+
 	case METHOD_HEAD:
 		return "HEAD";
+
 	case METHOD_POST:
 		return "POST";
+
 	default:
 		return "UNKNOWN";
 	}
@@ -1637,8 +1640,8 @@ int httpd_got_request(httpd_conn *hc)
 			case '\t':
 				hc->checked_state = CHST_FIRSTWS;
 				break;
-			case '\012':
-			case '\015':
+			case '\n':
+			case '\r':
 				hc->checked_state = CHST_BOGUS;
 				return GR_BAD_REQUEST;
 			}
@@ -1648,8 +1651,8 @@ int httpd_got_request(httpd_conn *hc)
 			case ' ':
 			case '\t':
 				break;
-			case '\012':
-			case '\015':
+			case '\n':
+			case '\r':
 				hc->checked_state = CHST_BOGUS;
 				return GR_BAD_REQUEST;
 			default:
@@ -1663,8 +1666,8 @@ int httpd_got_request(httpd_conn *hc)
 			case '\t':
 				hc->checked_state = CHST_SECONDWS;
 				break;
-			case '\012':
-			case '\015':
+			case '\n':
+			case '\r':
 				/* The first line has only two words - an HTTP/0.9 request. */
 				return GR_GOT_REQUEST;
 			}
@@ -1674,8 +1677,8 @@ int httpd_got_request(httpd_conn *hc)
 			case ' ':
 			case '\t':
 				break;
-			case '\012':
-			case '\015':
+			case '\n':
+			case '\r':
 				hc->checked_state = CHST_BOGUS;
 				return GR_BAD_REQUEST;
 			default:
@@ -1689,10 +1692,10 @@ int httpd_got_request(httpd_conn *hc)
 			case '\t':
 				hc->checked_state = CHST_THIRDWS;
 				break;
-			case '\012':
+			case '\n':
 				hc->checked_state = CHST_LF;
 				break;
-			case '\015':
+			case '\r':
 				hc->checked_state = CHST_CR;
 				break;
 			}
@@ -1702,10 +1705,10 @@ int httpd_got_request(httpd_conn *hc)
 			case ' ':
 			case '\t':
 				break;
-			case '\012':
+			case '\n':
 				hc->checked_state = CHST_LF;
 				break;
-			case '\015':
+			case '\r':
 				hc->checked_state = CHST_CR;
 				break;
 			default:
@@ -1715,20 +1718,20 @@ int httpd_got_request(httpd_conn *hc)
 			break;
 		case CHST_LINE:
 			switch (c) {
-			case '\012':
+			case '\n':
 				hc->checked_state = CHST_LF;
 				break;
-			case '\015':
+			case '\r':
 				hc->checked_state = CHST_CR;
 				break;
 			}
 			break;
 		case CHST_LF:
 			switch (c) {
-			case '\012':
+			case '\n':
 				/* Two newlines in a row - a blank line - end of request. */
 				return GR_GOT_REQUEST;
-			case '\015':
+			case '\r':
 				hc->checked_state = CHST_CR;
 				break;
 			default:
@@ -1738,10 +1741,10 @@ int httpd_got_request(httpd_conn *hc)
 			break;
 		case CHST_CR:
 			switch (c) {
-			case '\012':
+			case '\n':
 				hc->checked_state = CHST_CRLF;
 				break;
-			case '\015':
+			case '\r':
 				/* Two returns in a row - end of request. */
 				return GR_GOT_REQUEST;
 			default:
@@ -1751,10 +1754,10 @@ int httpd_got_request(httpd_conn *hc)
 			break;
 		case CHST_CRLF:
 			switch (c) {
-			case '\012':
+			case '\n':
 				/* Two newlines in a row - end of request. */
 				return GR_GOT_REQUEST;
-			case '\015':
+			case '\r':
 				hc->checked_state = CHST_CRLFCR;
 				break;
 			default:
@@ -1764,8 +1767,8 @@ int httpd_got_request(httpd_conn *hc)
 			break;
 		case CHST_CRLFCR:
 			switch (c) {
-			case '\012':
-			case '\015':
+			case '\n':
+			case '\r':
 				/* Two CRLFs or two CRs in a row - end of request. */
 				return GR_GOT_REQUEST;
 			default:
@@ -1794,22 +1797,22 @@ int httpd_parse_request(httpd_conn *hc)
 
 	hc->checked_idx = 0;	/* reset */
 	method_str = bufgets(hc);
-	url = strpbrk(method_str, " \t\012\015");
+	url = strpbrk(method_str, " \t\n\r");
 	if (url == (char *)0) {
 		httpd_send_err(hc, 400, httpd_err400title, "", httpd_err400form, "");
 		return -1;
 	}
 	*url++ = '\0';
-	url += strspn(url, " \t\012\015");
-	protocol = strpbrk(url, " \t\012\015");
+	url += strspn(url, " \t\n\r");
+	protocol = strpbrk(url, " \t\n\r");
 	if (protocol == (char *)0) {
 		protocol = "HTTP/0.9";
 		hc->mime_flag = 0;
 	} else {
 		*protocol++ = '\0';
-		protocol += strspn(protocol, " \t\012\015");
+		protocol += strspn(protocol, " \t\n\r");
 		if (*protocol != '\0') {
-			eol = strpbrk(protocol, " \t\012\015");
+			eol = strpbrk(protocol, " \t\n\r");
 			if (eol != (char *)0)
 				*eol = '\0';
 			if (strcasecmp(protocol, "HTTP/1.0") != 0)
@@ -2119,10 +2122,10 @@ static char *bufgets(httpd_conn *hc)
 
 	for (i = hc->checked_idx; hc->checked_idx < hc->read_idx; ++hc->checked_idx) {
 		c = hc->read_buf[hc->checked_idx];
-		if (c == '\012' || c == '\015') {
+		if (c == '\n' || c == '\r') {
 			hc->read_buf[hc->checked_idx] = '\0';
 			++hc->checked_idx;
-			if (c == '\015' && hc->checked_idx < hc->read_idx && hc->read_buf[hc->checked_idx] == '\012') {
+			if (c == '\r' && hc->checked_idx < hc->read_idx && hc->read_buf[hc->checked_idx] == '\n') {
 				hc->read_buf[hc->checked_idx] = '\0';
 				++hc->checked_idx;
 			}
@@ -2866,7 +2869,7 @@ static void cgi_interpose_output(httpd_conn *hc, int rfd)
 		(void)memmove(&(headers[headers_len]), buf, r);
 		headers_len += r;
 		headers[headers_len] = '\0';
-		if ((br = strstr(headers, "\r\n\r\n")) != (char *)0 || (br = strstr(headers, "\012\012")) != (char *)0)
+		if ((br = strstr(headers, "\r\n\r\n")) != (char *)0 || (br = strstr(headers, "\n\n")) != (char *)0)
 			break;
 	}
 
@@ -2884,11 +2887,11 @@ static void cgi_interpose_output(httpd_conn *hc, int rfd)
 		cp += strcspn(cp, " \t");
 		status = atoi(cp);
 	}
-	if ((cp = strstr(headers, "Status:")) != (char *)0 && cp < br && (cp == headers || *(cp - 1) == '\012')) {
+	if ((cp = strstr(headers, "Status:")) != (char *)0 && cp < br && (cp == headers || *(cp - 1) == '\n')) {
 		cp += 7;
 		cp += strspn(cp, " \t");
 		status = atoi(cp);
-	} else if ((cp = strstr(headers, "Location:")) != (char *)0 && cp < br && (cp == headers || *(cp - 1) == '\012'))
+	} else if ((cp = strstr(headers, "Location:")) != (char *)0 && cp < br && (cp == headers || *(cp - 1) == '\n'))
 		status = 302;
 
 	/* Write the status line. */
