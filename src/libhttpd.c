@@ -2610,10 +2610,10 @@ static int ls(httpd_conn *hc)
 					continue;
 				if (!strcmp(nameptrs[i], ".."))
 					fprintf(fp, "<tr><td valign=\"top\">"
-						"<img src=\"/icons/back.gif\" alt=\"[PARENTDIR]\"></td><td><a href=\"/\">Parent Directory</a></td><td>&nbsp;</td><td align=\"right\">  - </td><td>&nbsp;</td></tr>\n");
+						"<img src=\"/icons/back.gif\" alt=\"[PARENTDIR]\"></td><td><a href=\"..\">Parent Directory</a></td><td>&nbsp;</td><td align=\"right\">  - </td><td>&nbsp;</td></tr>\n");
 				else
 					fprintf(fp, "<tr><td valign=\"top\"><img src=\"%s\" alt=\"[   ]\"></td>"
-						"<td><a href=\"%s%s\">%s</a></td><td align=\"right\">%s  </td><td align=\"right\">%s</td><td>%s</td></tr>",
+						"<td><a href=\"/%s%s\">%s</a></td><td align=\"right\">%s  </td><td align=\"right\">%s</td><td>%s</td></tr>",
 						fileclass, encrname, S_ISDIR(sb.st_mode) ? "/" : "", nameptrs[i],
 						timestr, humane_size(&lsb), "&nbsp;");
 			}
