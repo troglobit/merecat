@@ -2370,12 +2370,19 @@ static void cgi_kill(ClientData client_data, struct timeval *nowP)
 #ifdef GENERATE_INDEXES
 
 /* Convert byte size to kiB, MiB, GiB */
-static char *humane_size(off_t bytes)
+static char *humane_size(struct stat *st)
 {
 	size_t i = 0;
+	off_t bytes;
 	char *mult[] = { "", "k", "M", "G", "T", "P" };
 	static char str[42];
 
+	if ((st->st_mode & S_IFMT) == S_IFDIR) {
+		snprintf(str, sizeof(str), "  - ");
+		return str;
+	}
+
+	bytes = st->st_size;
 	while (bytes > 1000 && i < NELEMS(mult)) {
 		bytes /= 1000;
 		i++;
@@ -2562,7 +2569,7 @@ static int ls(httpd_conn *hc)
 					fprintf(fp, "<tr><td valign=\"top\"><img src=\"%s\" alt=\"[   ]\"></td>"
 						"<td><a href=\"%s%s\">%s</a></td><td align=\"right\">%s  </td><td align=\"right\">%s</td><td>%s</td></tr>",
 						fileclass, encrname, S_ISDIR(sb.st_mode) ? "/" : "", nameptrs[i],
-						timestr, humane_size(lsb.st_size), "&nbsp;");
+						timestr, humane_size(&lsb), "&nbsp;");
 			}
 
 			fprintf(fp, "  <tr><th colspan=\"5\"><hr></th></tr>\n</table>\n");
