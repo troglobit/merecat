@@ -705,6 +705,20 @@ static void send_response(httpd_conn *hc, int status, char *title, char *extrahe
 	send_response_tail(hc);
 }
 
+static char *get_hostname(httpd_conn *hc)
+{
+	char *host;
+	static char *fallback = "";
+
+	if (hc->hs->vhost && hc->hostname)
+		host = hc->hostname;
+	else
+		host = hc->hs->server_hostname;
+	if (!host)
+		host = fallback;
+
+	return host;
+}
 
 static void send_response_tail(httpd_conn *hc)
 {
@@ -714,7 +728,7 @@ static void send_response_tail(httpd_conn *hc)
 		    " <hr>\n"
 		    " <address>%s server at %s port %d</address>\n"
 		    "</body>\n"
-		    "</html>\n", EXPOSED_SERVER_SOFTWARE, hc->hs->server_hostname, (int)hc->hs->port);
+		    "</html>\n", EXPOSED_SERVER_SOFTWARE, get_hostname(hc), (int)hc->hs->port);
 	add_response(hc, buf);
 }
 
@@ -1588,7 +1602,7 @@ int httpd_get_conn(httpd_server *hs, int listen_fd, httpd_conn *hc)
 	hc->range_if = (time_t)-1;
 	hc->contentlength = 0;
 	hc->type = "";
-	hc->hostname = (char *)0;
+	hc->hostname = NULL;
 	hc->mime_flag = 1;
 	hc->one_one = 0;
 	hc->got_range = 0;
@@ -1597,7 +1611,7 @@ int httpd_get_conn(httpd_server *hs, int listen_fd, httpd_conn *hc)
 	hc->last_byte_index = -1;
 	hc->keep_alive = 0;
 	hc->should_linger = 0;
-	hc->file_address = (char *)0;
+	hc->file_address = NULL;
 	return GC_OK;
 }
 
@@ -2552,7 +2566,7 @@ static int ls(httpd_conn *hc)
 			}
 
 			fprintf(fp, "  <tr><th colspan=\"5\"><hr></th></tr>\n</table>\n");
-			fprintf(fp, " </table>\n <address>%s server at %s port %d</address>\n", EXPOSED_SERVER_SOFTWARE, hc->hs->server_hostname, (int)hc->hs->port);
+			fprintf(fp, " </table>\n <address>%s server at %s port %d</address>\n", EXPOSED_SERVER_SOFTWARE, get_hostname(hc), (int)hc->hs->port);
 			fprintf(fp, "</body>\n</html>\n");
 			fclose(fp);
 			exit(0);
@@ -2638,11 +2652,8 @@ static char **make_envp(httpd_conn *hc)
 #endif				/* CGI_LD_LIBRARY_PATH */
 	envp[envn++] = build_env("SERVER_SOFTWARE=%s", SERVER_SOFTWARE);
 	/* If vhosting, use that server-name here. */
-	if (hc->hs->vhost && hc->hostname != (char *)0)
-		cp = hc->hostname;
-	else
-		cp = hc->hs->server_hostname;
-	if (cp != (char *)0)
+	cp = get_hostname(hc);
+	if (cp[0])
 		envp[envn++] = build_env("SERVER_NAME=%s", cp);
 	envp[envn++] = "GATEWAY_INTERFACE=CGI/1.1";
 	envp[envn++] = build_env("SERVER_PROTOCOL=%s", hc->protocol);
@@ -3416,11 +3427,9 @@ static void make_log_entry(httpd_conn *hc, struct timeval *nowP)
 	 ** each vhost would make more sense.
 	 */
 	if (hc->hs->vhost && !hc->tildemapped)
-		(void)my_snprintf(url, sizeof(url),
-				  "/%.100s%.200s",
-				  hc->hostname == (char *)0 ? hc->hs->server_hostname : hc->hostname, hc->encodedurl);
+		my_snprintf(url, sizeof(url), "/%.100s%.200s", get_hostname(hc), hc->encodedurl);
 	else
-		(void)my_snprintf(url, sizeof(url), "%.200s", hc->encodedurl);
+		my_snprintf(url, sizeof(url), "%.200s", hc->encodedurl);
 	/* Format the bytes. */
 	if (hc->bytes_sent >= 0)
 		(void)my_snprintf(bytes, sizeof(bytes), "%lld", (int64_t) hc->bytes_sent);
@@ -3476,7 +3485,6 @@ static void make_log_entry(httpd_conn *hc, struct timeval *nowP)
 static int check_referer(httpd_conn *hc)
 {
 	int r;
-	char *cp;
 
 	/* Are we doing referer checking at all? */
 	if (hc->hs->url_pattern == (char *)0)
@@ -3485,14 +3493,8 @@ static int check_referer(httpd_conn *hc)
 	r = really_check_referer(hc);
 
 	if (!r) {
-		if (hc->hs->vhost && hc->hostname != (char *)0)
-			cp = hc->hostname;
-		else
-			cp = hc->hs->server_hostname;
-		if (cp == (char *)0)
-			cp = "";
 		syslog(LOG_INFO, "%.80s non-local referer \"%.80s%.80s\" \"%.80s\"",
-		       httpd_ntoa(&hc->client_addr), cp, hc->encodedurl, hc->referer);
+		       httpd_ntoa(&hc->client_addr), get_hostname(hc), hc->encodedurl, hc->referer);
 		httpd_send_err(hc, 403, err403title, "",
 			       ERROR_FORM(err403form, "You must supply a local referer to get URL '%.80s' from this server.\n"),
 			       hc->encodedurl);
@@ -3549,7 +3551,7 @@ static int really_check_referer(httpd_conn *hc)
 		} else {
 			/* We are vhosting, use the hostname on this connection. */
 			lp = hc->hostname;
-			if (lp == (char *)0)
+			if (!lp)
 				/* Oops, no hostname.  Maybe it's an old browser that
 				 ** doesn't send a Host: header.  We could figure out
 				 ** the default hostname for this IP address, but it's
