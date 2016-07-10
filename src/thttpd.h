@@ -44,11 +44,6 @@
 */
 #define SERVER_SOFTWARE PACKAGE "/" VERSION
 
-/* CONFIGURE: Server default address. This along with SERVER_SOFTWARE
-** is tacked on to error pages, see more below for how to disable.
-*/
-#define SERVER_ADDRESS "http://localhost"
-
 /* CONFIGURE: CGI programs must match this pattern to get executed.  It's
 ** a simple shell-style wildcard pattern, with * meaning any string not
 ** containing a slash, ** meaning any string at all, and ? meaning any
@@ -274,8 +269,8 @@
 #define ERR_DIR "errors"
 
 /* CONFIGURE: Define this if you want a standard HTML tail containing
-** $SERVER_SOFTWARE and $SERVER_ADDRESS to be appended to the custom error
-** pages.  (It is always appended to the built-in error pages.)
+** $SERVER_SOFTWARE, hostname, and port to be appended to the custom
+** error pages.  (It is always appended to the built-in error pages.)
 */
 #define ERR_APPEND_SERVER_INFO
 
