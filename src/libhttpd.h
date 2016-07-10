@@ -57,92 +57,91 @@
 
 /* A multi-family sockaddr. */
 typedef union {
-    struct sockaddr sa;
-    struct sockaddr_in sa_in;
+	struct sockaddr sa;
+	struct sockaddr_in sa_in;
 #ifdef USE_IPV6
-    struct sockaddr_in6 sa_in6;
-    struct sockaddr_storage sa_stor;
-#endif /* USE_IPV6 */
-    } httpd_sockaddr;
+	struct sockaddr_in6 sa_in6;
+	struct sockaddr_storage sa_stor;
+#endif				/* USE_IPV6 */
+} httpd_sockaddr;
 
 /* A server. */
 typedef struct {
-    char* binding_hostname;
-    char* server_hostname;
-    unsigned short port;
-    char* cgi_pattern;
-    int cgi_limit, cgi_count;
-    char* charset;
-    char* p3p;
-    int max_age;
-    char* cwd;
-    int listen4_fd, listen6_fd;
-    int no_log;
-    FILE* logfp;
-    int no_symlink_check;
-    int vhost;
-    int global_passwd;
-    char* url_pattern;
-    char* local_pattern;
-    int no_empty_referers;
-    } httpd_server;
+	char *binding_hostname;
+	char *server_hostname;
+	unsigned short port;
+	char *cgi_pattern;
+	int cgi_limit, cgi_count;
+	char *charset;
+	char *p3p;
+	int max_age;
+	char *cwd;
+	int listen4_fd, listen6_fd;
+	int no_log;
+	FILE *logfp;
+	int no_symlink_check;
+	int vhost;
+	int global_passwd;
+	char *url_pattern;
+	char *local_pattern;
+	int no_empty_referers;
+} httpd_server;
 
 /* A connection. */
 typedef struct {
-    int initialized;
-    httpd_server* hs;
-    httpd_sockaddr client_addr;
-    char* read_buf;
-    size_t read_size, read_idx, checked_idx;
-    int checked_state;
-    int method;
-    int status;
-    off_t bytes_to_send;
-    off_t bytes_sent;
-    char* encodedurl;
-    char* decodedurl;
-    char* protocol;
-    char* origfilename;
-    char* expnfilename;
-    char* encodings;
-    char* pathinfo;
-    char* query;
-    char* referer;
-    char* useragent;
-    char* accept;
-    char* accepte;
-    char* acceptl;
-    char* cookie;
-    char* contenttype;
-    char* reqhost;
-    char* hdrhost;
-    char* hostdir;
-    char* authorization;
-    char* remoteuser;
-    char* response;
-    size_t maxdecodedurl, maxorigfilename, maxexpnfilename, maxencodings,
-	maxpathinfo, maxquery, maxaccept, maxaccepte, maxreqhost, maxhostdir,
-	maxremoteuser, maxresponse;
+	int initialized;
+	httpd_server *hs;
+	httpd_sockaddr client_addr;
+	char *read_buf;
+	size_t read_size, read_idx, checked_idx;
+	int checked_state;
+	int method;
+	int status;
+	off_t bytes_to_send;
+	off_t bytes_sent;
+	char *encodedurl;
+	char *decodedurl;
+	char *protocol;
+	char *origfilename;
+	char *expnfilename;
+	char *encodings;
+	char *pathinfo;
+	char *query;
+	char *referer;
+	char *useragent;
+	char *accept;
+	char *accepte;
+	char *acceptl;
+	char *cookie;
+	char *contenttype;
+	char *reqhost;
+	char *hdrhost;
+	char *hostdir;
+	char *authorization;
+	char *remoteuser;
+	char *response;
+	size_t maxdecodedurl, maxorigfilename, maxexpnfilename, maxencodings,
+	    maxpathinfo, maxquery, maxaccept, maxaccepte, maxreqhost, maxhostdir, maxremoteuser, maxresponse;
 #ifdef TILDE_MAP_2
-    char* altdir;
-    size_t maxaltdir;
-#endif /* TILDE_MAP_2 */
-    size_t responselen;
-    time_t if_modified_since, range_if;
-    size_t contentlength;
-    char* type;		/* not malloc()ed */
-    char* hostname;	/* not malloc()ed */
-    int mime_flag;
-    int one_one;	/* HTTP/1.1 or better */
-    int got_range;
-    int tildemapped;	/* this connection got tilde-mapped */
-    off_t first_byte_index, last_byte_index;
-    int keep_alive;
-    int should_linger;
-    struct stat sb;
-    int conn_fd;
-    char* file_address;
-    } httpd_conn;
+	char *altdir;
+	size_t maxaltdir;
+#endif				/* TILDE_MAP_2 */
+	size_t responselen;
+	time_t if_modified_since, range_if;
+	size_t contentlength;
+	char *type;		/* not malloc()ed */
+	char *hostname;		/* not malloc()ed */
+	int mime_flag;
+	int one_one;		/* HTTP/1.1 or better */
+	int got_range;
+	int tildemapped;	/* this connection got tilde-mapped */
+	off_t first_byte_index, last_byte_index;
+	int keep_alive;
+	int should_linger;
+	struct stat sb;
+	int conn_fd;
+	char *file_address;
+} httpd_conn;
 
 /* Methods. */
 #define METHOD_UNKNOWN 0
@@ -169,21 +168,20 @@ typedef struct {
 ** httpd_server* which includes a socket fd that you can select() on.
 ** Return (httpd_server*) 0 on error.
 */
-extern httpd_server* httpd_initialize(
-    char* hostname, httpd_sockaddr* sa4P, httpd_sockaddr* sa6P,
-    unsigned short port, char* cgi_pattern, int cgi_limit, char* charset,
-    char* p3p, int max_age, char* cwd, int no_log, FILE* logfp,
-    int no_symlink_check, int vhost, int global_passwd, char* url_pattern,
-    char* local_pattern, int no_empty_referers );
+extern httpd_server *httpd_initialize(char *hostname, httpd_sockaddr *sa4P, httpd_sockaddr *sa6P,
+				      unsigned short port, char *cgi_pattern, int cgi_limit, char *charset,
+				      char *p3p, int max_age, char *cwd, int no_log, FILE *logfp,
+				      int no_symlink_check, int vhost, int global_passwd, char *url_pattern,
+				      char *local_pattern, int no_empty_referers);
 
 /* Change the log file. */
-extern void httpd_set_logfp( httpd_server* hs, FILE* logfp );
+extern void httpd_set_logfp(httpd_server *hs, FILE *logfp);
 
 /* Call to unlisten/close socket(s) listening for new connections. */
-extern void httpd_unlisten( httpd_server* hs );
+extern void httpd_unlisten(httpd_server *hs);
 
 /* Call to shut down. */
-extern void httpd_terminate( httpd_server* hs );
+extern void httpd_terminate(httpd_server *hs);
 
 
 /* When a listen fd is ready to read, call this.  It does the accept() and
@@ -195,7 +193,8 @@ extern void httpd_terminate( httpd_server* hs );
 ** The caller is also responsible for setting initialized to zero before the
 ** first call using each different httpd_conn.
 */
-extern int httpd_get_conn( httpd_server* hs, int listen_fd, httpd_conn* hc );
+extern int httpd_get_conn(httpd_server *hs, int listen_fd, httpd_conn *hc);
+
 #define GC_FAIL 0
 #define GC_OK 1
 #define GC_NO_MORE 2
@@ -207,7 +206,8 @@ extern int httpd_get_conn( httpd_server* hs, int listen_fd, httpd_conn* hc );
 ** indication of whether there is no complete request yet, there is a
 ** complete request, or there won't be a valid request due to a syntax error.
 */
-extern int httpd_got_request( httpd_conn* hc );
+extern int httpd_got_request(httpd_conn *hc);
+
 #define GR_NO_REQUEST 0
 #define GR_GOT_REQUEST 1
 #define GR_BAD_REQUEST 2
@@ -217,7 +217,7 @@ extern int httpd_got_request( httpd_conn* hc );
 **
 ** Returns -1 on error.
 */
-extern int httpd_parse_request( httpd_conn* hc );
+extern int httpd_parse_request(httpd_conn *hc);
 
 /* Starts sending data back to the client.  In some cases (directories,
 ** CGI programs), finishes sending by itself - in those cases, hc->file_fd
@@ -227,58 +227,57 @@ extern int httpd_parse_request( httpd_conn* hc );
 **
 ** Returns -1 on error.
 */
-extern int httpd_start_request( httpd_conn* hc, struct timeval* nowP );
+extern int httpd_start_request(httpd_conn *hc, struct timeval *nowP);
 
 /* Actually sends any buffered response text. */
-extern void httpd_write_response( httpd_conn* hc );
+extern void httpd_write_response(httpd_conn *hc);
 
 /* Call this to close down a connection and free the data.  A fine point,
 ** if you fork() with a connection open you should still call this in the
 ** parent process - the connection will stay open in the child.
 ** If you don't have a current timeval handy just pass in 0.
 */
-extern void httpd_close_conn( httpd_conn* hc, struct timeval* nowP );
+extern void httpd_close_conn(httpd_conn *hc, struct timeval *nowP);
 
 /* Call this to de-initialize a connection struct and *really* free the
 ** mallocced strings.
 */
-extern void httpd_destroy_conn( httpd_conn* hc );
+extern void httpd_destroy_conn(httpd_conn *hc);
 
 
 /* Send an error message back to the client. */
-extern void httpd_send_err(
-    httpd_conn* hc, int status, char* title, char* extraheads, char* form, char* arg );
+extern void httpd_send_err(httpd_conn *hc, int status, char *title, char *extraheads, char *form, char *arg);
 
 /* Some error messages. */
-extern char* httpd_err400title;
-extern char* httpd_err400form;
-extern char* httpd_err408title;
-extern char* httpd_err408form;
-extern char* httpd_err503title;
-extern char* httpd_err503form;
+extern char *httpd_err400title;
+extern char *httpd_err400form;
+extern char *httpd_err408title;
+extern char *httpd_err408form;
+extern char *httpd_err503title;
+extern char *httpd_err503form;
 
 /* Generate a string representation of a method number. */
-extern char* httpd_method_str( int method );
+extern char *httpd_method_str(int method);
 
 /* Reallocate a string. */
-extern void httpd_realloc_str( char** strP, size_t* maxsizeP, size_t size );
+extern void httpd_realloc_str(char **strP, size_t *maxsizeP, size_t size);
 
 /* Format a network socket to a string representation. */
-extern char* httpd_ntoa( httpd_sockaddr* saP );
+extern char *httpd_ntoa(httpd_sockaddr *saP);
 
 /* Set NDELAY mode on a socket. */
-extern void httpd_set_ndelay( int fd );
+extern void httpd_set_ndelay(int fd);
 
 /* Clear NDELAY mode on a socket. */
-extern void httpd_clear_ndelay( int fd );
+extern void httpd_clear_ndelay(int fd);
 
 /* Read the requested buffer completely, accounting for interruptions. */
-extern int httpd_read_fully( int fd, void* buf, size_t nbytes );
+extern int httpd_read_fully(int fd, void *buf, size_t nbytes);
 
 /* Write the requested buffer completely, accounting for interruptions. */
-extern size_t httpd_write_fully( int fd, const void* buf, size_t nbytes );
+extern size_t httpd_write_fully(int fd, const void *buf, size_t nbytes);
 
 /* Generate debugging statistics syslog message. */
-extern void httpd_logstats( long secs );
+extern void httpd_logstats(long secs);
 
-#endif /* _LIBHTTPD_H_ */
+#endif				/* _LIBHTTPD_H_ */
