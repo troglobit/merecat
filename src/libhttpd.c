@@ -586,46 +586,67 @@ send_mime(httpd_conn *hc, int status, char *title, char *encodings, char *extrah
 		now = time((time_t *)0);
 		if (mod == (time_t)0)
 			mod = now;
-		(void)strftime(nowbuf, sizeof(nowbuf), rfc1123fmt, gmtime(&now));
-		(void)strftime(modbuf, sizeof(modbuf), rfc1123fmt, gmtime(&mod));
-		(void)my_snprintf(fixed_type, sizeof(fixed_type), type, hc->hs->charset);
-		(void)my_snprintf(buf, sizeof(buf),
-				  "%.20s %d %s\015\012Server: %s\015\012Content-Type: %s\015\012Date: %s\015\012Last-Modified: %s\015\012Accept-Ranges: bytes\015\012Connection: close\015\012",
-				  hc->protocol, status, title, EXPOSED_SERVER_SOFTWARE, fixed_type, nowbuf, modbuf);
+		strftime(nowbuf, sizeof(nowbuf), rfc1123fmt, gmtime(&now));
+		strftime(modbuf, sizeof(modbuf), rfc1123fmt, gmtime(&mod));
+		my_snprintf(fixed_type, sizeof(fixed_type), type, hc->hs->charset);
+
+		/* Match Apache as close as possible, but follow RFC 2616, section 4.2 */
+		my_snprintf(buf, sizeof(buf),
+			    "%.20s %d %s\r\n"
+			    "Date: %s\r\n"
+			    "Server: %s\r\n"
+			    "Last-Modified: %s\r\n"
+			    //"ETag: \"$HASH\"\r\n" https://en.wikipedia.org/wiki/HTTP_ETag
+			    "Accept-Ranges: bytes\r\n",
+			    hc->protocol, status, title, nowbuf, EXPOSED_SERVER_SOFTWARE, modbuf);
 		add_response(hc, buf);
-		s100 = status / 100;
-		if (s100 != 2 && s100 != 3) {
-			(void)my_snprintf(buf, sizeof(buf), "Cache-Control: no-cache,no-store\015\012");
-			add_response(hc, buf);
-		}
-		if (encodings[0] != '\0') {
-			(void)my_snprintf(buf, sizeof(buf), "Content-Encoding: %s\015\012", encodings);
-			add_response(hc, buf);
-		}
+
 		if (partial_content) {
-			(void)my_snprintf(buf, sizeof(buf),
-					  "Content-Range: bytes %lld-%lld/%lld\015\012Content-Length: %lld\015\012",
-					  (int64_t) hc->first_byte_index, (int64_t) hc->last_byte_index,
-					  (int64_t) length, (int64_t) (hc->last_byte_index - hc->first_byte_index + 1));
+			my_snprintf(buf, sizeof(buf),
+				    "Content-Range: bytes %lld-%lld/%lld\r\n"
+				    "Content-Length: %lld\r\n",
+				    (int64_t)hc->first_byte_index, (int64_t)hc->last_byte_index,
+				    (int64_t)length, (int64_t)(hc->last_byte_index - hc->first_byte_index + 1));
 			add_response(hc, buf);
 		} else if (length >= 0) {
-			(void)my_snprintf(buf, sizeof(buf), "Content-Length: %lld\015\012", (int64_t) length);
+			my_snprintf(buf, sizeof(buf), "Content-Length: %lld\r\n", (int64_t)length);
 			add_response(hc, buf);
 		}
+
+		my_snprintf(buf, sizeof(buf), "Content-Type: %s\r\n", fixed_type);
+		add_response(hc, buf);
+
+		if (encodings[0] != '\0') {
+			my_snprintf(buf, sizeof(buf), "Content-Encoding: %s\r\n", encodings);
+			add_response(hc, buf);
+		}
+
+		s100 = status / 100;
+		if (s100 != 2 && s100 != 3) {
+			my_snprintf(buf, sizeof(buf), "Cache-Control: no-cache,no-store\r\n");
+			add_response(hc, buf);
+		}
+
 		if (hc->hs->p3p[0] != '\0') {
-			(void)my_snprintf(buf, sizeof(buf), "P3P: %s\015\012", hc->hs->p3p);
+			my_snprintf(buf, sizeof(buf), "P3P: %s\r\n", hc->hs->p3p);
 			add_response(hc, buf);
 		}
+
 		if (hc->hs->max_age >= 0) {
 			expires = now + hc->hs->max_age;
-			(void)strftime(expbuf, sizeof(expbuf), rfc1123fmt, gmtime(&expires));
-			(void)my_snprintf(buf, sizeof(buf),
-					  "Cache-Control: max-age=%d\015\012Expires: %s\015\012", hc->hs->max_age, expbuf);
+			strftime(expbuf, sizeof(expbuf), rfc1123fmt, gmtime(&expires));
+			my_snprintf(buf, sizeof(buf),
+				    "Cache-Control: max-age=%d\r\n"
+				    "Expires: %s\r\n", hc->hs->max_age, expbuf);
 			add_response(hc, buf);
 		}
+
+		my_snprintf(buf, sizeof(buf), "Connection: close\r\n");
+		add_response(hc, buf);
+
 		if (extraheads[0] != '\0')
 			add_response(hc, extraheads);
-		add_response(hc, "\015\012");
+		add_response(hc, "\r\n");
 	}
 }
 
@@ -793,7 +814,7 @@ static void send_authenticate(httpd_conn *hc, char *realm)
 	static char headstr[] = "WWW-Authenticate: Basic realm=\"";
 
 	httpd_realloc_str(&header, &maxheader, sizeof(headstr) + strlen(realm) + 3);
-	(void)my_snprintf(header, maxheader, "%s%s\"\015\012", headstr, realm);
+	(void)my_snprintf(header, maxheader, "%s%s\"\r\n", headstr, realm);
 	httpd_send_err(hc, 401, err401title, header, err401form, hc->encodedurl);
 	/* If the request was a POST then there might still be data to be read,
 	 ** so we need to do a lingering close.
@@ -1054,7 +1075,7 @@ static void send_dirredirect(httpd_conn *hc)
 		(void)my_snprintf(location, maxlocation, "%s/", hc->encodedurl);
 	}
 	httpd_realloc_str(&header, &maxheader, sizeof(headstr) + strlen(location));
-	(void)my_snprintf(header, maxheader, "%s%s\015\012", headstr, location);
+	(void)my_snprintf(header, maxheader, "%s%s\r\n", headstr, location);
 	send_response(hc, 302, err302title, header, err302form, location);
 }
 
@@ -2822,7 +2843,7 @@ static void cgi_interpose_output(httpd_conn *hc, int rfd)
 		(void)memmove(&(headers[headers_len]), buf, r);
 		headers_len += r;
 		headers[headers_len] = '\0';
-		if ((br = strstr(headers, "\015\012\015\012")) != (char *)0 || (br = strstr(headers, "\012\012")) != (char *)0)
+		if ((br = strstr(headers, "\r\n\r\n")) != (char *)0 || (br = strstr(headers, "\012\012")) != (char *)0)
 			break;
 	}
 
@@ -2888,7 +2909,7 @@ static void cgi_interpose_output(httpd_conn *hc, int rfd)
 		title = "Something";
 		break;
 	}
-	my_snprintf(buf, sizeof(buf), "HTTP/1.0 %d %s\015\012", status, title);
+	my_snprintf(buf, sizeof(buf), "HTTP/1.0 %d %s\r\n", status, title);
 	httpd_write_fully(hc->conn_fd, buf, strlen(buf));
 
 	/* Write the saved headers. */
