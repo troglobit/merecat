@@ -688,10 +688,10 @@ static void send_response_tail(httpd_conn *hc)
 	char buf[1000];
 
 	(void)my_snprintf(buf, sizeof(buf), "\
-<HR>\n\
-<ADDRESS><A HREF=\"%s\">%s</A></ADDRESS>\n\
-</BODY>\n\
-</HTML>\n", SERVER_ADDRESS, EXPOSED_SERVER_SOFTWARE);
+<hr>\n\
+<address><a href=\"%s\">%s</a></address>\n\
+</body>\n\
+</html>\n", SERVER_ADDRESS, EXPOSED_SERVER_SOFTWARE);
 	add_response(hc, buf);
 }
 
@@ -2327,6 +2327,23 @@ static void cgi_kill(ClientData client_data, struct timeval *nowP)
 
 #ifdef GENERATE_INDEXES
 
+/* Convert byte size to kiB, MiB, GiB */
+static char *humane_size(off_t bytes)
+{
+	size_t i = 0;
+	char *mult[] = { "", "k", "M", "G", "T", "P" };
+	static char str[42];
+
+	while (bytes > 1000 && i < NELEMS(mult)) {
+		bytes /= 1000;
+		i++;
+	}
+
+	snprintf(str, sizeof(str), "  %zu%s", bytes, mult[i]);
+
+	return str;
+}
+
 /* qsort comparison routine - declared old-style on purpose, for portability. */
 static int name_compare(a, b)
 char **a;
@@ -2355,13 +2372,8 @@ static int ls(httpd_conn *hc)
 	int i, r;
 	struct stat sb;
 	struct stat lsb;
-	char modestr[20];
-	char *linkprefix;
-	char link[MAXPATHLEN + 1];
-	int linklen;
 	char *fileclass;
-	time_t now;
-	char *timestr;
+	char timestr[42];
 	ClientData client_data;
 
 	dirp = opendir(hc->expnfilename);
@@ -2380,6 +2392,7 @@ static int ls(httpd_conn *hc)
 			httpd_send_err(hc, 503, httpd_err503title, "", httpd_err503form, hc->encodedurl);
 			return -1;
 		}
+
 		++hc->hs->cgi_count;
 		r = fork();
 		if (r < 0) {
@@ -2388,6 +2401,7 @@ static int ls(httpd_conn *hc)
 			httpd_send_err(hc, 500, err500title, "", err500form, hc->encodedurl);
 			return -1;
 		}
+
 		if (r == 0) {
 			/* Child process. */
 			sub_process = 1;
@@ -2414,14 +2428,23 @@ static int ls(httpd_conn *hc)
 				exit(1);
 			}
 
-			fprintf(fp,
+			fprintf(fp, "<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 3.2 Final//EN\">\n"
 				"<html>\n"
-				"<head><title>Index of %.80s</title></head>\n"
-				"<body bgcolor=\"#99cc99\" text=\"#000000\" link=\"#2020ff\" vlink=\"#4040cc\">\n"
-				"<h2>Index of %.80s</h2>\n"
-				"<pre>\n"
-				"mode  links  bytes  last-changed  name\n"
-				"<hr>", hc->encodedurl, hc->encodedurl);
+				" <head>\n"
+				"  <title>Index of %.80s</title>\n"
+				"  <style type=\"text/css\"> td { padding: 0 5px 0 5px; }</style>\n"
+				" </head>\n"
+				" <body>\n"
+				"<h1>Index of %.80s</h1>\n"
+				"<table>\n"
+				" <tr>"
+				"  <th valign=\"top\"><img src=\"/www/icons/blank.gif\" alt=\"[ICO]\"></th>\n"
+				"  <th><a href=\"?C=N;O=D\">Name</a></th>\n"
+				"  <th><a href=\"?C=M;O=A\">Last modified</a></th>\n"
+				"  <th><a href=\"?C=S;O=A\">Size</a></th>\n"
+				"  <th><a href=\"?C=D;O=A\">Description</a></th>\n"
+				" </tr>\n"
+				" <tr><th colspan=\"5\"><hr></th></tr>\n", hc->encodedurl, hc->encodedurl);
 
 			/* Read in names. */
 			nnames = 0;
@@ -2473,103 +2496,36 @@ static int ls(httpd_conn *hc)
 				if (stat(name, &sb) < 0 || lstat(name, &lsb) < 0)
 					continue;
 
-				linkprefix = "";
-				link[0] = '\0';
-				/* Break down mode word.  First the file type. */
-				switch (lsb.st_mode & S_IFMT) {
-				case S_IFIFO:
-					modestr[0] = 'p';
-					break;
-				case S_IFCHR:
-					modestr[0] = 'c';
-					break;
-				case S_IFDIR:
-					modestr[0] = 'd';
-					break;
-				case S_IFBLK:
-					modestr[0] = 'b';
-					break;
-				case S_IFREG:
-					modestr[0] = '-';
-					break;
-				case S_IFSOCK:
-					modestr[0] = 's';
-					break;
-				case S_IFLNK:
-					modestr[0] = 'l';
-					linklen = readlink(name, link, sizeof(link) - 1);
-					if (linklen != -1) {
-						link[linklen] = '\0';
-						linkprefix = " -&gt; ";
-					}
-					break;
-				default:
-					modestr[0] = '?';
-					break;
-				}
-				/* Now the world permissions.  Owner and group permissions
-				 ** are not of interest to web clients.
-				 */
-				modestr[1] = (lsb.st_mode & S_IROTH) ? 'r' : '-';
-				modestr[2] = (lsb.st_mode & S_IWOTH) ? 'w' : '-';
-				modestr[3] = (lsb.st_mode & S_IXOTH) ? 'x' : '-';
-				modestr[4] = '\0';
-
-				/* We also leave out the owner and group name, they are
-				 ** also not of interest to web clients.  Plus if we're
-				 ** running under chroot(), they would require a copy
-				 ** of /etc/passwd and /etc/group, which we want to avoid.
-				 */
-
 				/* Get time string. */
-				now = time((time_t *)0);
-				timestr = ctime(&lsb.st_mtime);
-				timestr[0] = timestr[4];
-				timestr[1] = timestr[5];
-				timestr[2] = timestr[6];
-				timestr[3] = ' ';
-				timestr[4] = timestr[8];
-				timestr[5] = timestr[9];
-				timestr[6] = ' ';
-				if (now - lsb.st_mtime > 60 * 60 * 24 * 182) {	/* 1/2 year */
-					timestr[7] = ' ';
-					timestr[8] = timestr[20];
-					timestr[9] = timestr[21];
-					timestr[10] = timestr[22];
-					timestr[11] = timestr[23];
-				} else {
-					timestr[7] = timestr[11];
-					timestr[8] = timestr[12];
-					timestr[9] = ':';
-					timestr[10] = timestr[14];
-					timestr[11] = timestr[15];
-				}
-				timestr[12] = '\0';
+				strftime(timestr, sizeof(timestr), "%F %R", localtime(&lsb.st_mtime));
 
 				/* The ls -F file class. */
 				switch (sb.st_mode & S_IFMT) {
 				case S_IFDIR:
-					fileclass = "/";
+					fileclass = "/www/icons/folder.gif";
 					break;
-				case S_IFSOCK:
-					fileclass = "=";
-					break;
-				case S_IFLNK:
-					fileclass = "@";
-					break;
+
 				default:
-					fileclass = (sb.st_mode & S_IXOTH) ? "*" : "";
+					fileclass = "/www/icons/generic.gif";
 					break;
 				}
 
 				/* And print. */
-				fprintf(fp, "%s %3ld  %10ld  %s  <a href=\"/%s%s\">%.80s</a>%s%s%s\n",
-					modestr, (long)lsb.st_nlink, (int64_t) lsb.st_size,
-					timestr, encrname, S_ISDIR(sb.st_mode) ? "/" : "",
-					nameptrs[i], linkprefix, link, fileclass);
+				if (!strcmp(nameptrs[i], "."))
+					continue;
+				if (!strcmp(nameptrs[i], ".."))
+					fprintf(fp, "<tr><td valign=\"top\">"
+						"<img src=\"/www/icons/back.gif\" alt=\"[PARENTDIR]\"></td><td><a href=\"/\">Parent Directory</a></td><td>&nbsp;</td><td align=\"right\">  - </td><td>&nbsp;</td></tr>\n");
+				else
+					fprintf(fp, "<tr><td valign=\"top\"><img src=\"%s\" alt=\"[   ]\"></td>"
+						"<td><a href=\"%s%s\">%s</a></td><td align=\"right\">%s  </td><td align=\"right\">%s</td><td>%s</td></tr>",
+						fileclass, encrname, S_ISDIR(sb.st_mode) ? "/" : "", nameptrs[i],
+						timestr, humane_size(lsb.st_size), "&nbsp;");
 			}
 
-			fprintf(fp, "</pre></body>\n</html>\n");
+			fprintf(fp, "  <tr><th colspan=\"5\"><hr></th></tr>\n</table>\n");
+			fprintf(fp, " </table>\n <address>%s server at %s port %d</address>\n", EXPOSED_SERVER_SOFTWARE, hc->hs->server_hostname, (int)hc->hs->port);
+			fprintf(fp, "</body>\n</html>\n");
 			fclose(fp);
 			exit(0);
 		}
