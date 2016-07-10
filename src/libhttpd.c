@@ -2421,7 +2421,7 @@ static char *humane_size(struct stat *st)
 	char *mult[] = { "", "k", "M", "G", "T", "P" };
 	static char str[42];
 
-	if ((st->st_mode & S_IFMT) == S_IFDIR) {
+	if (S_ISDIR(st->st_mode)) {
 		snprintf(str, sizeof(str), "  - ");
 		return str;
 	}
