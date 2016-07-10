@@ -2151,8 +2151,8 @@ thttpd_logstats( long secs )
     {
     if ( secs > 0 )
 	syslog( LOG_INFO,
-	    "  thttpd - %ld connections (%g/sec), %d max simultaneous, %ld bytes (%g/sec), %d httpd_conns allocated",
-	    stats_connections, (float) stats_connections / secs,
+	    "  %s - %ld connections (%g/sec), %d max simultaneous, %ld bytes (%g/sec), %d httpd_conns allocated",
+	    PACKAGE_NAME, stats_connections, (float) stats_connections / secs,
 	    stats_simultaneous, (int64_t) stats_bytes,
 	    (float) stats_bytes / secs, httpd_conn_count );
     stats_connections = 0;
