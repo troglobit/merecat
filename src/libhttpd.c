@@ -1273,7 +1273,7 @@ static int vhost_map(httpd_conn *hc)
 #endif				/* VHOST_DIRLEVELS */
 
 	/* Allow vhosts to use top level /icons/ */
-	if (!strncmp(hc->expnfilename, "/icons/", 7))
+	if (!strncmp(hc->expnfilename, "icons/", 6))
 		return 1;
 
 	/* Figure out the virtual hostname. */
