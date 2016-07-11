@@ -2465,7 +2465,7 @@ static int ls(httpd_conn *hc)
 	int i, r;
 	struct stat sb;
 	struct stat lsb;
-	char *icon;
+	char *icon, *alt;
 	char timestr[42];
 	ClientData client_data;
 
@@ -2531,7 +2531,7 @@ static int ls(httpd_conn *hc)
 				"<h1>Index of %.80s</h1>\n"
 				"<table>\n"
 				" <tr>"
-				"  <th valign=\"top\"><img src=\"/icons/blank.gif\" alt=\"[ICO]\"></th>\n"
+				"  <th valign=\"top\"><img src=\"/icons/blank.gif\" alt=\"&#8195;\"></th>\n"
 				"  <th><a href=\"?C=N;O=D\">Name</a></th>\n"
 				"  <th><a href=\"?C=M;O=A\">Last modified</a></th>\n"
 				"  <th><a href=\"?C=S;O=A\">Size</a></th>\n"
@@ -2581,7 +2581,7 @@ static int ls(httpd_conn *hc)
 
 					fprintf(fp,
 						" <tr>\n"
-						"  <td valign=\"top\"><img src=\"/icons/back.gif\" alt=\"[PARENTDIR]\"></td>\n"
+						"  <td valign=\"top\"><img src=\"/icons/back.gif\" alt=\"&#8617;\"></td>\n"
 						"  <td><a href=\"..\">Parent Directory</a></td>\n"
 						"  <td>&nbsp;</td>\n"
 						"  <td align=\"right\">  - </td><td>&nbsp;</td>\n"
@@ -2614,20 +2614,22 @@ static int ls(httpd_conn *hc)
 				switch (sb.st_mode & S_IFMT) {
 				case S_IFDIR:
 					icon = "/icons/folder.gif";
+					alt  = "&#128193;";
 					break;
 
 				default:
 					icon = "/icons/generic.gif";
+					alt  = "&#128196;";
 					break;
 				}
 
 				fprintf(fp,
 					" <tr>\n"
-					"  <td valign=\"top\"><img src=\"%s\" alt=\"[   ]\"></td>\n"
+					"  <td valign=\"top\"><img src=\"%s\" alt=\"%s\"></td>\n"
 					"  <td><a href=\"/%s%s\">%s</a></td><td align=\"right\">%s  </td>\n"
 					"  <td align=\"right\">%s</td>\n"
 					"  <td>%s</td>\n"
-					" </tr>\n", icon,
+					" </tr>\n", icon, alt,
 					encrname, S_ISDIR(sb.st_mode) ? "/" : "", nameptrs[i],
 					timestr, humane_size(&lsb), "&nbsp;");
 			}
