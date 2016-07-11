@@ -2465,7 +2465,7 @@ static int ls(httpd_conn *hc)
 	int i, r;
 	struct stat sb;
 	struct stat lsb;
-	char *fileclass;
+	char *icon;
 	char timestr[42];
 	ClientData client_data;
 
@@ -2573,6 +2573,22 @@ static int ls(httpd_conn *hc)
 
 			/* Generate output. */
 			for (i = 0; i < nnames; ++i) {
+				if (!strcmp(nameptrs[i], "."))
+					continue;
+				if (!strcmp(nameptrs[i], "..")) {
+					if (!strcmp(hc->encodedurl, "/"))
+						continue;
+
+					fprintf(fp,
+						" <tr>\n"
+						"  <td valign=\"top\"><img src=\"/icons/back.gif\" alt=\"[PARENTDIR]\"></td>\n"
+						"  <td><a href=\"..\">Parent Directory</a></td>\n"
+						"  <td>&nbsp;</td>\n"
+						"  <td align=\"right\">  - </td><td>&nbsp;</td>\n"
+						" </tr>\n");
+					continue;
+				}
+
 				httpd_realloc_str(&name, &maxname, strlen(hc->expnfilename) + 1 + strlen(nameptrs[i]));
 				httpd_realloc_str(&rname, &maxrname, strlen(hc->origfilename) + 1 + strlen(nameptrs[i]));
 				if (hc->expnfilename[0] == '\0' || strcmp(hc->expnfilename, ".") == 0) {
@@ -2597,25 +2613,23 @@ static int ls(httpd_conn *hc)
 				/* The ls -F file class. */
 				switch (sb.st_mode & S_IFMT) {
 				case S_IFDIR:
-					fileclass = "/icons/folder.gif";
+					icon = "/icons/folder.gif";
 					break;
 
 				default:
-					fileclass = "/icons/generic.gif";
+					icon = "/icons/generic.gif";
 					break;
 				}
 
-				/* And print. */
-				if (!strcmp(nameptrs[i], "."))
-					continue;
-				if (!strcmp(nameptrs[i], ".."))
-					fprintf(fp, "<tr><td valign=\"top\">"
-						"<img src=\"/icons/back.gif\" alt=\"[PARENTDIR]\"></td><td><a href=\"..\">Parent Directory</a></td><td>&nbsp;</td><td align=\"right\">  - </td><td>&nbsp;</td></tr>\n");
-				else
-					fprintf(fp, "<tr><td valign=\"top\"><img src=\"%s\" alt=\"[   ]\"></td>"
-						"<td><a href=\"/%s%s\">%s</a></td><td align=\"right\">%s  </td><td align=\"right\">%s</td><td>%s</td></tr>",
-						fileclass, encrname, S_ISDIR(sb.st_mode) ? "/" : "", nameptrs[i],
-						timestr, humane_size(&lsb), "&nbsp;");
+				fprintf(fp,
+					" <tr>\n"
+					"  <td valign=\"top\"><img src=\"%s\" alt=\"[   ]\"></td>\n"
+					"  <td><a href=\"/%s%s\">%s</a></td><td align=\"right\">%s  </td>\n"
+					"  <td align=\"right\">%s</td>\n"
+					"  <td>%s</td>\n"
+					" </tr>\n", icon,
+					encrname, S_ISDIR(sb.st_mode) ? "/" : "", nameptrs[i],
+					timestr, humane_size(&lsb), "&nbsp;");
 			}
 
 			fprintf(fp, "  <tr><th colspan=\"5\"><hr></th></tr>\n</table>\n");
