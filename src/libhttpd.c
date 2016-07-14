@@ -2521,23 +2521,48 @@ static int ls(httpd_conn *hc)
 				exit(1);
 			}
 
-			fprintf(fp, "<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 3.2 Final//EN\">\n"
+			fprintf(fp, "<!DOCTYPE html>"
 				"<html>\n"
 				" <head>\n"
-				"  <title>Index of %.80s</title>\n"
-				"  <style type=\"text/css\"> td { padding: 0 5px 0 5px; }</style>\n"
+				"  <title>Index of http://%s%s</title>\n"
+				"  <script type=\"text/javascript\">window.onload = function() { document.getElementById('table').focus();} </script>\n"
+				"  <style type=\"text/css\">\n"
+				"    body { background-color:#f2f1f0; font-family: sans-serif;}\n"
+				"    h2 { border-bottom: 1px solid #f2f1f0; font-weight: normal;}"
+				"    address { border-top: 1px solid #f2f1f0; margin-top: 1em; }"
+				"    table { table-layout: fixed; border-collapse: collapse;}\n"
+				"    table tr:hover { background-color:#f2f1f0;}\n"
+				"    table tr td { text-align: left; padding: 0 5px 0 0px; }\n"
+				"    table tr th { text-align: left; padding: 0 5px 0 0px; }\n"
+				"    table tr td.icon  { text-align: center; }\n"
+				"    table tr th.icon  { text-align: center; }\n"
+				"    table tr td.right { text-align: right; }\n"
+				"    table tr th.right { text-align: right; }\n"
+				"    .right { padding-right: 20px; }\n"
+				"    #wrapper {\n"
+				"     background-color:white; width:1024px;\n"
+				"     padding:2em; margin:4em auto; position:absolute;\n"
+				"     top:0; left:0; right:0;\n"
+				"     border-radius: 10px; border: 1px solid #c8c5c2;\n"
+				"    }\n"
+				"    #table {\n"
+				"     padding: 0em; margin: 0em auto; overflow: auto;\n"
+				"    }\n"
+				"  </style>\n"
 				" </head>\n"
 				" <body>\n"
-				"<h1>Index of %.80s</h1>\n"
-				"<table>\n"
+				"<div id=\"wrapper\" tabindex=\"-1\">\n"
+				"<h2>Index of http://%s%s</h2>\n"
+				"<input type=\"hidden\" autofocus />\n"
+				"<div id=\"table\">"
+				"<table width=\"100%%\">\n"
 				" <tr>"
-				"  <th valign=\"top\"><img src=\"/icons/blank.gif\" alt=\"&#8195;\"></th>\n"
-				"  <th><a href=\"?C=N;O=D\">Name</a></th>\n"
-				"  <th><a href=\"?C=M;O=A\">Last modified</a></th>\n"
-				"  <th><a href=\"?C=S;O=A\">Size</a></th>\n"
-				"  <th><a href=\"?C=D;O=A\">Description</a></th>\n"
-				" </tr>\n"
-				" <tr><th colspan=\"5\"><hr></th></tr>\n", hc->encodedurl, hc->encodedurl);
+				"  <th class=\"icon\" style=\"width:20px;\"><img src=\"/icons/blank.gif\" alt=\"&#8195;\"></th>\n"
+				"  <th style=\"width:35em;\">Name</th>\n"
+				"  <th class=\"right\" style=\"width: 3em;\">Size</th>\n"
+				"  <th style=\"width: 7em;\">Last modified</th>\n"
+				" </tr>\n",
+				get_hostname(hc), hc->encodedurl, get_hostname(hc), hc->encodedurl);
 
 			/* Read in names. */
 			nnames = 0;
@@ -2581,10 +2606,10 @@ static int ls(httpd_conn *hc)
 
 					fprintf(fp,
 						" <tr>\n"
-						"  <td valign=\"top\"><img src=\"/icons/back.gif\" alt=\"&#8617;\"></td>\n"
+						"  <td class=\"icon\"><img src=\"/icons/back.gif\" alt=\"&#8617;\"></td>\n"
 						"  <td><a href=\"..\">Parent Directory</a></td>\n"
+						"  <td class=\"right\">&nbsp;</td>\n"
 						"  <td>&nbsp;</td>\n"
-						"  <td align=\"right\">  - </td><td>&nbsp;</td>\n"
 						" </tr>\n");
 					continue;
 				}
@@ -2608,7 +2633,7 @@ static int ls(httpd_conn *hc)
 					continue;
 
 				/* Get time string. */
-				strftime(timestr, sizeof(timestr), "%F %R", localtime(&lsb.st_mtime));
+				strftime(timestr, sizeof(timestr), "%F&nbsp;&nbsp;%R", localtime(&lsb.st_mtime));
 
 				/* The ls -F file class. */
 				switch (sb.st_mode & S_IFMT) {
@@ -2625,18 +2650,18 @@ static int ls(httpd_conn *hc)
 
 				fprintf(fp,
 					" <tr>\n"
-					"  <td valign=\"top\"><img src=\"%s\" alt=\"%s\"></td>\n"
-					"  <td><a href=\"/%s%s\">%s</a></td><td align=\"right\">%s  </td>\n"
-					"  <td align=\"right\">%s</td>\n"
+					"  <td class=\"icon\"><img src=\"%s\" alt=\"%s\"></td>\n"
+					"  <td><a href=\"/%s%s\">%s</a></td>\n"
+					"  <td class=\"right\">%s</td>\n"
 					"  <td>%s</td>\n"
 					" </tr>\n", icon, alt,
 					encrname, S_ISDIR(sb.st_mode) ? "/" : "", nameptrs[i],
-					timestr, humane_size(&lsb), "&nbsp;");
+					humane_size(&lsb), timestr);
 			}
 
-			fprintf(fp, "  <tr><th colspan=\"5\"><hr></th></tr>\n</table>\n");
-			fprintf(fp, " </table>\n <address>%s server at %s port %d</address>\n", EXPOSED_SERVER_SOFTWARE, get_hostname(hc), (int)hc->hs->port);
-			fprintf(fp, "</body>\n</html>\n");
+			fprintf(fp, " </table></div>\n");
+			fprintf(fp, " <address>%s server at %s port %d</address>\n", EXPOSED_SERVER_SOFTWARE, get_hostname(hc), (int)hc->hs->port);
+			fprintf(fp, "</div></body>\n</html>\n");
 			fclose(fp);
 			exit(0);
 		}
