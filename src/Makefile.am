@@ -1,6 +1,6 @@
 sbin_PROGRAMS       = merecat
 SYMLINK             = in.httpd
-merecat_SOURCES     = thttpd.c		thttpd.h	\
+merecat_SOURCES     = merecat.c		merecat.h	\
 		      fdwatch.c		fdwatch.h	\
 		      libhttpd.c	libhttpd.h	\
 		      mmc.c 		mmc.h		\

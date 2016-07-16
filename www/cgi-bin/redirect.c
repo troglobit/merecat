@@ -66,7 +66,7 @@
 #include <sys/types.h>
 
 /* Local headers */
-#include "thttpd.h"
+#include "merecat.h"
 
 static char* argv0;
 

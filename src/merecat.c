@@ -1,4 +1,4 @@
-/* thttpd.c - tiny/turbo/throttling HTTP server
+/* Simple, small and fast HTTP server
 **
 ** Copyright © 1995,1998,1999,2000,2001 by Jef Poskanzer <jef@mail.acme.com>.
 ** All rights reserved.
@@ -55,7 +55,7 @@
 #include "libhttpd.h"
 #include "match.h"
 #include "mmc.h"
-#include "thttpd.h"
+#include "merecat.h"
 #include "timers.h"
 
 #ifndef SHUT_WR

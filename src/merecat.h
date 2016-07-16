@@ -1,4 +1,4 @@
-/* thttpd.h - configuration defines for thttpd and libhttpd
+/* Configuration defines for merecat and libhttpd
 **
 ** Copyright © 1995,1998,1999,2000,2001 by Jef Poskanzer <jef@mail.acme.com>.
 ** All rights reserved.
@@ -25,8 +25,8 @@
 ** SUCH DAMAGE.
 */
 
-#ifndef THTTPD_H_
-#define THTTPD_H_
+#ifndef MRECAT_H_
+#define MRECAT_H_
 
 
 /* The following configuration settings are sorted in order of decreasing
@@ -400,4 +400,4 @@
 */
 #define MIN_WOULDBLOCK_DELAY 100L
 
-#endif				/* THTTPD_H_ */
+#endif /* MRECAT_H_ */

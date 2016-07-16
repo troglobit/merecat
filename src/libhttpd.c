@@ -76,7 +76,7 @@ extern char *crypt(const char *key, const char *setting);
 #include "match.h"
 #include "mmc.h"
 #include "tdate_parse.h"
-#include "thttpd.h"
+#include "merecat.h"
 #include "timers.h"
 
 #ifdef SHOW_SERVER_VERSION

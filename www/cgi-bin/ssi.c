@@ -36,7 +36,7 @@
 #include <sys/types.h>
 
 /* Local headers */
-#include "thttpd.h"
+#include "merecat.h"
 #include "match.h"
 
 

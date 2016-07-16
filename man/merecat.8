@@ -26,7 +26,7 @@
 .\" SUCH DAMAGE.
 .TH merecat 8 "29 February 2000"
 .SH NAME
-merecat - tiny/turbo/throttling HTTP server
+merecat - simple, small and fast HTTP server
 .SH SYNOPSIS
 .B merecat
 .RB [ -C
@@ -64,11 +64,8 @@ merecat - tiny/turbo/throttling HTTP server
 .SH DESCRIPTION
 .PP
 .I merecat
-is a simple, small, and fast HTTP server.  It doesn't have a lot of
-special features, but it suffices for most uses of the web, it's about
-as fast as the best full-featured servers (Apache, NCSA, Netscape), and
-it has one extremely useful feature (URL-traffic-based throttling) that
-no other server currently has.
+is a simple, small, and fast HTTP server.  It does not have a lot of
+special features, but is often sufficient for most uses on the web.
 .SH OPTIONS
 .TP
 .B -C
@@ -345,7 +342,7 @@ useable.
 Furthermore, all those slow connections clog up the server, using
 up file handles and connection slots.
 Setting a minimum rate says that past a certain point you should not
-even bother - the server returns the 'try again later" code and the
+even bother - the server returns the "try again later" code and the
 connection isn't even started.
 .PP
 There is no provision for setting a maximum connections/second throttle,
