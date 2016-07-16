@@ -35,13 +35,13 @@
 
 #include "config.h"
 
-//system headers
+/* System headers */
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <syslog.h>
 
-//local headers
+/* Local headers */
 #include <thttpd.h>
 
 static char* argv0;

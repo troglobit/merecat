@@ -28,7 +28,7 @@
 
 #include "config.h"
 
-//system headers
+/* System headers */
 #include <sys/types.h>
 #include <sys/param.h>
 #include <sys/stat.h>
@@ -71,7 +71,7 @@
 
 extern char *crypt(const char *key, const char *setting);
 
-//local headers
+/* Local headers */
 #include <libhttpd.h>
 #include <match.h>
 #include <mmc.h>
@@ -607,7 +607,7 @@ send_mime(httpd_conn *hc, int status, char *title, char *encodings, char *extrah
 			    "Date: %s\r\n"
 			    "Server: %s\r\n"
 			    "Last-Modified: %s\r\n"
-			    //"ETag: \"$HASH\"\r\n" https://en.wikipedia.org/wiki/HTTP_ETag
+			    /* "ETag: \"$HASH\"\r\n" https://en.wikipedia.org/wiki/HTTP_ETag */
 			    "Accept-Ranges: bytes\r\n",
 			    hc->protocol, status, title, nowbuf, EXPOSED_SERVER_SOFTWARE, modbuf);
 		add_response(hc, buf);
@@ -2030,7 +2030,7 @@ int httpd_parse_request(httpd_conn *hc)
 				cp += strspn(cp, " \t");
 				if (strcasecmp(cp, "keep-alive") == 0)
 					hc->keep_alive = 1;
-			} else if (strncasecmp(buf, "X-Forwarded-For:", 16) == 0) {	// Use real IP if available 
+			} else if (strncasecmp(buf, "X-Forwarded-For:", 16) == 0) { /* Use real IP if available  */
 				cp = &buf[16];
 				cp += strspn(cp, " \t");
 				inet_aton(cp, &(hc->client_addr.sa_in.sin_addr));

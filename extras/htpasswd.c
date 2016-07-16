@@ -10,7 +10,7 @@
 
 #include "config.h"
 
-//system headers
+/* System headers */
 #include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>

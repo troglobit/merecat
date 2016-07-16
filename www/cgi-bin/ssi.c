@@ -27,7 +27,7 @@
 
 #include "config.h"
 
-//system headers
+/* System headers */
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -35,7 +35,7 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 
-//local headers
+/* Local headers */
 #include <thttpd.h>
 #include <match.h>
 

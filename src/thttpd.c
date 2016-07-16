@@ -28,7 +28,7 @@
 
 #include "config.h"
 
-//system headers
+/* System headers */
 #include <sys/param.h>
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -50,7 +50,7 @@
 #include <syslog.h>
 #include <unistd.h>
 
-//local headers
+/* Local headers */
 #include <fdwatch.h>
 #include <libhttpd.h>
 #include <match.h>
