@@ -44,8 +44,8 @@
 #endif				/* HAVE_MMAP */
 
 /* Local headers */
-#include <libhttpd.h>
-#include <mmc.h>
+#include "libhttpd.h"
+#include "mmc.h"
 
 
 /* Defines. */

@@ -43,7 +43,7 @@
 #include <time.h>
 
 /* Local headers */
-#include <tdate_parse.h>
+#include "tdate_parse.h"
 
 
 struct strlong {

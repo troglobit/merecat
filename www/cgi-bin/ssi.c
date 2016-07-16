@@ -36,8 +36,8 @@
 #include <sys/types.h>
 
 /* Local headers */
-#include <thttpd.h>
-#include <match.h>
+#include "thttpd.h"
+#include "match.h"
 
 
 #define ST_GROUND 0

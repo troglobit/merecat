@@ -42,7 +42,7 @@
 #include <syslog.h>
 
 /* Local headers */
-#include <thttpd.h>
+#include "thttpd.h"
 
 static char* argv0;
 

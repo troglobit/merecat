@@ -72,12 +72,12 @@
 extern char *crypt(const char *key, const char *setting);
 
 /* Local headers */
-#include <libhttpd.h>
-#include <match.h>
-#include <mmc.h>
-#include <tdate_parse.h>
-#include <thttpd.h>
-#include <timers.h>
+#include "libhttpd.h"
+#include "match.h"
+#include "mmc.h"
+#include "tdate_parse.h"
+#include "thttpd.h"
+#include "timers.h"
 
 #ifdef SHOW_SERVER_VERSION
 #define EXPOSED_SERVER_SOFTWARE SERVER_SOFTWARE

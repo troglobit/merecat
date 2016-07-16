@@ -34,7 +34,7 @@
 #include <sys/types.h>
 
 /* Local headers */
-#include <timers.h>
+#include "timers.h"
 
 
 #define HASH_SIZE 67

@@ -61,7 +61,7 @@
 #endif				/* HAVE_SYS_EVENT_H */
 
 /* Local headers */
-#include <fdwatch.h>
+#include "fdwatch.h"
 
 #ifdef HAVE_SELECT
 #ifndef FD_SET

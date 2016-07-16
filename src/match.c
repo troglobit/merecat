@@ -33,7 +33,7 @@
 #include <string.h>
 
 /* Local headers */
-#include <match.h>
+#include "match.h"
 
 static int match_one(const char *pattern, int patternlen, const char *string);
 

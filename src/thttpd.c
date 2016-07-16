@@ -51,12 +51,12 @@
 #include <unistd.h>
 
 /* Local headers */
-#include <fdwatch.h>
-#include <libhttpd.h>
-#include <match.h>
-#include <mmc.h>
-#include <thttpd.h>
-#include <timers.h>
+#include "fdwatch.h"
+#include "libhttpd.h"
+#include "match.h"
+#include "mmc.h"
+#include "thttpd.h"
+#include "timers.h"
 
 #ifndef SHUT_WR
 #define SHUT_WR 1
