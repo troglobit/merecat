@@ -110,11 +110,8 @@ those CPU cycles is to use chroot.
 The config-file option names for this flag are "symlinkcheck" and "nosymlinkcheck".
 .TP
 .B -v
-Do el-cheapo virtual hosting.
-If -v is the compiled-in default, then -nov disables it.
-See below for details.
-The config-file option names for this flag are "vhost" and "novhost",
-and the thttpd.h option is ALWAYS_VHOST.
+Do el-cheapo virtual hosting.  The config-file option names for this
+flag is "vhost".
 .TP
 .B -g
 Use a global passwd file.
@@ -388,13 +385,12 @@ If your OS's version of ifconfig doesn't have an alias command, you're
 probably out of luck (but see http://www.acme.com/software/thttpd/notes.html).
 .PP
 Third and last, you must set up merecat to handle the multiple hosts.
-The easiest way is with the -v flag, or the ALWAYS_VHOST thttpd.h option.
-This works with either CNAME multihosting or multiple-IP multihosting.
-What it does is send each incoming request to a subdirectory based on the
-hostname it's intended for.
-All you have to do in order to set things up is to create those subdirectories
-in the directory where merecat will run.
-With the example above, you'd do like so:
+The easiest way is with the -v flag.  This works with either CNAME
+multihosting or multiple-IP multihosting.  What it does is send each
+incoming request to a subdirectory based on the hostname it's intended
+for.  All you have to do in order to set things up is to create those
+subdirectories in the directory where merecat will run.  With the
+example above, you'd do like so:
 .nf
   mkdir www.acme.com www.joe.acme.com www.jane.acme.com
 .fi

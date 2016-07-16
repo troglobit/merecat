@@ -673,11 +673,7 @@ static void parse_args(int argc, char **argv)
 	do_chroot = 0;
 	no_log = 0;
 	no_symlink_check = do_chroot;
-#ifdef ALWAYS_VHOST
-	do_vhost = 1;
-#else				/* ALWAYS_VHOST */
 	do_vhost = 0;
-#endif				/* ALWAYS_VHOST */
 #ifdef ALWAYS_GLOBAL_PASSWD
 	do_global_passwd = 1;
 #else				/* ALWAYS_GLOBAL_PASSWD */
@@ -741,8 +737,6 @@ static void parse_args(int argc, char **argv)
 			hostname = argv[argn];
 		} else if (strcmp(argv[argn], "-v") == 0)
 			do_vhost = 1;
-		else if (strcmp(argv[argn], "-nov") == 0)
-			do_vhost = 0;
 		else if (strcmp(argv[argn], "-g") == 0)
 			do_global_passwd = 1;
 		else if (strcmp(argv[argn], "-nog") == 0)
@@ -773,7 +767,7 @@ static void parse_args(int argc, char **argv)
 static void usage(void)
 {
 	(void)fprintf(stderr,
-		      "usage:  %s [-C configfile] [-p port] [-d dir] [-r] [-dd data_dir] [-s|-nos] [-v|-nov] [-g|-nog] [-u user] [-c cgipat] [-t throttles] [-h host] [-l loglevel] [-i pidfile] [-T charset] [-P P3P] [-M maxage] [-V] [-D]\n",
+		      "usage:  %s [-C configfile] [-p port] [-d dir] [-r] [-dd data_dir] [-s|-nos] [-v] [-g|-nog] [-u user] [-c cgipat] [-t throttles] [-h host] [-l loglevel] [-i pidfile] [-T charset] [-P P3P] [-M maxage] [-V] [-D]\n",
 		      argv0);
 	exit(1);
 }
@@ -871,9 +865,6 @@ static void read_config(char *filename)
 			} else if (strcasecmp(name, "vhost") == 0) {
 				no_value_required(name, value);
 				do_vhost = 1;
-			} else if (strcasecmp(name, "novhost") == 0) {
-				no_value_required(name, value);
-				do_vhost = 0;
 			} else if (strcasecmp(name, "globalpasswd") == 0) {
 				no_value_required(name, value);
 				do_global_passwd = 1;

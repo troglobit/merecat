@@ -185,14 +185,6 @@
 */
 #define SHOW_SERVER_VERSION
 
-/* CONFIGURE: Define this if you want to always do virtual hosting, without
-** having to give the -v command line flag.  You can still disable it at
-** runtime with the -nov flag.
-*/
-#ifdef notdef
-#define ALWAYS_VHOST
-#endif
-
 /* CONFIGURE: If you're using the vhost feature and you have a LOT of
 ** virtual hostnames (like, hundreds or thousands), you will want to
 ** enable this feature.  It avoids a problem with most Unix filesystems,
