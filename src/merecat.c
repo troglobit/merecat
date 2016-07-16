@@ -712,7 +712,7 @@ static void parse_args(int argc, char **argv)
 		} else if (strcmp(argv[argn], "-r") == 0) {
 			do_chroot = 1;
 			no_symlink_check = 1;
-		} else if (strcmp(argv[argn], "-dd") == 0 && argn + 1 < argc) {
+		} else if (strcmp(argv[argn], "-D") == 0 && argn + 1 < argc) {
 			++argn;
 			data_dir = argv[argn];
 		} else if (strcmp(argv[argn], "-s") == 0)
@@ -745,7 +745,7 @@ static void parse_args(int argc, char **argv)
 		} else if (strcmp(argv[argn], "-M") == 0 && argn + 1 < argc) {
 			++argn;
 			max_age = atoi(argv[argn]);
-		} else if (strcmp(argv[argn], "-D") == 0)
+		} else if (strcmp(argv[argn], "-n") == 0)
 			debug = 1;
 		else
 			usage();
@@ -759,7 +759,7 @@ static void parse_args(int argc, char **argv)
 static void usage(void)
 {
 	(void)fprintf(stderr,
-		      "usage:  %s [-C configfile] [-p port] [-d dir] [-r] [-dd data_dir] [-s|-nos] [-v] [-g|-nog] [-u user] [-c cgipat] [-t throttles] [-h host] [-l loglevel] [-i pidfile] [-T charset] [-P P3P] [-M maxage] [-V] [-D]\n",
+		      "usage:  %s [-C configfile] [-p port] [-d dir] [-r] [-D data_dir] [-s] [-v] [-g] [-u user] [-c cgipat] [-t throttles] [-h host] [-i pidfile] [-T charset] [-P P3P] [-M maxage] [-V] [-n]\n",
 		      argv0);
 	exit(1);
 }

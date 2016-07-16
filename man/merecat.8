@@ -35,8 +35,9 @@ merecat - simple, small and fast HTTP server
 .IR port ]
 .RB [ -d
 .IR dir ]
-.RB [ -dd
+.RB [ -D
 .IR data_dir ]
+.RB [ -n ]
 .RB [ -r ]
 .RB [ -s ]
 .RB [ -v ]
@@ -58,7 +59,6 @@ merecat - simple, small and fast HTTP server
 .RB [ -M
 .IR maxage ]
 .RB [ -V ]
-.RB [ -D ]
 .SH DESCRIPTION
 .PP
 .I merecat
@@ -84,12 +84,16 @@ do a cd in the shell script that invokes the program.
 The config-file option name for this flag is "dir",
 and the thttpd.h options are WEBDIR, USE_USER_DIR.
 .TP
+.B -n
+Runs merecat in the foreground like a regular program.  This is
+necessary when running in a process monitor like Finit or systemd.
+.TP
 .B -r
 Do a chroot() at initialization time, restricting file access to the
 program's current directory.  The config-file option names for this flag
 is "chroot".
 .TP
-.B -dd
+.B -D
 Specifies a directory to chdir() to after chrooting.
 If you're not chrooting, you might as well do a single chdir() with
 the -d flag.
@@ -176,14 +180,6 @@ The config-file option name for this flag is "max_age".
 .TP
 .B -V
 Shows the current version info.
-.TP
-.B -D
-This was originally just a debugging flag, however it's worth mentioning
-because one of the things it does is prevent merecat from making itself
-a background daemon.
-Instead it runs in the foreground like a regular program.
-This is necessary when you want to run merecat wrapped in a little shell
-script that restarts it if it exits.
 .SH "CONFIG-FILE"
 .PP
 All the command-line options can also be set in a config file.
