@@ -5,9 +5,8 @@ Merecat Web Server
 
 [Merecat][] is a simple, small and fast HTTP server.  Once it was about
 as fast as the best full-featured web servers, and even today it remains
-sufficient for most use-case on the web.  It does not have a lot of
-special features, except for one extremely useful -- URL-traffic-based
-throttling -- something that few other web servers have.
+sufficient for most use-cases on the web.  It does not have lots of
+special features, except for URL-traffic-based throttling.
 
 With its small footprint it is very suitable for small and embedded
 systems, even those smaller than a Raspberry Pi.
