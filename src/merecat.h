@@ -213,14 +213,6 @@
 #define VHOST_DIRLEVELS 3
 #endif
 
-/* CONFIGURE: Define this if you want to always use a global passwd file,
-** without having to give the -P command line flag.  You can still disable
-** it at runtime with the -noP flag.
-*/
-#ifdef notdef
-#define ALWAYS_GLOBAL_PASSWD
-#endif
-
 /* CONFIGURE: When started as root, the default username to switch to after
 ** initializing.  If this user (or the one specified by the -u flag) does
 ** not exist, the program will refuse to run.

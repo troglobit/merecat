@@ -37,10 +37,10 @@ merecat - simple, small and fast HTTP server
 .IR dir ]
 .RB [ -dd
 .IR data_dir ]
-.RB [ -r | -nor ]
-.RB [ -s | -nos ]
-.RB [ -v | -nov ]
-.RB [ -g | -nog ]
+.RB [ -r ]
+.RB [ -s ]
+.RB [ -v ]
+.RB [ -g ]
 .RB [ -u
 .IR user ]
 .RB [ -c
@@ -112,18 +112,14 @@ Do el-cheapo virtual hosting.  The config-file option names for this
 flag is "vhost".
 .TP
 .B -g
-Use a global passwd file.
-This means that every file in the entire document tree is protected by
-the single .htpasswd file at the top of the tree.
-Otherwise the semantics of the .htpasswd file are the same.
-If this option is set but there is no .htpasswd file in
-the top-level directory, then merecat proceeds as if the option was
-not set - first looking for a local .htpasswd file, and if that doesn't
-exist either then serving the file without any password.
-If -g is the compiled-in default, then -nog disables it.
-The config-file option names for this flag are "globalpasswd" and
-"noglobalpasswd",
-and the thttpd.h option is ALWAYS_GLOBAL_PASSWD.
+Use a global passwd file.  This means that every file in the entire
+document tree is protected by the single .htpasswd file at the top of
+the tree.  Otherwise the semantics of the .htpasswd file are the same.
+If this option is set but there is no .htpasswd file in the top-level
+directory, then merecat proceeds as if the option was not set - first
+looking for a local .htpasswd file, and if that doesn't exist either
+then serving the file without any password.  The config-file option
+names for this flag are "globalpasswd" and "noglobalpasswd".
 .TP
 .B -u
 Specifies what user to switch to after initialization when started as root.

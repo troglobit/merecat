@@ -674,11 +674,7 @@ static void parse_args(int argc, char **argv)
 	no_log = 0;
 	no_symlink_check = 1;
 	do_vhost = 0;
-#ifdef ALWAYS_GLOBAL_PASSWD
-	do_global_passwd = 1;
-#else				/* ALWAYS_GLOBAL_PASSWD */
 	do_global_passwd = 0;
-#endif				/* ALWAYS_GLOBAL_PASSWD */
 #ifdef CGI_PATTERN
 	cgi_pattern = CGI_PATTERN;
 #else				/* CGI_PATTERN */
@@ -737,8 +733,6 @@ static void parse_args(int argc, char **argv)
 			do_vhost = 1;
 		else if (strcmp(argv[argn], "-g") == 0)
 			do_global_passwd = 1;
-		else if (strcmp(argv[argn], "-nog") == 0)
-			do_global_passwd = 0;
 		else if (strcmp(argv[argn], "-i") == 0 && argn + 1 < argc) {
 			++argn;
 			pidfile = argv[argn];
