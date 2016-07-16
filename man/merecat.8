@@ -98,16 +98,14 @@ of the chroot tree, instead of in the top level mixed in with the
 chroot files.
 The config-file option name for this flag is "data_dir".
 .TP
-.B -nos
-Don't do explicit symbolic link checking.
-Normally, merecat explicitly expands any symbolic links in filenames,
-to check that the resulting path stays within the original document tree.
-If you want to turn off this check and save some CPU time, you can use
-the -nos flag, however this is not recommended.
-Note, though, that if you are using the chroot option, the symlink
-checking is unnecessary and is turned off, so the safe way to save
-those CPU cycles is to use chroot.
-The config-file option names for this flag are "symlinkcheck" and "nosymlinkcheck".
+.B -s
+Do explicit symbolic link checking.  Normally, merecat does not expand
+any symbolic links in filenames.  For increased security this option can
+be enabled to check that the resulting path stays within the original
+document tree.  Note, that if you are using the chroot option, the
+symlink checking is unnecessary and is turned off, so the safe way to
+save those CPU cycles is to use chroot.  The config-file option names
+for this flag are "symlinkcheck" and "nosymlinkcheck".
 .TP
 .B -v
 Do el-cheapo virtual hosting.  The config-file option names for this

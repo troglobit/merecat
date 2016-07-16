@@ -672,7 +672,7 @@ static void parse_args(int argc, char **argv)
 	data_dir = (char *)0;
 	do_chroot = 0;
 	no_log = 0;
-	no_symlink_check = do_chroot;
+	no_symlink_check = 1;
 	do_vhost = 0;
 #ifdef ALWAYS_GLOBAL_PASSWD
 	do_global_passwd = 1;
@@ -721,8 +721,6 @@ static void parse_args(int argc, char **argv)
 			data_dir = argv[argn];
 		} else if (strcmp(argv[argn], "-s") == 0)
 			no_symlink_check = 0;
-		else if (strcmp(argv[argn], "-nos") == 0)
-			no_symlink_check = 1;
 		else if (strcmp(argv[argn], "-u") == 0 && argn + 1 < argc) {
 			++argn;
 			user = argv[argn];
