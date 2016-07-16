@@ -8,7 +8,7 @@
 ** if stdin is a pipe or file.  This is necessary for use from CGI.
 */
 
-#include <config.h>
+#include "config.h"
 
 //system headers
 #include <signal.h>

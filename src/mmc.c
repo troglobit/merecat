@@ -25,7 +25,7 @@
 ** SUCH DAMAGE.
 */
 
-#include <config.h>
+#include "config.h"
 
 //system headers
 #include <sys/types.h>
