@@ -78,7 +78,6 @@ static int cgi_limit;
 static char *url_pattern;
 static int no_empty_referers;
 static char *local_pattern;
-static char *logfile;
 static char *throttlefile;
 static char *hostname;
 static char *pidfile;
@@ -296,29 +295,6 @@ static void handle_alrm(int signo)
 }
 
 
-static void re_open_logfile(void)
-{
-	FILE *logfp;
-	int retchmod;
-
-	if (no_log || hs == (httpd_server *)0)
-		return;
-
-	/* Re-open the log file. */
-	if (logfile != (char *)0 && strcmp(logfile, "-") != 0) {
-		syslog(LOG_NOTICE, "re-opening logfile");
-		logfp = fopen(logfile, "a");
-		retchmod = chmod(logfile, S_IRUSR | S_IWUSR);
-		if (logfp == (FILE *)0 || retchmod != 0) {
-			syslog(LOG_CRIT, "re-opening %.80s - %m", logfile);
-			return;
-		}
-		(void)fcntl(fileno(logfp), F_SETFD, 1);
-		httpd_set_logfp(hs, logfp);
-	}
-}
-
-
 int main(int argc, char **argv)
 {
 	char *cp;
@@ -326,8 +302,6 @@ int main(int argc, char **argv)
 	uid_t uid = 32767;
 	gid_t gid = 32767;
 	char cwd[MAXPATHLEN + 1];
-	FILE *logfp;
-	int retchmod;
 	int num_ready;
 	int cnum;
 	connecttab *c;
@@ -382,40 +356,6 @@ int main(int argc, char **argv)
 		gid = pwd->pw_gid;
 	}
 
-	/* Log file. */
-	if (logfile != (char *)0) {
-		if (strcmp(logfile, "/dev/null") == 0) {
-			no_log = 1;
-			logfp = (FILE *)0;
-		} else if (strcmp(logfile, "-") == 0)
-			logfp = stdout;
-		else {
-			logfp = fopen(logfile, "a");
-			retchmod = chmod(logfile, S_IRUSR | S_IWUSR);
-			if (logfp == (FILE *)0 || retchmod != 0) {
-				syslog(LOG_CRIT, "%.80s - %m", logfile);
-				perror(logfile);
-				exit(1);
-			}
-			if (logfile[0] != '/') {
-				syslog(LOG_WARNING, "logfile is not an absolute path, you may not be able to re-open it");
-				(void)fprintf(stderr, "%s: logfile is not an absolute path, you may not be able to re-open it\n",
-					      argv0);
-			}
-			(void)fcntl(fileno(logfp), F_SETFD, 1);
-			if (getuid() == 0) {
-				/* If we are root then we chown the log file to the user we'll
-				 ** be switching to.
-				 */
-				if (fchown(fileno(logfp), uid, gid) < 0) {
-					syslog(LOG_WARNING, "fchown logfile - %m");
-					perror("fchown logfile");
-				}
-			}
-		}
-	} else
-		logfp = (FILE *)0;
-
 	/* Switch directories if requested. */
 	if (dir != (char *)0) {
 		if (chdir(dir) < 0) {
@@ -448,8 +388,7 @@ int main(int argc, char **argv)
 		 ** them to save file descriptors.
 		 */
 		(void)fclose(stdin);
-		if (logfp != stdout)
-			(void)fclose(stdout);
+		(void)fclose(stdout);
 		(void)fclose(stderr);
 
 		/* Daemonize - make ourselves a subprocess. */
@@ -510,25 +449,7 @@ int main(int argc, char **argv)
 			perror("chroot");
 			exit(1);
 		}
-		/* If we're logging and the logfile's pathname begins with the
-		 ** chroot tree's pathname, then elide the chroot pathname so
-		 ** that the logfile pathname still works from inside the chroot
-		 ** tree.
-		 */
-		if (logfile != (char *)0 && strcmp(logfile, "-") != 0) {
-			if (strncmp(logfile, cwd, strlen(cwd)) == 0) {
-				(void)memmove(logfile, &logfile[strlen(cwd) - 1], strlen(logfile) - (strlen(cwd) - 1) + 1);
-				/* (We already guaranteed that cwd ends with a slash, so leaving
-				 ** that slash in logfile makes it an absolute pathname within
-				 ** the chroot tree.)
-				 */
-			} else {
-				syslog(LOG_WARNING, "logfile is not within the chroot tree, you will not be able to re-open it");
-				(void)fprintf(stderr,
-					      "%s: logfile is not within the chroot tree, you will not be able to re-open it\n",
-					      argv0);
-			}
-		}
+
 		(void)strcpy(cwd, "/");
 		/* Always chdir to / after a chroot. */
 		if (chdir(cwd) < 0) {
@@ -570,7 +491,7 @@ int main(int argc, char **argv)
 	 */
 	hs = httpd_initialize(hostname,
 			      gotv4 ? &sa4 : (httpd_sockaddr *)0, gotv6 ? &sa6 : (httpd_sockaddr *)0,
-			      port, cgi_pattern, cgi_limit, charset, p3p, max_age, cwd, no_log, logfp,
+			      port, cgi_pattern, cgi_limit, charset, p3p, max_age, cwd, no_log,
 			      no_symlink_check, do_vhost, do_global_passwd, url_pattern, local_pattern, no_empty_referers);
 	if (hs == (httpd_server *)0)
 		exit(1);
@@ -661,10 +582,8 @@ int main(int argc, char **argv)
 	tmr_prepare_timeval(&tv);
 	while ((!terminate) || num_connects > 0) {
 		/* Do we need to re-open the log file? */
-		if (got_hup) {
-			re_open_logfile();
+		if (got_hup)
 			got_hup = 0;
-		}
 
 		/* Do the fd watch. */
 		num_ready = fdwatch(tmr_mstimeout(&tv));
@@ -783,7 +702,6 @@ static void parse_args(int argc, char **argv)
 	local_pattern = (char *)0;
 	throttlefile = (char *)0;
 	hostname = (char *)0;
-	logfile = (char *)0;
 	pidfile = (char *)0;
 	user = DEFAULT_USER;
 	charset = DEFAULT_CHARSET;
@@ -828,9 +746,6 @@ static void parse_args(int argc, char **argv)
 		} else if (strcmp(argv[argn], "-h") == 0 && argn + 1 < argc) {
 			++argn;
 			hostname = argv[argn];
-		} else if (strcmp(argv[argn], "-l") == 0 && argn + 1 < argc) {
-			++argn;
-			logfile = argv[argn];
 		} else if (strcmp(argv[argn], "-v") == 0)
 			do_vhost = 1;
 		else if (strcmp(argv[argn], "-nov") == 0)
@@ -865,7 +780,7 @@ static void parse_args(int argc, char **argv)
 static void usage(void)
 {
 	(void)fprintf(stderr,
-		      "usage:  %s [-C configfile] [-p port] [-d dir] [-r|-nor] [-dd data_dir] [-s|-nos] [-v|-nov] [-g|-nog] [-u user] [-c cgipat] [-t throttles] [-h host] [-l logfile] [-i pidfile] [-T charset] [-P P3P] [-M maxage] [-V] [-D]\n",
+		      "usage:  %s [-C configfile] [-p port] [-d dir] [-r|-nor] [-dd data_dir] [-s|-nos] [-v|-nov] [-g|-nog] [-u user] [-c cgipat] [-t throttles] [-h host] [-l loglevel] [-i pidfile] [-T charset] [-P P3P] [-M maxage] [-V] [-D]\n",
 		      argv0);
 	exit(1);
 }
@@ -964,9 +879,6 @@ static void read_config(char *filename)
 			} else if (strcasecmp(name, "host") == 0) {
 				value_required(name, value);
 				hostname = e_strdup(value);
-			} else if (strcasecmp(name, "logfile") == 0) {
-				value_required(name, value);
-				logfile = e_strdup(value);
 			} else if (strcasecmp(name, "vhost") == 0) {
 				no_value_required(name, value);
 				do_vhost = 1;

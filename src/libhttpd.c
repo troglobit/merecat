@@ -226,7 +226,7 @@ static void free_httpd_server(httpd_server *hs)
 
 httpd_server *httpd_initialize(char *hostname, httpd_sockaddr *sa4P, httpd_sockaddr *sa6P,
 			       unsigned short port, char *cgi_pattern, int cgi_limit, char *charset,
-			       char *p3p, int max_age, char *cwd, int no_log, FILE *logfp,
+			       char *p3p, int max_age, char *cwd, int no_log,
 			       int no_symlink_check, int vhost, int global_passwd, char *url_pattern,
 			       char *local_pattern, int no_empty_referers)
 {
@@ -324,8 +324,6 @@ httpd_server *httpd_initialize(char *hostname, httpd_sockaddr *sa4P, httpd_socka
 	}
 
 	hs->no_log = no_log;
-	hs->logfp = NULL;
-	httpd_set_logfp(hs, logfp);
 	hs->no_symlink_check = no_symlink_check;
 	hs->vhost = vhost;
 	hs->global_passwd = global_passwd;
@@ -434,19 +432,9 @@ static int initialize_listen_socket(httpd_sockaddr *saP)
 }
 
 
-void httpd_set_logfp(httpd_server *hs, FILE *logfp)
-{
-	if (hs->logfp)
-		fclose(hs->logfp);
-	hs->logfp = logfp;
-}
-
-
 void httpd_terminate(httpd_server *hs)
 {
 	httpd_unlisten(hs);
-	if (hs->logfp)
-		fclose(hs->logfp);
 	free_httpd_server(hs);
 }
 
@@ -3564,51 +3552,9 @@ static void make_log_entry(httpd_conn *hc, struct timeval *nowP)
 	else
 		(void)strcpy(bytes, "-");
 
-	/* Logfile or syslog? */
-	if (hc->hs->logfp) {
-		time_t now;
-		struct tm *t;
-		const char *cernfmt_nozone = "%d/%b/%Y:%H:%M:%S";
-		char date_nozone[100];
-		int zone;
-		char sign;
-		char date[100];
-
-		/* Get the current time, if necessary. */
-		if (nowP)
-			now = nowP->tv_sec;
-		else
-			now = time(NULL);
-
-		/* Format the time, forcing a numeric timezone (some log analyzers
-		 ** are stoooopid about this).
-		 */
-		t = localtime(&now);
-		(void)strftime(date_nozone, sizeof(date_nozone), cernfmt_nozone, t);
-		zone = t->tm_gmtoff / 60L;
-		if (zone >= 0) {
-			sign = '+';
-		} else {
-			sign = '-';
-			zone = -zone;
-		}
-		zone = (zone / 60) * 100 + zone % 60;
-		my_snprintf(date, sizeof(date), "%s %c%04d", date_nozone, sign, zone);
-
-		/* And write the log entry. */
-		fprintf(hc->hs->logfp,
-			"%.80s - %.80s [%s] \"%.80s %.300s %.80s\" %d %s \"%.200s\" \"%.200s\"\n",
-			httpd_ntoa(&hc->client_addr), ru, date,
-			httpd_method_str(hc->method), url, hc->protocol, hc->status, bytes, hc->referer, hc->useragent);
-#ifdef FLUSH_LOG_EVERY_TIME
-		(void)fflush(hc->hs->logfp);
-#endif
-	} else {
-		syslog(LOG_INFO,
-		       "%.80s - %.80s \"%.80s %.200s %.80s\" %d %s \"%.200s\" \"%.200s\"",
-		       httpd_ntoa(&hc->client_addr), ru,
-		       httpd_method_str(hc->method), url, hc->protocol, hc->status, bytes, hc->referer, hc->useragent);
-	}
+	syslog(LOG_INFO, "%.80s - %.80s \"%.80s %.200s %.80s\" %d %s \"%.200s\" \"%.200s\"",
+	       httpd_ntoa(&hc->client_addr), ru, httpd_method_str(hc->method), url, hc->protocol,
+	       hc->status, bytes, hc->referer, hc->useragent);
 }
 
 

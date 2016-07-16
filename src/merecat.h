@@ -356,11 +356,6 @@
 #define LOG_UNKNOWN_HEADERS
 #endif
 
-/* CONFIGURE: Whether to fflush() the log file after each request.  If
-** this is turned off there's a slight savings in CPU cycles.
-*/
-#define FLUSH_LOG_EVERY_TIME
-
 /* CONFIGURE: Time between updates of the throttle table's rolling averages. */
 #define THROTTLE_TIME 2
 

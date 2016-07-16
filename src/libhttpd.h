@@ -83,7 +83,6 @@ typedef struct {
 	char *cwd;
 	int listen4_fd, listen6_fd;
 	int no_log;
-	FILE *logfp;
 	int no_symlink_check;
 	int vhost;
 	int global_passwd;
@@ -175,12 +174,9 @@ typedef struct {
 */
 extern httpd_server *httpd_initialize(char *hostname, httpd_sockaddr *sa4P, httpd_sockaddr *sa6P,
 				      unsigned short port, char *cgi_pattern, int cgi_limit, char *charset,
-				      char *p3p, int max_age, char *cwd, int no_log, FILE *logfp,
+				      char *p3p, int max_age, char *cwd, int no_log,
 				      int no_symlink_check, int vhost, int global_passwd, char *url_pattern,
 				      char *local_pattern, int no_empty_referers);
-
-/* Change the log file. */
-extern void httpd_set_logfp(httpd_server *hs, FILE *logfp);
 
 /* Call to unlisten/close socket(s) listening for new connections. */
 extern void httpd_unlisten(httpd_server *hs);

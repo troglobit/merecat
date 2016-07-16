@@ -49,8 +49,6 @@ merecat - simple, small and fast HTTP server
 .IR throttles ]
 .RB [ -h
 .IR host ]
-.RB [ -l
-.IR logfile ]
 .RB [ -i
 .IR pidfile ]
 .RB [ -T
@@ -160,12 +158,6 @@ See below for details.
 The config-file option name for this flag is "host",
 and the thttpd.h option is SERVER_NAME.
 .TP
-.B -l
-Specifies a file for logging.
-If no -l argument is specified, merecat logs via syslog().
-If "-l /dev/null" is specified, merecat doesn't log at all.
-The config-file option name for this flag is "logfile".
-.TP
 .B -i
 Specifies a file to write the process-id to.
 If no file is specified, no process-id is written.
@@ -241,16 +233,16 @@ must be written in a compiled language such as C and statically linked,
 then you probably don't have to do any setup at all.
 .PP
 However, one thing you should do is tell syslogd about the chroot tree,
-so that merecat can still generate syslog messages.
-Check your system's syslodg man page for how to do this.
-In FreeBSD you would put something like this in /etc/rc.conf:
+so that merecat can still generate syslog messages.  Check your system's
+syslogd man page for how to do this.  In FreeBSD you would put something
+like this in /etc/rc.conf:
 .nf
     syslogd_flags="-l /usr/local/www/data/dev/log"
 .fi
-Substitute in your own chroot tree's pathname, of course.
-Don't worry about creating the log socket, syslogd wants to do that itself.
-(You may need to create the dev directory.)
-In Linux the flag is -a instead of -l, and there may be other differences.
+Substitute in your own chroot tree's pathname, of course.  Don't worry
+about creating the log socket, syslogd wants to do that itself.  (You
+may need to create the dev directory.)  In Linux the flag is -a instead
+of -l, and there may be other differences.
 .PP
 Relevant thttpd.h option: ALWAYS_CHROOT.
 .SH "CGI"
@@ -536,10 +528,9 @@ directories should be 755 (rwxr-xr-x) if you want to allow indexing and
 755 (rwxr-xr-x) or 711 (rwx--x--x).
 .SH LOGS
 .PP
-merecat does all of its logging via syslog(3).
-The facility it uses is configurable.
-Aside from error messages, there are only a few log entry types of interest,
-all fairly similar to CERN Common Log Format:
+merecat does all of its logging via syslog(3).  The facility it uses is
+configurable.  Aside from error messages, there are only a few log entry
+types of interest, all fairly similar to CERN Common Log Format:
 .nf
   Aug  6 15:40:34 acme merecat[583]: 165.113.207.103 - - "GET /file" 200 357
   Aug  6 15:40:43 acme merecat[583]: 165.113.207.103 - - "HEAD /file" 200 0
@@ -553,9 +544,6 @@ This is both to save time and as a minor security measure (the numeric
 address is harder to spoof).
 .PP
 Relevant thttpd.h option: LOG_FACILITY.
-.PP
-If you'd rather log directly to a file, you can use the -l command-line
-flag.  But note that error messages still go to syslog.
 .SH SIGNALS
 .PP
 merecat handles a couple of signals, which you can send via the
@@ -575,14 +563,6 @@ immediately.
 .B USR2
 This signal tells merecat to generate the statistics syslog messages
 immediately, instead of waiting for the regular hourly update.
-.TP
-.B HUP
-This signal tells merecat to close and re-open its (non-syslog) log file,
-for instance if you rotated the logs and want it to start using the
-new one.
-This is a little tricky to set up correctly, for instance if you are using
-chroot() then the log file must be within the chroot tree, but it's
-definitely doable.
 .SH "SEE ALSO"
 redirect(8), ssi(8), makeweb(1), htpasswd(1), syslogtocern(8), weblog_parse(1), http_get(1)
 .SH THANKS
