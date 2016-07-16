@@ -32,11 +32,6 @@
 /* The following configuration settings are sorted in order of decreasing
 ** likelihood that you'd want to change them - most likely first, least
 ** likely last.
-**
-** In case you're not familiar with the convention, "#ifdef notdef"
-** is a Berkeleyism used to indicate temporarily disabled code.
-** The idea here is that you re-enable it by just moving it outside
-** of the ifdef.
 */
 
 /* CONFIGURE: Server software version, standard httpd version format.
@@ -62,7 +57,7 @@
 ** as a security measure that's how you do it, just don't define any
 ** pattern here and don't run with the -c flag.
 */
-#ifdef notdef
+#if 0
 /* Some sample patterns.  Allow programs only in one central directory: */
 #define CGI_PATTERN "/cgi-bin/*"
 /* Allow programs in a central directory, or anywhere in a trusted
@@ -72,7 +67,13 @@
 #define CGI_PATTERN "**.cgi"
 /* When virtual hosting, enable the central directory on every host: */
 #define CGI_PATTERN "/*/cgi-bin/*"
+#endif /* 0 */
+
+/* Fallback */
+#ifndef CGI_PATTERN
+#define CGI_PATTERN NULL
 #endif
+
 
 /* CONFIGURE: How many seconds to allow CGI programs to run before killing
 ** them.  This is in case someone writes a CGI program that goes into an
@@ -88,9 +89,15 @@
 ** no limit (and you'd better have a lot of memory).  This can also be
 ** set in the runtime config file.
 */
-#ifdef notdef
+#if 0
 #define CGI_LIMIT 50
 #endif
+
+/* Fallback */
+#ifndef CGI_LIMIT
+#define CGI_LIMIT 0
+#endif
+
 
 /* CONFIGURE: How many seconds to allow for reading the initial request
 ** on a new connection.

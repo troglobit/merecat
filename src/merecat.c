@@ -68,23 +68,27 @@
 	(void)sigaction(signo, &sa, NULL)
 
 static char *argv0;
-static int debug;
-static unsigned short port;
-static char *dir;
-static char *data_dir;
-static int do_chroot, no_log, no_symlink_check, do_vhost, do_global_passwd;
-static char *cgi_pattern;
-static int cgi_limit;
-static char *url_pattern;
-static int no_empty_referers;
-static char *local_pattern;
-static char *throttlefile;
-static char *hostname;
-static char *pidfile;
-static char *user;
-static char *charset;
-static char *p3p;
-static int max_age;
+static int   debug             = 0;
+static unsigned short port     = DEFAULT_PORT;
+static char *dir               = NULL;
+static char *data_dir          = NULL;;
+static int   do_chroot         = 0;
+static int   no_log            = 0;
+static int   no_symlink_check  = 0;
+static int   do_vhost          = 0;
+static int   do_global_passwd  = 0;
+static char *cgi_pattern       = CGI_PATTERN;
+static int   cgi_limit         = CGI_LIMIT;
+static char *url_pattern       = NULL;
+static int   no_empty_referers = 0;
+static char *local_pattern     = NULL;
+static char *throttlefile      = NULL;
+static char *hostname          = NULL;
+static char *pidfile           = NULL;
+static char *user              = DEFAULT_USER;
+static char *charset           = DEFAULT_CHARSET;
+static char *p3p               = "";
+static int   max_age           = -1;
 
 
 typedef struct {
@@ -664,38 +668,8 @@ int main(int argc, char **argv)
 
 static void parse_args(int argc, char **argv)
 {
-	int argn;
+	int argn = 1;
 
-	debug = 0;
-	port = DEFAULT_PORT;
-	dir = (char *)0;
-	data_dir = (char *)0;
-	do_chroot = 0;
-	no_log = 0;
-	no_symlink_check = 1;
-	do_vhost = 0;
-	do_global_passwd = 0;
-#ifdef CGI_PATTERN
-	cgi_pattern = CGI_PATTERN;
-#else				/* CGI_PATTERN */
-	cgi_pattern = (char *)0;
-#endif				/* CGI_PATTERN */
-#ifdef CGI_LIMIT
-	cgi_limit = CGI_LIMIT;
-#else				/* CGI_LIMIT */
-	cgi_limit = 0;
-#endif				/* CGI_LIMIT */
-	url_pattern = (char *)0;
-	no_empty_referers = 0;
-	local_pattern = (char *)0;
-	throttlefile = (char *)0;
-	hostname = (char *)0;
-	pidfile = (char *)0;
-	user = DEFAULT_USER;
-	charset = DEFAULT_CHARSET;
-	p3p = "";
-	max_age = -1;
-	argn = 1;
 	while (argn < argc && argv[argn][0] == '-') {
 		if (strcmp(argv[argn], "-V") == 0) {
 			(void)printf("%s\n", PACKAGE_VERSION);
