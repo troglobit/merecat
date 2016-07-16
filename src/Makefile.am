@@ -3,6 +3,7 @@ SYMLINK             = in.httpd
 merecat_SOURCES     = merecat.c		merecat.h	\
 		      fdwatch.c		fdwatch.h	\
 		      libhttpd.c	libhttpd.h	\
+		      md5.c 		md5.h		\
 		      mmc.c 		mmc.h		\
 		      timers.c		timers.h	\
 		      tdate_parse.c	tdate_parse.h	\

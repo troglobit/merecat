@@ -74,6 +74,7 @@ extern char *crypt(const char *key, const char *setting);
 /* Local headers */
 #include "libhttpd.h"
 #include "match.h"
+#include "md5.h"
 #include "mmc.h"
 #include "tdate_parse.h"
 #include "merecat.h"
@@ -571,9 +572,6 @@ send_mime(httpd_conn *hc, int status, char *title, char *encodings, char *extrah
 {
 	time_t now, expires;
 	const char *rfc1123fmt = "%a, %d %b %Y %H:%M:%S GMT";
-	char nowbuf[100];
-	char modbuf[100];
-	char expbuf[100];
 	char fixed_type[500];
 	char buf[1000];
 	int partial_content;
@@ -582,6 +580,10 @@ send_mime(httpd_conn *hc, int status, char *title, char *encodings, char *extrah
 	hc->status = status;
 	hc->bytes_to_send = length;
 	if (hc->mime_flag) {
+		char nowbuf[100];
+		char modbuf[100];
+		char etagbuf[45] = { 0 };
+
 		if (status == 200 && hc->got_range &&
 		    (hc->last_byte_index >= hc->first_byte_index) &&
 		    ((hc->last_byte_index != length - 1) ||
@@ -601,15 +603,29 @@ send_mime(httpd_conn *hc, int status, char *title, char *encodings, char *extrah
 		strftime(modbuf, sizeof(modbuf), rfc1123fmt, gmtime(&mod));
 		my_snprintf(fixed_type, sizeof(fixed_type), type, hc->hs->charset);
 
+		/* EntityTag -- https://en.wikipedia.org/wiki/HTTP_ETag */
+		if (hc->file_address) {
+			uint8_t digest[MD5_DIGEST_LENGTH];
+			MD5_CTX md5_ctx;
+
+			MD5Init(&md5_ctx);
+			MD5Update(&md5_ctx, (const u_int8_t *)hc->file_address, length);
+			MD5Final(digest, &md5_ctx);
+			my_snprintf(etagbuf, sizeof(etagbuf),
+				    "ETag: \"%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x\"\r\n",
+				    digest[0], digest[1], digest[2], digest[3], digest[4], digest[5], digest[6], digest[7],
+				    digest[8], digest[9], digest[10], digest[11], digest[12], digest[13], digest[14], digest[15]);
+		}
+
 		/* Match Apache as close as possible, but follow RFC 2616, section 4.2 */
 		my_snprintf(buf, sizeof(buf),
 			    "%.20s %d %s\r\n"
 			    "Date: %s\r\n"
 			    "Server: %s\r\n"
 			    "Last-Modified: %s\r\n"
-			    /* "ETag: \"$HASH\"\r\n" https://en.wikipedia.org/wiki/HTTP_ETag */
+			    "%s"
 			    "Accept-Ranges: bytes\r\n",
-			    hc->protocol, status, title, nowbuf, EXPOSED_SERVER_SOFTWARE, modbuf);
+			    hc->protocol, status, title, nowbuf, EXPOSED_SERVER_SOFTWARE, modbuf, etagbuf);
 		add_response(hc, buf);
 
 		if (partial_content) {
@@ -644,6 +660,8 @@ send_mime(httpd_conn *hc, int status, char *title, char *encodings, char *extrah
 		}
 
 		if (hc->hs->max_age >= 0) {
+			char expbuf[100];
+
 			expires = now + hc->hs->max_age;
 			strftime(expbuf, sizeof(expbuf), rfc1123fmt, gmtime(&expires));
 			my_snprintf(buf, sizeof(buf),
