@@ -185,15 +185,6 @@
 */
 #define SHOW_SERVER_VERSION
 
-/* CONFIGURE: Define this if you want to always chroot(), without having
-** to give the -r command line flag.  Some people like this as a security
-** measure, to prevent inadvertant exposure by accidentally running without -r.
-** You can still disable it at runtime with the -nor flag.
-*/
-#ifdef notdef
-#define ALWAYS_CHROOT
-#endif
-
 /* CONFIGURE: Define this if you want to always do virtual hosting, without
 ** having to give the -v command line flag.  You can still disable it at
 ** runtime with the -nov flag.

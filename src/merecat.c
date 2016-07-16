@@ -670,11 +670,7 @@ static void parse_args(int argc, char **argv)
 	port = DEFAULT_PORT;
 	dir = (char *)0;
 	data_dir = (char *)0;
-#ifdef ALWAYS_CHROOT
-	do_chroot = 1;
-#else				/* ALWAYS_CHROOT */
 	do_chroot = 0;
-#endif				/* ALWAYS_CHROOT */
 	no_log = 0;
 	no_symlink_check = do_chroot;
 #ifdef ALWAYS_VHOST
@@ -724,9 +720,6 @@ static void parse_args(int argc, char **argv)
 		} else if (strcmp(argv[argn], "-r") == 0) {
 			do_chroot = 1;
 			no_symlink_check = 1;
-		} else if (strcmp(argv[argn], "-nor") == 0) {
-			do_chroot = 0;
-			no_symlink_check = 0;
 		} else if (strcmp(argv[argn], "-dd") == 0 && argn + 1 < argc) {
 			++argn;
 			data_dir = argv[argn];
@@ -780,7 +773,7 @@ static void parse_args(int argc, char **argv)
 static void usage(void)
 {
 	(void)fprintf(stderr,
-		      "usage:  %s [-C configfile] [-p port] [-d dir] [-r|-nor] [-dd data_dir] [-s|-nos] [-v|-nov] [-g|-nog] [-u user] [-c cgipat] [-t throttles] [-h host] [-l loglevel] [-i pidfile] [-T charset] [-P P3P] [-M maxage] [-V] [-D]\n",
+		      "usage:  %s [-C configfile] [-p port] [-d dir] [-r] [-dd data_dir] [-s|-nos] [-v|-nov] [-g|-nog] [-u user] [-c cgipat] [-t throttles] [-h host] [-l loglevel] [-i pidfile] [-T charset] [-P P3P] [-M maxage] [-V] [-D]\n",
 		      argv0);
 	exit(1);
 }
@@ -836,10 +829,6 @@ static void read_config(char *filename)
 				no_value_required(name, value);
 				do_chroot = 1;
 				no_symlink_check = 1;
-			} else if (strcasecmp(name, "nochroot") == 0) {
-				no_value_required(name, value);
-				do_chroot = 0;
-				no_symlink_check = 0;
 			} else if (strcasecmp(name, "data_dir") == 0) {
 				value_required(name, value);
 				data_dir = e_strdup(value);

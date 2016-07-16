@@ -85,12 +85,9 @@ The config-file option name for this flag is "dir",
 and the thttpd.h options are WEBDIR, USE_USER_DIR.
 .TP
 .B -r
-Do a chroot() at initialization time, restricting file access
-to the program's current directory.
-If -r is the compiled-in default, then -nor disables it.
-See below for details.
-The config-file option names for this flag are "chroot" and "nochroot",
-and the thttpd.h option is ALWAYS_CHROOT.
+Do a chroot() at initialization time, restricting file access to the
+program's current directory.  The config-file option names for this flag
+is "chroot".
 .TP
 .B -dd
 Specifies a directory to chdir() to after chrooting.
@@ -243,8 +240,6 @@ Substitute in your own chroot tree's pathname, of course.  Don't worry
 about creating the log socket, syslogd wants to do that itself.  (You
 may need to create the dev directory.)  In Linux the flag is -a instead
 of -l, and there may be other differences.
-.PP
-Relevant thttpd.h option: ALWAYS_CHROOT.
 .SH "CGI"
 .PP
 Merecat httpd supports the CGI 1.1 spec.
