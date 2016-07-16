@@ -11,6 +11,8 @@ special features, except for URL-traffic-based throttling.
 With its small footprint it is very suitable for small and embedded
 systems, even those smaller than a Raspberry Pi.
 
+For questions see the included man page or the [FAQ][].
+
 Merecat is released under the [simplified 2-clause BSD license][license].
 
 
@@ -27,7 +29,8 @@ a fork of [sthttpd][] by Anthony G. Basile, which in turn is a fork of
 
 [Merecat]:  https://github.com/troglobit/merecat/
 [license]:  https://github.com/troglobit/merecat/blob/master/LICENSE
-[Mongoose]: https://github.com/cesanta/mongoose 
+[Mongoose]: https://github.com/cesanta/mongoose
+[FAQ]:      http://halplant.com:2001/server/thttpd_FAQ.html
 [thttpd]:   http://www.acme.com/software/thttpd/
 [sthttpd]:  https://github.com/blueness/sthttpd/
 
