@@ -68,7 +68,8 @@
 	sa.sa_handler = cb;		\
 	(void)sigaction(signo, &sa, NULL)
 
-static char *argv0;
+extern char *__progname;
+
 static int   debug             = 0;
 static unsigned short port     = DEFAULT_PORT;
 static char *dir               = NULL;
@@ -300,7 +301,7 @@ static void handle_alrm(int signo)
 
 static int usage(int code)
 {
-	printf("Usage:  %s [-C configfile] [-p port] [-d dir] [-r] [-D data_dir] [-s] [-v] [-g] [-u user] [-c cgipat] [-t throttles] [-h host] [-T charset] [-P P3P] [-M maxage] [-V] [-n]\n", argv0);
+	printf("Usage:  %s [-C configfile] [-p port] [-d dir] [-r] [-D data_dir] [-s] [-v] [-g] [-u user] [-c cgipat] [-t throttles] [-h host] [-T charset] [-P P3P] [-M maxage] [-V] [-n]\n", __progname);
 	return code;
 }
 
@@ -313,7 +314,6 @@ static int version(void)
 int main(int argc, char **argv)
 {
 	int c;
-	char *cp;
 	struct passwd *pwd;
 	uid_t uid = 32767;
 	gid_t gid = 32767;
@@ -328,14 +328,7 @@ int main(int argc, char **argv)
 	struct timeval tv;
 	struct sigaction sa;
 
-	argv0 = argv[0];
-
-	cp = strrchr(argv0, '/');
-	if (cp != (char *)0)
-		++cp;
-	else
-		cp = argv0;
-	openlog(cp, LOG_NDELAY | LOG_PID, LOG_FACILITY);
+	openlog(__progname, LOG_NDELAY | LOG_PID, LOG_FACILITY);
 
 	while ((c = getopt(argc, argv, "c:C:d:D:gh:M:np:P:rsT:u:vV")) != EOF) {
 		switch (c) {
@@ -426,7 +419,7 @@ int main(int argc, char **argv)
 	lookup_hostname(&sa4, sizeof(sa4), &gotv4, &sa6, sizeof(sa6), &gotv6);
 	if (!(gotv4 || gotv6)) {
 		syslog(LOG_ERR, "can't find any valid address");
-		(void)fprintf(stderr, "%s: can't find any valid address\n", argv0);
+		fprintf(stderr, "%s: can't find any valid address\n", __progname);
 		exit(1);
 	}
 
@@ -444,7 +437,7 @@ int main(int argc, char **argv)
 		pwd = getpwnam(user);
 		if (pwd == (struct passwd *)0) {
 			syslog(LOG_CRIT, "unknown user - '%.80s'", user);
-			(void)fprintf(stderr, "%s: unknown user - '%s'\n", argv0, user);
+			(void)fprintf(stderr, "%s: unknown user - '%s'\n",  __progname, user);
 			exit(1);
 		}
 		uid = pwd->pw_uid;
@@ -857,7 +850,7 @@ static void read_config(char *filename)
 				value_required(name, value);
 				max_age = atoi(value);
 			} else {
-				(void)fprintf(stderr, "%s: unknown config option '%s'\n", argv0, name);
+				(void)fprintf(stderr, "%s: unknown config option '%s'\n", __progname, name);
 				exit(1);
 			}
 
@@ -874,7 +867,7 @@ static void read_config(char *filename)
 static void value_required(char *name, char *value)
 {
 	if (value == (char *)0) {
-		(void)fprintf(stderr, "%s: value required for %s option\n", argv0, name);
+		fprintf(stderr, "%s: value required for %s option\n", __progname, name);
 		exit(1);
 	}
 }
@@ -883,7 +876,7 @@ static void value_required(char *name, char *value)
 static void no_value_required(char *name, char *value)
 {
 	if (value != (char *)0) {
-		(void)fprintf(stderr, "%s: no value required for %s option\n", argv0, name);
+		fprintf(stderr, "%s: no value required for %s option\n", __progname, name);
 		exit(1);
 	}
 }
@@ -896,7 +889,7 @@ static char *e_strdup(char *oldstr)
 	newstr = strdup(oldstr);
 	if (newstr == (char *)0) {
 		syslog(LOG_CRIT, "out of memory copying a string");
-		(void)fprintf(stderr, "%s: out of memory copying a string\n", argv0);
+		fprintf(stderr, "%s: out of memory copying a string\n", __progname);
 		exit(1);
 	}
 	return newstr;
@@ -922,7 +915,7 @@ static void lookup_hostname(httpd_sockaddr *sa4P, size_t sa4_len, int *gotv4P, h
 	(void)snprintf(portstr, sizeof(portstr), "%d", (int)port);
 	if ((gaierr = getaddrinfo(hostname, portstr, &hints, &ai)) != 0) {
 		syslog(LOG_CRIT, "getaddrinfo %.80s - %.80s", hostname, gai_strerror(gaierr));
-		(void)fprintf(stderr, "%s: getaddrinfo %s - %s\n", argv0, hostname, gai_strerror(gaierr));
+		fprintf(stderr, "%s: getaddrinfo %s - %s\n", __progname, hostname, gai_strerror(gaierr));
 		exit(1);
 	}
 
@@ -987,16 +980,16 @@ static void lookup_hostname(httpd_sockaddr *sa4P, size_t sa4_len, int *gotv4P, h
 			if (he == (struct hostent *)0) {
 #ifdef HAVE_HSTRERROR
 				syslog(LOG_CRIT, "gethostbyname %.80s - %.80s", hostname, hstrerror(h_errno));
-				(void)fprintf(stderr, "%s: gethostbyname %s - %s\n", argv0, hostname, hstrerror(h_errno));
+				(void)fprintf(stderr, "%s: gethostbyname %s - %s\n", __progname, hostname, hstrerror(h_errno));
 #else				/* HAVE_HSTRERROR */
 				syslog(LOG_CRIT, "gethostbyname %.80s failed", hostname);
-				(void)fprintf(stderr, "%s: gethostbyname %s failed\n", argv0, hostname);
+				(void)fprintf(stderr, "%s: gethostbyname %s failed\n", __progname, hostname);
 #endif				/* HAVE_HSTRERROR */
 				exit(1);
 			}
 			if (he->h_addrtype != AF_INET) {
 				syslog(LOG_CRIT, "%.80s - non-IP network address", hostname);
-				(void)fprintf(stderr, "%s: %s - non-IP network address\n", argv0, hostname);
+				(void)fprintf(stderr, "%s: %s - non-IP network address\n", __progname, hostname);
 				exit(1);
 			}
 			(void)memmove(&sa4P->sa_in.sin_addr.s_addr, he->h_addr, he->h_length);
@@ -1049,7 +1042,7 @@ static void read_throttlefile(char *throttlefile)
 			min_limit = 0;
 		else {
 			syslog(LOG_CRIT, "unparsable line in %.80s - %.80s", throttlefile, buf);
-			(void)fprintf(stderr, "%s: unparsable line in %.80s - %.80s\n", argv0, throttlefile, buf);
+			(void)fprintf(stderr, "%s: unparsable line in %.80s - %.80s\n", __progname, throttlefile, buf);
 			continue;
 		}
 
@@ -1070,7 +1063,7 @@ static void read_throttlefile(char *throttlefile)
 			}
 			if (throttles == (throttletab *)0) {
 				syslog(LOG_CRIT, "out of memory allocating a throttletab");
-				(void)fprintf(stderr, "%s: out of memory allocating a throttletab\n", argv0);
+				(void)fprintf(stderr, "%s: out of memory allocating a throttletab\n", __progname);
 				exit(1);
 			}
 		}

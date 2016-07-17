@@ -44,20 +44,12 @@
 /* Local headers */
 #include "merecat.h"
 
-static char* argv0;
+extern char *__progname;
 
 int
 main( int argc, char* argv[] )
     {
-    char* cp;
-
-    argv0 = argv[0];
-    cp = strrchr( argv0, '/' );
-    if ( cp != (char*) 0 )
-	++cp;
-    else
-	cp = argv0;
-    openlog( cp, LOG_NDELAY|LOG_PID, LOG_FACILITY );
+    openlog(__progname, LOG_NDELAY|LOG_PID, LOG_FACILITY );
     syslog( LOG_CRIT, "phf CGI probe from %s", getenv( "REMOTE_ADDR" ) );
     (void) printf( "\
 Content-type: text/html\n\

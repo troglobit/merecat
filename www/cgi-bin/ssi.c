@@ -50,7 +50,6 @@
 static void read_file( char* vfilename, char* filename, FILE* fp );
 
 
-static char* argv0;
 static char* url;
 
 static char timefmt[100];
@@ -710,8 +709,6 @@ main( int argc, char** argv )
     char* path_info;
     char* path_translated;
     FILE* fp;
-
-    argv0 = argv[0];
 
     /* Default formats. */
     (void) strcpy( timefmt, "%a %b %e %T %Z %Y" );

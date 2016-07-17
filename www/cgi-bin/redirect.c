@@ -68,9 +68,6 @@
 /* Local headers */
 #include "merecat.h"
 
-static char* argv0;
-
-
 static void
 internal_error( char* reason )
     {
@@ -133,8 +130,6 @@ main( int argc, char** argv )
     FILE* fp;
     char *star;
     char buf[5000], file[5000], url[5000];
-
-    argv0 = argv[0];
 
     /* Get the name that we were run as, which is the filename being
     ** redirected.
