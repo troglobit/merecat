@@ -29,16 +29,11 @@
 #include "config.h"
 
 /* System headers */
-#include <sys/param.h>
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <sys/wait.h>
-#include <sys/uio.h>
-
 #include <errno.h>
 #ifdef HAVE_FCNTL_H
 #include <fcntl.h>
 #endif
+#include <getopt.h>
 #include <pwd.h>
 #ifdef HAVE_GRP_H
 #include <grp.h>
@@ -49,6 +44,12 @@
 #include <string.h>
 #include <syslog.h>
 #include <unistd.h>
+
+#include <sys/param.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <sys/wait.h>
+#include <sys/uio.h>
 
 /* Local headers */
 #include "fdwatch.h"
@@ -142,8 +143,6 @@ static volatile int got_hup, got_usr1, watchdog_flag;
 
 
 /* Forwards. */
-static void parse_args(int argc, char **argv);
-static void usage(void);
 static void read_config(char *filename);
 static void value_required(char *name, char *value);
 static void no_value_required(char *name, char *value);
@@ -298,9 +297,21 @@ static void handle_alrm(int signo)
 	errno = oerrno;
 }
 
+static int usage(int code)
+{
+	printf("Usage:  %s [-C configfile] [-p port] [-d dir] [-r] [-D data_dir] [-s] [-v] [-g] [-u user] [-c cgipat] [-t throttles] [-h host] [-i pidfile] [-T charset] [-P P3P] [-M maxage] [-V] [-n]\n", argv0);
+	return code;
+}
+
+static int version(void)
+{
+	printf("%s\n", PACKAGE_VERSION);
+	return 0;
+}
 
 int main(int argc, char **argv)
 {
+	int c;
 	char *cp;
 	struct passwd *pwd;
 	uid_t uid = 32767;
@@ -308,7 +319,7 @@ int main(int argc, char **argv)
 	char cwd[MAXPATHLEN + 1];
 	int num_ready;
 	int cnum;
-	connecttab *c;
+	connecttab *ct;
 	httpd_conn *hc;
 	httpd_sockaddr sa4;
 	httpd_sockaddr sa6;
@@ -325,8 +336,91 @@ int main(int argc, char **argv)
 		cp = argv0;
 	openlog(cp, LOG_NDELAY | LOG_PID, LOG_FACILITY);
 
-	/* Handle command-line arguments. */
-	parse_args(argc, argv);
+	while ((c = getopt(argc, argv, "c:C:d:D:gh:i:M:np:P:rsT:u:vV")) != EOF) {
+		switch (c) {
+		case 'c':
+			cgi_pattern = optarg;
+			break;
+
+		case 'C':
+			read_config(optarg);
+			break;
+
+		case 'd':
+			dir = optarg;
+			break;
+
+		case 'D':
+			data_dir = optarg;
+			break;
+
+		case 'g':
+			do_global_passwd = 1;
+			break;
+
+		case 'h':
+			hostname = optarg;
+			break;
+
+		case 'i':
+			pidfile = optarg;
+			break;
+
+		case 'M':
+			max_age = atoi(optarg);
+			break;
+
+		case 'n':
+			debug = 1;
+			break;
+
+		case 'p':
+			port = (unsigned short)atoi(optarg);
+			break;
+
+		case 'P':
+			p3p = optarg;
+			break;
+
+		case 'r':
+			do_chroot = 1;
+			no_symlink_check = 1;
+			break;
+
+		case 's':
+			no_symlink_check = 0;
+			break;
+
+		case 't':
+			throttlefile = optarg;
+			break;
+
+		case 'T':
+			charset = optarg;
+			break;
+
+		case 'u':
+			user = optarg;
+			break;
+
+		case 'v':
+			do_vhost = 1;
+
+		case 'V':
+			return version();
+
+		default:
+			return usage(1);
+		}
+	}
+
+#if 0   /* Future further simplification ... */
+	if (optind < argc)
+		dir = strdup(argv[optind++]);
+
+	if (optind < argc)
+		hostname = strdup(argv[optind++]);
+#endif
 
 	/* Read zone info now, in case we chroot(). */
 	tzset();
@@ -624,23 +718,24 @@ int main(int argc, char **argv)
 		}
 
 		/* Find the connections that need servicing. */
-		while ((c = (connecttab *)fdwatch_get_next_client_data()) != (connecttab *)-1) {
-			if (c == (connecttab *)0)
+		while ((ct = (connecttab *)fdwatch_get_next_client_data()) != (connecttab *)-1) {
+			if (!ct)
 				continue;
-			hc = c->hc;
+
+			hc = ct->hc;
 			if (!fdwatch_check_fd(hc->conn_fd))
 				/* Something went wrong. */
-				clear_connection(c, &tv);
+				clear_connection(ct, &tv);
 			else
-				switch (c->conn_state) {
+				switch (ct->conn_state) {
 				case CNST_READING:
-					handle_read(c, &tv);
+					handle_read(ct, &tv);
 					break;
 				case CNST_SENDING:
-					handle_send(c, &tv);
+					handle_send(ct, &tv);
 					break;
 				case CNST_LINGERING:
-					handle_linger(c, &tv);
+					handle_linger(ct, &tv);
 					break;
 				}
 		}
@@ -648,7 +743,7 @@ int main(int argc, char **argv)
 
 		if (got_usr1 && !terminate) {
 			terminate = 1;
-			if (hs != (httpd_server *)0) {
+			if (hs) {
 				if (hs->listen4_fd != -1)
 					fdwatch_del_fd(hs->listen4_fd);
 				if (hs->listen6_fd != -1)
@@ -663,79 +758,6 @@ int main(int argc, char **argv)
 	syslog(LOG_NOTICE, "exiting");
 	closelog();
 	exit(0);
-}
-
-
-static void parse_args(int argc, char **argv)
-{
-	int argn = 1;
-
-	while (argn < argc && argv[argn][0] == '-') {
-		if (strcmp(argv[argn], "-V") == 0) {
-			(void)printf("%s\n", PACKAGE_VERSION);
-			exit(0);
-		} else if (strcmp(argv[argn], "-C") == 0 && argn + 1 < argc) {
-			++argn;
-			read_config(argv[argn]);
-		} else if (strcmp(argv[argn], "-p") == 0 && argn + 1 < argc) {
-			++argn;
-			port = (unsigned short)atoi(argv[argn]);
-		} else if (strcmp(argv[argn], "-d") == 0 && argn + 1 < argc) {
-			++argn;
-			dir = argv[argn];
-		} else if (strcmp(argv[argn], "-r") == 0) {
-			do_chroot = 1;
-			no_symlink_check = 1;
-		} else if (strcmp(argv[argn], "-D") == 0 && argn + 1 < argc) {
-			++argn;
-			data_dir = argv[argn];
-		} else if (strcmp(argv[argn], "-s") == 0)
-			no_symlink_check = 0;
-		else if (strcmp(argv[argn], "-u") == 0 && argn + 1 < argc) {
-			++argn;
-			user = argv[argn];
-		} else if (strcmp(argv[argn], "-c") == 0 && argn + 1 < argc) {
-			++argn;
-			cgi_pattern = argv[argn];
-		} else if (strcmp(argv[argn], "-t") == 0 && argn + 1 < argc) {
-			++argn;
-			throttlefile = argv[argn];
-		} else if (strcmp(argv[argn], "-h") == 0 && argn + 1 < argc) {
-			++argn;
-			hostname = argv[argn];
-		} else if (strcmp(argv[argn], "-v") == 0)
-			do_vhost = 1;
-		else if (strcmp(argv[argn], "-g") == 0)
-			do_global_passwd = 1;
-		else if (strcmp(argv[argn], "-i") == 0 && argn + 1 < argc) {
-			++argn;
-			pidfile = argv[argn];
-		} else if (strcmp(argv[argn], "-T") == 0 && argn + 1 < argc) {
-			++argn;
-			charset = argv[argn];
-		} else if (strcmp(argv[argn], "-P") == 0 && argn + 1 < argc) {
-			++argn;
-			p3p = argv[argn];
-		} else if (strcmp(argv[argn], "-M") == 0 && argn + 1 < argc) {
-			++argn;
-			max_age = atoi(argv[argn]);
-		} else if (strcmp(argv[argn], "-n") == 0)
-			debug = 1;
-		else
-			usage();
-		++argn;
-	}
-	if (argn != argc)
-		usage();
-}
-
-
-static void usage(void)
-{
-	(void)fprintf(stderr,
-		      "usage:  %s [-C configfile] [-p port] [-d dir] [-r] [-D data_dir] [-s] [-v] [-g] [-u user] [-c cgipat] [-t throttles] [-h host] [-i pidfile] [-T charset] [-P P3P] [-M maxage] [-V] [-n]\n",
-		      argv0);
-	exit(1);
 }
 
 
