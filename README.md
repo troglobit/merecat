@@ -1,5 +1,6 @@
 Merecat Web Server
 ==================
+[![Travis Status][]][Travis]
 
 ![I am only a mere cat web server](www/img/merecat.jpg "Day 37!")
 
@@ -27,11 +28,17 @@ a fork of [sthttpd][] by Anthony G. Basile, which in turn is a fork of
 * [sthttpd][] was created by Anthony G. Basile <mailto:blueness@gentoo.org>
 
 
-[Merecat]:  https://github.com/troglobit/merecat/
-[license]:  https://github.com/troglobit/merecat/blob/master/LICENSE
-[Mongoose]: https://github.com/cesanta/mongoose
-[FAQ]:      http://halplant.com:2001/server/thttpd_FAQ.html
-[thttpd]:   http://www.acme.com/software/thttpd/
-[sthttpd]:  https://github.com/blueness/sthttpd/
+[Merecat]:       https://github.com/troglobit/merecat/
+[license]:       https://github.com/troglobit/merecat/blob/master/LICENSE
+[Mongoose]:      https://github.com/cesanta/mongoose
+[FAQ]:           http://halplant.com:2001/server/thttpd_FAQ.html
+[thttpd]:        http://www.acme.com/software/thttpd/
+[sthttpd]:       https://github.com/blueness/sthttpd/
+[Travis]:        https://travis-ci.org/troglobit/merecat
+[Travis Status]: https://travis-ci.org/troglobit/merecat.png?branch=master
 
-
+<!--
+  -- Local Variables:
+  -- mode: markdown
+  -- End:
+  -->
