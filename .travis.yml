@@ -1,14 +1,18 @@
+# Travis CI integration
+# Defaults to GNU GCC and autotools: ./configure && make && make test
 language: c
+
+# We don't need to install packages, use dockerized build, quicker
+sudo: false
+
 compiler:
   - gcc
   - clang
-before_install:
- - sudo apt-get update -qq
- - sudo apt-get install autotools-dev automake autoconf libtool
-script: ./autogen.sh && ./configure && make V=1
-notifications:
-  irc:
-    channels:
-      - "irc.freenode.org#thttpd"
-    on_success: change
-    on_failure: always
+
+# We don't store generated files (configure and Makefile) in GIT,
+# so we must customize the default build script to run ./autogen.sh
+script:
+  - ./autogen.sh
+  - ./configure
+  - make V=1
+
