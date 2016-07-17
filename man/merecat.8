@@ -50,8 +50,6 @@ merecat - simple, small and fast HTTP server
 .IR throttles ]
 .RB [ -h
 .IR host ]
-.RB [ -i
-.IR pidfile ]
 .RB [ -T
 .IR charset ]
 .RB [ -P
@@ -149,13 +147,6 @@ The default is to bind to all hostnames supported on the local machine.
 See below for details.
 The config-file option name for this flag is "host",
 and the thttpd.h option is SERVER_NAME.
-.TP
-.B -i
-Specifies a file to write the process-id to.
-If no file is specified, no process-id is written.
-You can use this file to send signals to merecat.
-See below for details.
-The config-file option name for this flag is "pidfile".
 .TP
 .B -T
 Specifies the character set to use with text MIME types.

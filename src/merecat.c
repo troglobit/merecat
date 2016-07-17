@@ -85,7 +85,6 @@ static int   no_empty_referers = 0;
 static char *local_pattern     = NULL;
 static char *throttlefile      = NULL;
 static char *hostname          = NULL;
-static char *pidfile           = NULL;
 static char *user              = DEFAULT_USER;
 static char *charset           = DEFAULT_CHARSET;
 static char *p3p               = "";
@@ -141,6 +140,8 @@ int stats_simultaneous;
 
 static volatile int got_hup, got_usr1, watchdog_flag;
 
+/* External functions */
+extern int pidfile(const char *basename);
 
 /* Forwards. */
 static void read_config(char *filename);
@@ -299,7 +300,7 @@ static void handle_alrm(int signo)
 
 static int usage(int code)
 {
-	printf("Usage:  %s [-C configfile] [-p port] [-d dir] [-r] [-D data_dir] [-s] [-v] [-g] [-u user] [-c cgipat] [-t throttles] [-h host] [-i pidfile] [-T charset] [-P P3P] [-M maxage] [-V] [-n]\n", argv0);
+	printf("Usage:  %s [-C configfile] [-p port] [-d dir] [-r] [-D data_dir] [-s] [-v] [-g] [-u user] [-c cgipat] [-t throttles] [-h host] [-T charset] [-P P3P] [-M maxage] [-V] [-n]\n", argv0);
 	return code;
 }
 
@@ -336,7 +337,7 @@ int main(int argc, char **argv)
 		cp = argv0;
 	openlog(cp, LOG_NDELAY | LOG_PID, LOG_FACILITY);
 
-	while ((c = getopt(argc, argv, "c:C:d:D:gh:i:M:np:P:rsT:u:vV")) != EOF) {
+	while ((c = getopt(argc, argv, "c:C:d:D:gh:M:np:P:rsT:u:vV")) != EOF) {
 		switch (c) {
 		case 'c':
 			cgi_pattern = optarg;
@@ -360,10 +361,6 @@ int main(int argc, char **argv)
 
 		case 'h':
 			hostname = optarg;
-			break;
-
-		case 'i':
-			pidfile = optarg;
 			break;
 
 		case 'M':
@@ -518,17 +515,8 @@ int main(int argc, char **argv)
 #endif				/* HAVE_SETSID */
 	}
 
-	if (pidfile != (char *)0) {
-		/* Write the PID file. */
-		FILE *pidfp = fopen(pidfile, "w");
-
-		if (pidfp == (FILE *)0) {
-			syslog(LOG_CRIT, "%.80s - %m", pidfile);
-			exit(1);
-		}
-		(void)fprintf(pidfp, "%d\n", (int)getpid());
-		(void)fclose(pidfp);
-	}
+	/* Create PID file */
+	pidfile(NULL);
 
 	/* Initialize the fdwatch package.  Have to do this before chroot,
 	 ** if /dev/poll is used.
@@ -859,9 +847,6 @@ static void read_config(char *filename)
 			} else if (strcasecmp(name, "noglobalpasswd") == 0) {
 				no_value_required(name, value);
 				do_global_passwd = 0;
-			} else if (strcasecmp(name, "pidfile") == 0) {
-				value_required(name, value);
-				pidfile = e_strdup(value);
 			} else if (strcasecmp(name, "charset") == 0) {
 				value_required(name, value);
 				charset = e_strdup(value);
