@@ -214,8 +214,6 @@ static void free_httpd_server(httpd_server *hs)
 		free(hs->cgi_pattern);
 	if (hs->charset)
 		free(hs->charset);
-	if (hs->p3p)
-		free(hs->p3p);
 	if (hs->url_pattern)
 		free(hs->url_pattern);
 	if (hs->local_pattern)
@@ -226,7 +224,7 @@ static void free_httpd_server(httpd_server *hs)
 
 httpd_server *httpd_initialize(char *hostname, httpd_sockaddr *sa4P, httpd_sockaddr *sa6P,
 			       unsigned short port, char *cgi_pattern, int cgi_limit, char *charset,
-			       char *p3p, int max_age, char *cwd, int no_log,
+			       int max_age, char *cwd, int no_log,
 			       int no_symlink_check, int vhost, int global_passwd, char *url_pattern,
 			       char *local_pattern, int no_empty_referers)
 {
@@ -294,7 +292,6 @@ httpd_server *httpd_initialize(char *hostname, httpd_sockaddr *sa4P, httpd_socka
 	hs->cgi_limit = cgi_limit;
 	hs->cgi_count = 0;
 	hs->charset = strdup(charset);
-	hs->p3p = strdup(p3p);
 	hs->max_age = max_age;
 
 	hs->cwd = strdup(cwd);
@@ -639,11 +636,6 @@ send_mime(httpd_conn *hc, int status, char *title, char *encodings, char *extrah
 		s100 = status / 100;
 		if (s100 != 2 && s100 != 3) {
 			my_snprintf(buf, sizeof(buf), "Cache-Control: no-cache,no-store\r\n");
-			add_response(hc, buf);
-		}
-
-		if (hc->hs->p3p[0] != '\0') {
-			my_snprintf(buf, sizeof(buf), "P3P: %s\r\n", hc->hs->p3p);
 			add_response(hc, buf);
 		}
 

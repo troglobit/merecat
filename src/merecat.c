@@ -88,7 +88,6 @@ static char *throttlefile      = NULL;
 static char *hostname          = NULL;
 static char *user              = DEFAULT_USER;
 static char *charset           = DEFAULT_CHARSET;
-static char *p3p               = "";
 static int   max_age           = -1;
 
 
@@ -301,7 +300,7 @@ static void handle_alrm(int signo)
 
 static int usage(int code)
 {
-	printf("Usage:  %s [-C configfile] [-p port] [-d dir] [-r] [-D data_dir] [-s] [-v] [-g] [-u user] [-c cgipat] [-t throttles] [-h host] [-T charset] [-P P3P] [-M maxage] [-V] [-n]\n", __progname);
+	printf("Usage:  %s [-C configfile] [-p port] [-d dir] [-r] [-D data_dir] [-s] [-v] [-g] [-u user] [-c cgipat] [-t throttles] [-h host] [-T charset] [-M maxage] [-V] [-n]\n", __progname);
 	return code;
 }
 
@@ -330,7 +329,7 @@ int main(int argc, char **argv)
 
 	openlog(__progname, LOG_NDELAY | LOG_PID, LOG_FACILITY);
 
-	while ((c = getopt(argc, argv, "c:C:d:D:gh:M:np:P:rsT:u:vV")) != EOF) {
+	while ((c = getopt(argc, argv, "c:C:d:D:gh:M:np:rsT:u:vV")) != EOF) {
 		switch (c) {
 		case 'c':
 			cgi_pattern = optarg;
@@ -366,10 +365,6 @@ int main(int argc, char **argv)
 
 		case 'p':
 			port = (unsigned short)atoi(optarg);
-			break;
-
-		case 'P':
-			p3p = optarg;
 			break;
 
 		case 'r':
@@ -570,7 +565,7 @@ int main(int argc, char **argv)
 	 */
 	hs = httpd_initialize(hostname,
 			      gotv4 ? &sa4 : (httpd_sockaddr *)0, gotv6 ? &sa6 : (httpd_sockaddr *)0,
-			      port, cgi_pattern, cgi_limit, charset, p3p, max_age, cwd, no_log,
+			      port, cgi_pattern, cgi_limit, charset, max_age, cwd, no_log,
 			      no_symlink_check, do_vhost, do_global_passwd, url_pattern, local_pattern, no_empty_referers);
 	if (hs == (httpd_server *)0)
 		exit(1);
@@ -843,9 +838,6 @@ static void read_config(char *filename)
 			} else if (strcasecmp(name, "charset") == 0) {
 				value_required(name, value);
 				charset = e_strdup(value);
-			} else if (strcasecmp(name, "p3p") == 0) {
-				value_required(name, value);
-				p3p = e_strdup(value);
 			} else if (strcasecmp(name, "max_age") == 0) {
 				value_required(name, value);
 				max_age = atoi(value);
