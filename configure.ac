@@ -18,6 +18,19 @@ AC_CHECK_LIB(crypt, crypt)
 AC_CHECK_LIB(rt, clock_gettime)
 AC_CHECK_LIB(resolv, hstrerror)
 
+AC_ARG_WITH(config,
+        AS_HELP_STRING([--with-config], [Enable /etc/merecat.conf support using libConfuse]))
+
+AS_IF([test "x$with_config" != "xno"],[
+	PKG_CHECK_MODULES([confuse], [libconfuse >= 2.7])
+	LDFLAGS="$LDFLAGS $confuse_LIBS"
+	CPPFLAGS="$CPPFLAGS $confuse_CFLAGS"
+	AC_CHECK_LIB([confuse], [cfg_init], [],
+             AC_MSG_ERROR([*** Configuration file parser library (libConfuse) not found!]))
+	AC_CHECK_HEADERS([confuse.h], [],
+             AC_MSG_ERROR([*** Cannot find required header files!]))
+	])
+
 # Checks for header files.
 AC_CHECK_HEADERS([arpa/inet.h fcntl.h grp.h memory.h netdb.h netinet/in.h osreldate.h paths.h poll.h stdlib.h string.h sys/devpoll.h sys/event.h sys/param.h sys/poll.h sys/socket.h sys/time.h syslog.h unistd.h])
 AC_HEADER_TIME

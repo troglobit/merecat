@@ -51,6 +51,10 @@
 #include <sys/wait.h>
 #include <sys/uio.h>
 
+#ifdef HAVE_LIBCONFUSE
+#include <confuse.h>
+#endif
+
 /* Local headers */
 #include "fdwatch.h"
 #include "libhttpd.h"
@@ -144,10 +148,7 @@ static volatile int got_hup, got_usr1, watchdog_flag;
 extern int pidfile(const char *basename);
 
 /* Forwards. */
-static void read_config(char *filename);
-static void value_required(char *name, char *value);
-static void no_value_required(char *name, char *value);
-static char *e_strdup(char *oldstr);
+static int  read_config(char *filename);
 static void lookup_hostname(httpd_sockaddr *sa4P, size_t sa4_len, int *gotv4P, httpd_sockaddr *sa6P, size_t sa6_len, int *gotv6P);
 static void read_throttlefile(char *throttlefile);
 static void shut_down(void);
@@ -313,6 +314,7 @@ static int version(void)
 int main(int argc, char **argv)
 {
 	int c;
+	char *config = "/etc/merecat.conf";
 	struct passwd *pwd;
 	uid_t uid = 32767;
 	gid_t gid = 32767;
@@ -336,7 +338,7 @@ int main(int argc, char **argv)
 			break;
 
 		case 'C':
-			read_config(optarg);
+			config = optarg;
 			break;
 
 		case 'd':
@@ -406,6 +408,11 @@ int main(int argc, char **argv)
 	if (optind < argc)
 		hostname = strdup(argv[optind++]);
 #endif
+
+	if (read_config(config)) {
+		fprintf(stderr, "%s: Failed reading config file '%s': %s\n", __progname, config, strerror(errno));
+		return 1;
+	}
 
 	/* Read zone info now, in case we chroot(). */
 	tzset();
@@ -736,157 +743,99 @@ int main(int argc, char **argv)
 	exit(0);
 }
 
-
-static void read_config(char *filename)
+#ifdef HAVE_LIBCONFUSE
+static void conf_errfunc(cfg_t *cfg, const char *format, va_list args)
 {
-	FILE *fp;
-	char line[10000];
-	char *cp;
-	char *cp2;
-	char *name;
-	char *value;
+	char fmt[80];
 
-	fp = fopen(filename, "r");
-	if (fp == (FILE *)0) {
-		perror(filename);
-		exit(1);
-	}
+	if (cfg && cfg->filename && cfg->line)
+		snprintf(fmt, sizeof(fmt), "%s:%d: %s", cfg->filename, cfg->line, format);
+	else if (cfg && cfg->filename)
+		snprintf(fmt, sizeof(fmt), "%s: %s", cfg->filename, format);
+	else
+		snprintf(fmt, sizeof(fmt), "%s", format);
 
-	while (fgets(line, sizeof(line), fp) != (char *)0) {
-		/* Trim comments. */
-		if ((cp = strchr(line, '#')) != (char *)0)
-			*cp = '\0';
-
-		/* Skip leading whitespace. */
-		cp = line;
-		cp += strspn(cp, " \t\n\r");
-
-		/* Split line into words. */
-		while (*cp != '\0') {
-			/* Find next whitespace. */
-			cp2 = cp + strcspn(cp, " \t\n\r");
-			/* Insert EOS and advance next-word pointer. */
-			while (*cp2 == ' ' || *cp2 == '\t' || *cp2 == '\n' || *cp2 == '\r')
-				*cp2++ = '\0';
-			/* Split into name and value. */
-			name = cp;
-			value = strchr(name, '=');
-			if (value != (char *)0)
-				*value++ = '\0';
-			/* Interpret. */
-			if (strcasecmp(name, "debug") == 0) {
-				no_value_required(name, value);
-				debug = 1;
-			} else if (strcasecmp(name, "port") == 0) {
-				value_required(name, value);
-				port = (unsigned short)atoi(value);
-			} else if (strcasecmp(name, "dir") == 0) {
-				value_required(name, value);
-				dir = e_strdup(value);
-			} else if (strcasecmp(name, "chroot") == 0) {
-				no_value_required(name, value);
-				do_chroot = 1;
-				no_symlink_check = 1;
-			} else if (strcasecmp(name, "data_dir") == 0) {
-				value_required(name, value);
-				data_dir = e_strdup(value);
-			} else if (strcasecmp(name, "symlink") == 0) {
-				no_value_required(name, value);
-				no_symlink_check = 0;
-			} else if (strcasecmp(name, "nosymlink") == 0) {
-				no_value_required(name, value);
-				no_symlink_check = 1;
-			} else if (strcasecmp(name, "symlinks") == 0) {
-				no_value_required(name, value);
-				no_symlink_check = 0;
-			} else if (strcasecmp(name, "nosymlinks") == 0) {
-				no_value_required(name, value);
-				no_symlink_check = 1;
-			} else if (strcasecmp(name, "user") == 0) {
-				value_required(name, value);
-				user = e_strdup(value);
-			} else if (strcasecmp(name, "cgipat") == 0) {
-				value_required(name, value);
-				cgi_pattern = e_strdup(value);
-			} else if (strcasecmp(name, "cgilimit") == 0) {
-				value_required(name, value);
-				cgi_limit = atoi(value);
-			} else if (strcasecmp(name, "urlpat") == 0) {
-				value_required(name, value);
-				url_pattern = e_strdup(value);
-			} else if (strcasecmp(name, "noemptyreferers") == 0) {
-				no_value_required(name, value);
-				no_empty_referers = 1;
-			} else if (strcasecmp(name, "localpat") == 0) {
-				value_required(name, value);
-				local_pattern = e_strdup(value);
-			} else if (strcasecmp(name, "throttles") == 0) {
-				value_required(name, value);
-				throttlefile = e_strdup(value);
-			} else if (strcasecmp(name, "host") == 0) {
-				value_required(name, value);
-				hostname = e_strdup(value);
-			} else if (strcasecmp(name, "vhost") == 0) {
-				no_value_required(name, value);
-				do_vhost = 1;
-			} else if (strcasecmp(name, "globalpasswd") == 0) {
-				no_value_required(name, value);
-				do_global_passwd = 1;
-			} else if (strcasecmp(name, "noglobalpasswd") == 0) {
-				no_value_required(name, value);
-				do_global_passwd = 0;
-			} else if (strcasecmp(name, "charset") == 0) {
-				value_required(name, value);
-				charset = e_strdup(value);
-			} else if (strcasecmp(name, "max_age") == 0) {
-				value_required(name, value);
-				max_age = atoi(value);
-			} else {
-				(void)fprintf(stderr, "%s: unknown config option '%s'\n", __progname, name);
-				exit(1);
-			}
-
-			/* Advance to next word. */
-			cp = cp2;
-			cp += strspn(cp, " \t\n\r");
-		}
-	}
-
-	(void)fclose(fp);
+	vsyslog(LOG_ERR, fmt, args);
 }
 
-
-static void value_required(char *name, char *value)
+static int read_config(char *filename)
 {
-	if (value == (char *)0) {
-		fprintf(stderr, "%s: value required for %s option\n", __progname, name);
-		exit(1);
+	cfg_t *cfg;
+	cfg_opt_t opts[] = {
+		CFG_INT ("port", DEFAULT_PORT, CFGF_NONE), /* SERVER_PORT_DEFAULT */
+		CFG_BOOL("chroot", cfg_false, CFGF_NONE),
+		CFG_STR ("directory", NULL, CFGF_NONE), /* SERVER_DIR_DEFUALT: /var/www */
+		CFG_STR ("data-directory", NULL, CFGF_NONE), /*  */
+		CFG_BOOL("global-passwd", cfg_false, CFGF_NONE),
+		CFG_BOOL("check-symlink", cfg_false, CFGF_NONE),
+		CFG_BOOL("check-referer", cfg_false, CFGF_NONE),
+		CFG_STR ("charset", DEFAULT_CHARSET, CFGF_NONE), /*  */
+		CFG_INT ("cgi-limit", CGI_LIMIT, CFGF_NONE), /*  */
+		CFG_STR ("cgi-pattern", CGI_PATTERN, CFGF_NONE), /*  */
+		CFG_STR ("local-pattern", NULL, CFGF_NONE), /*  */
+		CFG_STR ("url-pattern", NULL, CFGF_NONE), /*  */
+		CFG_INT ("max-age", -1, CFGF_NONE), /* 0: Disabled */
+		CFG_STR ("username", DEFAULT_USER, CFGF_NONE), /* Usually www-data or nobody */
+		CFG_STR ("hostname", NULL, CFGF_NONE),
+		CFG_BOOL("virtual-host", cfg_false, CFGF_NONE),
+		CFG_END()
+	};
+
+	cfg = cfg_init(opts, CFGF_NONE);
+	if (!cfg) {
+		syslog(LOG_ERR, "Failed initializing configuration file parser: %s", strerror(errno));
+		return 1;
 	}
+
+	/* Custom logging, rather than default Confuse stderr logging */
+	cfg_set_error_function(cfg, conf_errfunc);
+
+	switch (cfg_parse(cfg, filename)) {
+	case CFG_FILE_ERROR:
+		syslog(LOG_ERR, "Cannot read configuration file %s", filename);
+		return 1;
+
+	case CFG_PARSE_ERROR:
+		syslog(LOG_ERR, "Parse error in %s", filename);
+		return 1;
+
+	case CFG_SUCCESS:
+		break;
+	}
+
+	port = cfg_getint(cfg, "port");
+	do_chroot = cfg_getbool(cfg, "chroot");
+	if (do_chroot)
+		no_symlink_check = 1;
+	dir = cfg_getstr(cfg, "dir");
+	data_dir = cfg_getstr(cfg, "data-dir");
+
+	if (cfg_getbool(cfg, "check-symlink"))
+		no_symlink_check = 0;
+
+	user = cfg_getstr(cfg, "username");
+	cgi_pattern = cfg_getstr(cfg, "cgi-pattern");
+	cgi_limit = cfg_getint(cfg, "cfg-limit");
+	url_pattern = cfg_getstr(cfg, "url-pattern");
+	local_pattern = cfg_getstr(cfg, "local-pattern");
+
+	no_empty_referers = cfg_getbool(cfg, "check-referer");
+
+	hostname = cfg_getstr(cfg, "hostname");
+	do_vhost = cfg_getbool(cfg, "virtual-host");
+	do_global_passwd = cfg_getbool(cfg, "global-passwd");
+
+	charset = cfg_getstr(cfg, "charset");
+	max_age = cfg_getint(cfg, "max-age");
+
+	return cfg_free(cfg);
 }
-
-
-static void no_value_required(char *name, char *value)
+#else
+static int read_config(char *filename __attribute__ ((unused)))
 {
-	if (value != (char *)0) {
-		fprintf(stderr, "%s: no value required for %s option\n", __progname, name);
-		exit(1);
-	}
+	return 0;
 }
-
-
-static char *e_strdup(char *oldstr)
-{
-	char *newstr;
-
-	newstr = strdup(oldstr);
-	if (newstr == (char *)0) {
-		syslog(LOG_CRIT, "out of memory copying a string");
-		fprintf(stderr, "%s: out of memory copying a string\n", __progname);
-		exit(1);
-	}
-	return newstr;
-}
-
+#endif /* HAVE_LIBCONFUSE */
 
 static void lookup_hostname(httpd_sockaddr *sa4P, size_t sa4_len, int *gotv4P, httpd_sockaddr *sa6P, size_t sa6_len, int *gotv6P)
 {
@@ -1033,8 +982,7 @@ static void read_throttlefile(char *throttlefile)
 		} else if (sscanf(buf, " %4900[^ \t] %ld", pattern, &max_limit) == 2)
 			min_limit = 0;
 		else {
-			syslog(LOG_CRIT, "unparsable line in %.80s - %.80s", throttlefile, buf);
-			(void)fprintf(stderr, "%s: unparsable line in %.80s - %.80s\n", __progname, throttlefile, buf);
+			syslog(LOG_ERR, "unparsable line in %.80s - %.80s", throttlefile, buf);
 			continue;
 		}
 
@@ -1055,13 +1003,16 @@ static void read_throttlefile(char *throttlefile)
 			}
 			if (throttles == (throttletab *)0) {
 				syslog(LOG_CRIT, "out of memory allocating a throttletab");
-				(void)fprintf(stderr, "%s: out of memory allocating a throttletab\n", __progname);
 				exit(1);
 			}
 		}
 
 		/* Add to table. */
-		throttles[numthrottles].pattern = e_strdup(pattern);
+		throttles[numthrottles].pattern = strdup(pattern);
+		if (!throttles[numthrottles].pattern) {
+			syslog(LOG_CRIT, "failed storing throttle pattern: %s", strerror(errno));
+			exit(1);
+		}
 		throttles[numthrottles].max_limit = max_limit;
 		throttles[numthrottles].min_limit = min_limit;
 		throttles[numthrottles].rate = 0;
@@ -1070,7 +1021,7 @@ static void read_throttlefile(char *throttlefile)
 
 		++numthrottles;
 	}
-	(void)fclose(fp);
+	fclose(fp);
 }
 
 
