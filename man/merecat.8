@@ -29,7 +29,7 @@
 merecat - simple, small and fast HTTP server
 .SH SYNOPSIS
 .B merecat
-.RB [ -C
+.RB [ -f
 .IR configfile ]
 .RB [ -p
 .IR port ]
@@ -44,18 +44,10 @@ merecat - simple, small and fast HTTP server
 .RB [ -g ]
 .RB [ -u
 .IR user ]
-.RB [ -c
-.IR cgipat ]
 .RB [ -t
 .IR throttles ]
 .RB [ -h
 .IR host ]
-.RB [ -T
-.IR charset ]
-.RB [ -P
-.IR P3P ]
-.RB [ -M
-.IR maxage ]
 .RB [ -V ]
 .SH DESCRIPTION
 .PP
@@ -64,32 +56,11 @@ is a simple, small, and fast HTTP server.  It does not have a lot of
 special features, but is often sufficient for most uses on the web.
 .SH OPTIONS
 .TP
-.B -C
-Specifies a config-file to read.
-All options can be set either by command-line flags or in the config file.
-See below for details.
-.TP
-.B -p
-Specifies an alternate port number to listen on.
-The default is 80.
-The config-file option name for this flag is "port",
-and the thttpd.h option is DEFAULT_PORT.
-.TP
 .B -d
-Specifies a directory to chdir() to at startup.
-This is merely a convenience - you could just as easily
-do a cd in the shell script that invokes the program.
-The config-file option name for this flag is "dir",
-and the thttpd.h options are WEBDIR, USE_USER_DIR.
-.TP
-.B -n
-Runs merecat in the foreground like a regular program.  This is
-necessary when running in a process monitor like Finit or systemd.
-.TP
-.B -r
-Do a chroot() at initialization time, restricting file access to the
-program's current directory.  The config-file option names for this flag
-is "chroot".
+Specifies a directory to chdir() to at startup.  This is merely a
+convenience - you could just as easily do a cd in the shell script that
+invokes the program.  The config-file option name for this flag is
+"dir", and the thttpd.h options are WEBDIR, USE_USER_DIR.
 .TP
 .B -D
 Specifies a directory to chdir() to after chrooting.
@@ -100,18 +71,8 @@ of the chroot tree, instead of in the top level mixed in with the
 chroot files.
 The config-file option name for this flag is "data_dir".
 .TP
-.B -s
-Do explicit symbolic link checking.  Normally, merecat does not expand
-any symbolic links in filenames.  For increased security this option can
-be enabled to check that the resulting path stays within the original
-document tree.  Note, that if you are using the chroot option, the
-symlink checking is unnecessary and is turned off, so the safe way to
-save those CPU cycles is to use chroot.  The config-file option names
-for this flag are "symlinkcheck" and "nosymlinkcheck".
-.TP
-.B -v
-Do el-cheapo virtual hosting.  The config-file option names for this
-flag is "vhost".
+.B -f FILE
+Specifies a config file to read.
 .TP
 .B -g
 Use a global passwd file.  This means that every file in the entire
@@ -123,24 +84,6 @@ looking for a local .htpasswd file, and if that doesn't exist either
 then serving the file without any password.  The config-file option
 names for this flag are "globalpasswd" and "noglobalpasswd".
 .TP
-.B -u
-Specifies what user to switch to after initialization when started as root.
-The default is "nobody".
-The config-file option name for this flag is "user",
-and the thttpd.h option is DEFAULT_USER.
-.TP
-.B -c
-Specifies a wildcard pattern for CGI programs, for instance "**.cgi"
-or "/cgi-bin/*".
-See below for details.
-The config-file option name for this flag is "cgipat",
-and the thttpd.h option is CGI_PATTERN.
-.TP
-.B -t
-Specifies a file of throttle settings.
-See below for details.
-The config-file option name for this flag is "throttles".
-.TP
 .B -h
 Specifies a hostname to bind to, for multihoming.
 The default is to bind to all hostnames supported on the local machine.
@@ -148,38 +91,67 @@ See below for details.
 The config-file option name for this flag is "host",
 and the thttpd.h option is SERVER_NAME.
 .TP
-.B -T
-Specifies the character set to use with text MIME types.
-The default is iso-8859-1.
-The config-file option name for this flag is "charset",
-and the thttpd.h option is DEFAULT_CHARSET.
+.B -n
+Runs merecat in the foreground like a regular program.  This is
+necessary when running in a process monitor like Finit or systemd.
 .TP
-.B -P
-Specifies a P3P server privacy header to be returned with all responses.
-See http://www.w3.org/P3P/ for details.
-Merecat doesn't do anything at all with the string except put it in the
-P3P: response header.
-The config-file option name for this flag is "p3p".
+.B -p
+Specifies an alternate port number to listen on.  The default is 80.
+The config file option name for this flag is "port".
 .TP
-.B -M
-Specifies the number of seconds to be used in a "Cache-Control: max-age"
-header to be returned with all responses.
-An equivalent "Expires" header is also generated.
-The default is no Cache-Control or Expires headers,
-which is just fine for most sites.
-The config-file option name for this flag is "max_age".
+.B -r
+Do a chroot() at initialization time, restricting file access to the
+program's current directory.  The config-file option names for this flag
+is "chroot".
+.TP
+.B -s
+Do explicit symbolic link checking.  Normally, merecat does not expand
+any symbolic links in filenames.  For increased security this option can
+be enabled to check that the resulting path stays within the original
+document tree.  Note, that if you are using the chroot option, the
+symlink checking is unnecessary and is turned off, so the safe way to
+save those CPU cycles is to use chroot.  The config-file option names
+for this flag are "symlinkcheck" and "nosymlinkcheck".
+.TP
+.B -t
+Specifies a file of throttle settings.
+See below for details.
+The config-file option name for this flag is "throttles".
+.TP
+.B -u
+Specifies what user to switch to after initialization when started as root.
+The default is "nobody".
+The config-file option name for this flag is "user",
+and the thttpd.h option is DEFAULT_USER.
+.TP
+.B -v
+Do el-cheapo virtual hosting.  The config-file option names for this
+flag is "vhost".
 .TP
 .B -V
 Shows the current version info.
-.SH "CONFIG-FILE"
+.SH "CONFIG FILE"
 .PP
-All the command-line options can also be set in a config file.
-One advantage of using a config file is that the file can be changed,
-and merecat will pick up the changes with a restart.
+Many options are not available from the command line but can be set in
+the "/etc/merecat.conf" configuration file.  This file can be changed
+and runtime and merecat will pick up the changes with a restart.
 .PP
-The syntax of the config file is simple, a series of "option" or
-"option=value" separated by whitespace.
-The option names are listed above with their corresponding command-line flags.
+The syntax of the config file is simple UNIX "option=value" separated by
+whitespace.  The option names are listed below:
+.TP
+.B cgi-pattern = "/cgi-bin/*"
+Specifies a wildcard pattern for CGI programs, for instance "**.cgi" or
+"/cgi-bin/*".  See below for details.
+.TP
+.B charset = "UTF-8"
+Specifies the character set to use with text MIME types.  If the default
+unicode charset causes trouble, try "iso-8859-1".
+.TP
+.B max-age = SEC
+Specifies the number of seconds to be used in a "Cache-Control: max-age"
+header to be returned with all responses.  An equivalent "Expires"
+header is also generated.  The default is no Cache-Control or Expires
+headers, which is just fine for most sites.
 .SH "CHROOT"
 .PP
 chroot() is a system call that restricts the program's view
@@ -430,7 +402,7 @@ If a web page on some other site references the files, that fetch will
 be blocked.
 There are three config-file variables for this feature:
 .TP
-.B urlpat
+.B url-pattern = "**.jpg|**.gif|**.au|**.wav"
 A wildcard pattern for the URLs that should require a local referer.
 This is typically just image files, sound files, and so on.
 For example:
@@ -439,12 +411,12 @@ For example:
 .fi
 For most sites, that one setting is all you need to enable referer filtering.
 .TP
-.B noemptyreferers
+.B check-referer = <true | false>
 By default, requests with no referer at all, or a null referer, or a
 referer with no apparent hostname, are allowed.
 With this variable set, such requests are disallowed.
 .TP
-.B localpat
+.B local-pattern = "PATTERN"
 A wildcard pattern that specifies the local host or hosts.
 This is used to determine if the host in the referer is local or not.
 If not specified it defaults to the actual local hostname.

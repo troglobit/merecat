@@ -331,13 +331,9 @@ int main(int argc, char **argv)
 
 	openlog(__progname, LOG_NDELAY | LOG_PID, LOG_FACILITY);
 
-	while ((c = getopt(argc, argv, "c:C:d:D:gh:M:np:rsT:u:vV")) != EOF) {
+	while ((c = getopt(argc, argv, "f:d:D:gh:np:rsu:vV")) != EOF) {
 		switch (c) {
-		case 'c':
-			cgi_pattern = optarg;
-			break;
-
-		case 'C':
+		case 'f':
 			config = optarg;
 			break;
 
@@ -355,10 +351,6 @@ int main(int argc, char **argv)
 
 		case 'h':
 			hostname = optarg;
-			break;
-
-		case 'M':
-			max_age = atoi(optarg);
 			break;
 
 		case 'n':
@@ -380,10 +372,6 @@ int main(int argc, char **argv)
 
 		case 't':
 			throttlefile = optarg;
-			break;
-
-		case 'T':
-			charset = optarg;
 			break;
 
 		case 'u':
