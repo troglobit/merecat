@@ -815,8 +815,9 @@ static int read_config(char *filename)
 
 	charset = cfg_getstr(cfg, "charset");
 	max_age = cfg_getint(cfg, "max-age");
+	cfg_free(cfg);
 
-	return cfg_free(cfg);
+	return 0;
 }
 #else
 static int read_config(char *filename __attribute__ ((unused)))
