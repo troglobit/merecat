@@ -1244,7 +1244,7 @@ static void handle_send(connecttab *c, struct timeval *tvP)
 	if (hc->responselen == 0) {
 		/* No, just write the file. */
 		sz = write(hc->conn_fd, &(hc->file_address[c->next_byte_index]),
-			   MIN(c->end_byte_index - c->next_byte_index, max_bytes));
+			   MIN(c->end_byte_index - c->next_byte_index, (off_t)max_bytes));
 	} else {
 		/* Yes.  We'll combine headers and file into a single writev(),
 		 ** hoping that this generates a single packet.
@@ -1254,7 +1254,7 @@ static void handle_send(connecttab *c, struct timeval *tvP)
 		iv[0].iov_base = hc->response;
 		iv[0].iov_len = hc->responselen;
 		iv[1].iov_base = &(hc->file_address[c->next_byte_index]);
-		iv[1].iov_len = MIN(c->end_byte_index - c->next_byte_index, max_bytes);
+		iv[1].iov_len = MIN(c->end_byte_index - c->next_byte_index, (off_t)max_bytes);
 		sz = writev(hc->conn_fd, iv, 2);
 	}
 
