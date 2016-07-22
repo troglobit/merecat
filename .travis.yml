@@ -9,10 +9,19 @@ compiler:
   - gcc
   - clang
 
+addons:
+  apt:
+    packages:
+      - tree
+      - libconfuse-dev
+
 # We don't store generated files (configure and Makefile) in GIT,
 # so we must customize the default build script to run ./autogen.sh
 script:
   - ./autogen.sh
-  - ./configure
+  - ./configure --prefix=/tmp
   - make V=1
-
+  - make install-strip
+  - tree /tmp
+  - ldd /tmp/sbin/merecat
+  - /tmp/sbin/merecat -h
