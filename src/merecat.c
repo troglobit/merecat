@@ -301,7 +301,7 @@ static void handle_alrm(int signo)
 
 static int usage(int code)
 {
-	printf("Usage:  %s [-C configfile] [-p port] [-d dir] [-r] [-D data_dir] [-s] [-v] [-g] [-u user] [-c cgipat] [-t throttles] [-h host] [-T charset] [-M maxage] [-V] [-n]\n", __progname);
+	printf("Usage: %s [-ghnrsvV] [-f CONFIG] [-d DIR] [-p PORT] [-u USER] [-t THROTTLES] [ROOT] [HOST]\n", __progname);
 	return code;
 }
 
@@ -331,17 +331,13 @@ int main(int argc, char **argv)
 
 	openlog(__progname, LOG_NDELAY | LOG_PID, LOG_FACILITY);
 
-	while ((c = getopt(argc, argv, "f:d:D:gh:np:rsu:vV")) != EOF) {
+	while ((c = getopt(argc, argv, "f:d:ghnp:rsu:vV")) != EOF) {
 		switch (c) {
 		case 'f':
 			config = optarg;
 			break;
 
 		case 'd':
-			dir = optarg;
-			break;
-
-		case 'D':
 			data_dir = optarg;
 			break;
 
@@ -350,8 +346,7 @@ int main(int argc, char **argv)
 			break;
 
 		case 'h':
-			hostname = optarg;
-			break;
+			return usage(0);
 
 		case 'n':
 			debug = 1;
@@ -389,13 +384,11 @@ int main(int argc, char **argv)
 		}
 	}
 
-#if 0   /* Future further simplification ... */
 	if (optind < argc)
 		dir = strdup(argv[optind++]);
 
 	if (optind < argc)
 		hostname = strdup(argv[optind++]);
-#endif
 
 	if (read_config(config)) {
 		fprintf(stderr, "%s: Failed reading config file '%s': %s\n", __progname, config, strerror(errno));

@@ -29,26 +29,20 @@
 merecat - simple, small and fast HTTP server
 .SH SYNOPSIS
 .B merecat
+.RB [ -nrsvgh ]
 .RB [ -f
-.IR configfile ]
+.IR CONFIG ]
 .RB [ -p
 .IR port ]
 .RB [ -d
-.IR dir ]
-.RB [ -D
 .IR data_dir ]
-.RB [ -n ]
-.RB [ -r ]
-.RB [ -s ]
-.RB [ -v ]
-.RB [ -g ]
 .RB [ -u
 .IR user ]
 .RB [ -t
 .IR throttles ]
-.RB [ -h
-.IR host ]
 .RB [ -V ]
+.RB [ WEBDIR ]
+.RB [ HOSTNAME ]
 .SH DESCRIPTION
 .PP
 .I merecat
@@ -57,19 +51,11 @@ special features, but is often sufficient for most uses on the web.
 .SH OPTIONS
 .TP
 .B -d
-Specifies a directory to chdir() to at startup.  This is merely a
-convenience - you could just as easily do a cd in the shell script that
-invokes the program.  The config-file option name for this flag is
-"dir", and the thttpd.h options are WEBDIR, USE_USER_DIR.
-.TP
-.B -D
-Specifies a directory to chdir() to after chrooting.
-If you're not chrooting, you might as well do a single chdir() with
-the -d flag.
-If you are chrooting, this lets you put the web files in a subdirectory
-of the chroot tree, instead of in the top level mixed in with the
-chroot files.
-The config-file option name for this flag is "data_dir".
+Specifies a directory to chdir() to after chrooting.  If you're not
+chrooting, you might as well do a single chdir() with the -d flag.  If
+you are chrooting, this lets you put the web files in a subdirectory of
+the chroot tree, instead of in the top level mixed in with the chroot
+files.  The config-file option name for this flag is "data_dir".
 .TP
 .B -f FILE
 Specifies a config file to read.
@@ -83,13 +69,6 @@ directory, then merecat proceeds as if the option was not set - first
 looking for a local .htpasswd file, and if that doesn't exist either
 then serving the file without any password.  The config-file option
 names for this flag are "globalpasswd" and "noglobalpasswd".
-.TP
-.B -h
-Specifies a hostname to bind to, for multihoming.
-The default is to bind to all hostnames supported on the local machine.
-See below for details.
-The config-file option name for this flag is "host",
-and the thttpd.h option is SERVER_NAME.
 .TP
 .B -n
 Runs merecat in the foreground like a regular program.  This is
@@ -130,6 +109,17 @@ flag is "vhost".
 .TP
 .B -V
 Shows the current version info.
+.PP
+The default document root of the web server is defined in WEBDIR.  But
+this can also be given as a command line argument.  It specifies the
+directory to chdir() to at startup.  This is merely a convenience - you
+could just as easily do a cd in the shell script that invokes the
+program.  The config file option for this is "directory = DIR".
+.PP
+An second optional command line argument can be given to specify the
+hostname to bind to, for multihoming.  The default is to bind to all
+hostnames supported on the local machine.  See below for details.  The
+config file option name for this flag is "hostname = HOSTNAME".
 .SH "CONFIG FILE"
 .PP
 Many options are not available from the command line but can be set in
@@ -357,15 +347,13 @@ symbolic links from the numeric addresses to the names, like so:
 This lets the older HTTP/1.0 browsers find the right subdirectory.
 .PP
 There's an optional alternate step three if you're using multiple-IP
-multihosting: run a separate merecat process for each hostname, using
-the -h flag to specify which one is which.
-This gives you more flexibility, since you can run each of these processes
-in separate directories, with different throttle files, etc.
-Example:
+multihosting: run a separate merecat process for each hostname This
+gives you more flexibility, since you can run each of these processes in
+separate directories, with different throttle files, etc.  Example:
 .nf
-  merecat -r -d /usr/www -h www.acme.com
-  merecat -r -d /usr/www/joe -u joe -h www.joe.acme.com
-  merecat -r -d /usr/www/jane -u jane -h www.jane.acme.com
+  merecat -r         /usr/www      www.acme.com
+  merecat -r -u joe  /usr/www/joe  www.joe.acme.com
+  merecat -r -u jane /usr/www/jane www.jane.acme.com
 .fi
 But remember, this multiple-process method does not work with CNAME
 multihosting - for that, you must use a single merecat process with
