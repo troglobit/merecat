@@ -24,73 +24,65 @@
 .\" LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
 .\" OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
 .\" SUCH DAMAGE.
-.TH merecat 8 "29 February 2000"
-.SH NAME
-merecat - simple, small and fast HTTP server
-.SH SYNOPSIS
-.B merecat
-.RB [ -nrsvgh ]
-.RB [ -c
-.IR CGI ]
-.RB [ -f
-.IR CONFIG ]
-.RB [ -p
-.IR port ]
-.RB [ -d
-.IR data_dir ]
-.RB [ -u
-.IR user ]
-.RB [ -t
-.IR throttles ]
-.RB [ -V ]
-.RB [ WEBDIR ]
-.RB [ HOSTNAME ]
-.SH DESCRIPTION
-.PP
-.I merecat
+.Dd July 23, 2016
+.Dt MERECAT 8 SMM
+.Os "merecat (1.0)"
+.Sh NAME
+.Nm merecat
+.Nd Simple, small and fast HTTP server
+.Sh SYNOPSIS
+.Nm merecat
+.Op Fl ghnrsvV
+.Op Fl c Ar CGI
+.Op Fl f Ar FILE
+.Op Fl p Ar PORT
+.Op Fl d Ar PATH
+.Op Fl u Ar USER
+.Op Fl t Ar FILE
+.Op Ar WEBDIR
+.Op Ar HOSTNAME
+.Sh DESCRIPTION
+.Nm
 is a simple, small, and fast HTTP server.  It does not have a lot of
 special features, but is often sufficient for most uses on the web.
-.SH OPTIONS
-.TP
-.B -c CGI
+.Sh OPTIONS
+This program follows the usual UNIX command line syntax.  The options
+are as follows:
+.Bl -tag -width Ds
+.It Fl c Ar CGI
 Specifies a wildcard pattern for CGI programs, for instance "**.cgi" or
 "/cgi-bin/*".  The config file option is 'cgi-pattern = ""'.  See below
 for details.
-.TP
-.B -d
+.It Fl d Ar PATH
 Specifies a directory to chdir() to after chrooting.  If you're not
-chrooting, you might as well do a single chdir() with the -d flag.  If
-you are chrooting, this lets you put the web files in a subdirectory of
-the chroot tree, instead of in the top level mixed in with the chroot
-files.  The config-file option name for this flag is "data_dir".
-.TP
-.B -f FILE
+chrooting use the
+.Ar WEBDIR
+to do a single chdir().  If you are chrooting, this lets you put the web
+files in a subdirectory of the chroot tree, instead of in the top level
+mixed in with the chroot files.  The config-file option name for this
+flag is "data-directory".
+.It Fl f Ar FILE
 Specifies a config file to read.
-.TP
-.B -g
+.It Fl g
 Use a global passwd file.  This means that every file in the entire
 document tree is protected by the single .htpasswd file at the top of
 the tree.  Otherwise the semantics of the .htpasswd file are the same.
 If this option is set but there is no .htpasswd file in the top-level
 directory, then merecat proceeds as if the option was not set - first
 looking for a local .htpasswd file, and if that doesn't exist either
-then serving the file without any password.  The config-file option
-names for this flag are "globalpasswd" and "noglobalpasswd".
-.TP
-.B -n
+then serving the file without any password.  The config file option
+for this flag is 'global-passwd = <true | false>'.
+.It Fl n
 Runs merecat in the foreground like a regular program.  This is
 necessary when running in a process monitor like Finit or systemd.
-.TP
-.B -p
+.It Fl p
 Specifies an alternate port number to listen on.  The default is 80.
 The config file option name for this flag is "port".
-.TP
-.B -r
+.It Fl r
 Do a chroot() at initialization time, restricting file access to the
-program's current directory.  The config-file option names for this flag
-is "chroot".
-.TP
-.B -s
+program's current directory.  The config file option names for this flag
+is "chroot = <true | false>".
+.It Fl s
 Do explicit symbolic link checking.  Normally, merecat does not expand
 any symbolic links in filenames.  For increased security this option can
 be enabled to check that the resulting path stays within the original
@@ -98,101 +90,92 @@ document tree.  Note, that if you are using the chroot option, the
 symlink checking is unnecessary and is turned off, so the safe way to
 save those CPU cycles is to use chroot.  The config-file option for this
 is "check-symlinks = <true | false>".
-.TP
-.B -t
-Specifies a file of throttle settings.
-See below for details.
-The config-file option name for this flag is "throttles".
-.TP
-.B -u
+.It Fl t Ar FILE
+Specifies a file of throttle settings.  See below for details.
+.It Fl u Ar USERNAME
 Specifies what user to switch to after initialization when started as
 root.  The default is "nobody", on some systems "www-data" is preferred.
 The config file option name for this flag is "username".
-.TP
-.B -v
+.It Fl v
 Do el-cheapo virtual hosting.  The config-file option names for this
 flag is "vhost".
 .TP
-.B -V
+.It Fl V
 Shows the current version info.
-.PP
+.It WEBDIR
 The default document root of the web server is defined in WEBDIR.  But
 this can also be given as a command line argument.  It specifies the
 directory to chdir() to at startup.  This is merely a convenience - you
 could just as easily do a cd in the shell script that invokes the
 program.  The config file option for this is "directory = DIR".
-.PP
-An second optional command line argument can be given to specify the
+.It HOSTNAME
+A second optional command line argument can be given to specify the
 hostname to bind to, for multihoming.  The default is to bind to all
 hostnames supported on the local machine.  See below for details.  The
 config file option name for this flag is "hostname = HOSTNAME".
-.SH "CONFIG FILE"
-.PP
+.El
+.Sh "CONFIG FILE"
+.Pp
 Many options are not available from the command line but can be set in
 the "/etc/merecat.conf" configuration file.  This file can be changed
 and runtime and merecat will pick up the changes with a restart.
-.PP
+.Pp
 The syntax of the config file is simple UNIX "option=value" separated by
 whitespace.  The option names are listed below:
-.TP
-.B cgi-pattern = "/cgi-bin/*"
+.Bl -tag -width Ds
+.It cgi-pattern = "/cgi-bin/*"
 Specifies a wildcard pattern for CGI programs, for instance "**.cgi" or
 "/cgi-bin/*", the default is to have CGI disbled.  See below CGI section
 for more on this.
-.TP
-.B charset = "UTF-8"
+.It charset = "UTF-8"
 Specifies the character set to use with text MIME types.  If the default
 unicode charset causes trouble, try "iso-8859-1".
-.TP
-.B max-age = SEC
+.It max-age = SEC
 Specifies the number of seconds to be used in a "Cache-Control: max-age"
 header to be returned with all responses.  An equivalent "Expires"
 header is also generated.  The default is no Cache-Control or Expires
 headers, which is just fine for most sites.
-.SH "CHROOT"
-.PP
-chroot() is a system call that restricts the program's view
-of the filesystem to the current directory and directories
-below it.
-It becomes impossible for remote users to access any file
-outside of the initial directory.
-The restriction is inherited by child processes, so CGI programs get it too.
-This is a very strong security measure, and is recommended.
-The only downside is that only root can call chroot(), so this means
-the program must be started as root.
-However, the last thing it does during initialization is to
-give up root access by becoming another user, so this is safe.
-.PP
+.El
+.Sh "CHROOT"
+chroot() is a system call that restricts the program's view of the
+filesystem to the current directory and directories below it.  It
+becomes impossible for remote users to access any file outside of the
+initial directory.  The restriction is inherited by child processes, so
+CGI programs get it too.  This is a very strong security measure, and is
+recommended.  The only downside is that only root can call chroot(), so
+this means the program must be started as root.  However, the last thing
+it does during initialization is to give up root access by becoming
+another user, so this is safe.
+.Pp
 The program can also be compile-time configured to always
 do a chroot(), without needing the -r flag.
-.PP
-Note that with some other web servers, such as NCSA httpd, setting
-up a directory tree for use with chroot() is complicated, involving
-creating a bunch of special directories and copying in various files.
-With merecat it's a lot easier, all you have to do is make sure
-any shells, utilities, and config files used by your CGI programs and
-scripts are available.
-If you have CGI disabled, or if you make a policy that all CGI programs
-must be written in a compiled language such as C and statically linked,
-then you probably don't have to do any setup at all.
-.PP
+.Pp
+Note that with some other web servers, such as NCSA httpd, setting up a
+directory tree for use with chroot() is complicated, involving creating
+a bunch of special directories and copying in various files.  With
+merecat it's a lot easier, all you have to do is make sure any shells,
+utilities, and config files used by your CGI programs and scripts are
+available.  If you have CGI disabled, or if you make a policy that all
+CGI programs must be written in a compiled language such as C and
+statically linked, then you probably don't have to do any setup at all.
+.Pp
 However, one thing you should do is tell syslogd about the chroot tree,
 so that merecat can still generate syslog messages.  Check your system's
 syslogd man page for how to do this.  In FreeBSD you would put something
 like this in /etc/rc.conf:
-.NF
+.Bd -unfilled -offset left
 
     syslogd_flags="-l /usr/local/www/data/dev/log"
 
-.FI
+.Ed
 Substitute in your own chroot tree's pathname, of course.  Don't worry
 about creating the log socket, syslogd wants to do that itself.  (You
 may need to create the dev directory.)  In Linux the flag is -a instead
 of -l, and there may be other differences.
-.SH "CGI"
-.PP
+.Sh "CGI"
+.Pp
 Merecat httpd supports the CGI 1.1 spec.
-.PP
+.Pp
 In order for a CGI program to be allowed to run, its name must match the
 pattern specified either at compile time or in the config file.  This is
 a simple shell-style filename pattern.  Use * to match any string not
@@ -201,22 +184,21 @@ match any single character.  Multiple patterns separated by | can also
 be used.  The patterns get checked against the filename part of the
 incoming URL.  Remember to quote any wildcard characters so that the
 shell doesn't mess with them.
-.PP
+.Pp
 Restricting CGI programs to a single directory lets the site admin
 review them for security holes, and is strongly recommended.  If there
 are individual users that you trust, you can enable their directories
 too using the pipe syntax, e.g. "|/jef/**".
-.PP
+.Pp
 To disable CGI as a security measure, use the config file and set the
 cgi-pattern = "".
-.PP
+.Pp
 Note: the current working directory when a CGI program gets run is the
 directory that the CGI program lives in.  This isn't in the CGI 1.1
 spec, but it's what most other HTTP servers do.
-.PP
+.Pp
 Relevant merecat.h options: CGI_PATTERN, CGI_TIMELIMIT, CGI_NICE, CGI_PATH, CGI_LD_LIBRARY_PATH, CGIBINDIR.
-.SH "BASIC AUTHENTICATION"
-.PP
+.Sh "BASIC AUTHENTICATION"
 Basic Authentication is available as an option at compile time.  If
 enabled, it uses a password file in the directory to be protected,
 called .htpasswd by default.  This file is formatted as the familiar
@@ -224,10 +206,10 @@ colon-separated username/encrypted-password pair, records delimited by
 newlines.  The protection does not carry over to subdirectories.  The
 utility program htpasswd(1) is included to help create and
 modify .htpasswd files.
-.PP
+.Pp
 Relevant merecat.h option: AUTH_FILE
-.SH "THROTTLING"
-.PP
+.Sh "THROTTLING"
+.Pp
 The throttle file lets you set maximum byte rates on URLs or URL groups.
 You can optionally set a minimum rate too.
 The format of the throttle file is very simple.
@@ -236,15 +218,15 @@ Blank lines are ignored.
 The rest of the lines should consist of a pattern, whitespace, and a number.
 The pattern is a simple shell-style filename pattern, using ?/**/*, or
 multiple such patterns separated by |.
-.PP
+.Pp
 The numbers in the file are byte rates, specified in units of bytes per second.
 For comparison, a v.90 modem gives about 5000 B/s depending on compression,
 a double-B-channel ISDN line about 12800 B/s, and a T1 line is about
 150000 B/s.
 If you want to set a minimum rate as well, use number-number.
-.PP
+.Pp
 Example:
-.nf
+.Bd -unfilled -offset left
   # throttle file for www.acme.com
 
   **              2000-100000  # limit total web usage to 2/3 of our T1,
@@ -252,84 +234,76 @@ Example:
   **.jpg|**.gif   50000   # limit images to 1/3 of our T1
   **.mpg          20000   # and movies to even less
   jef/**          20000   # jef's pages are too popular
-.fi
-.PP
-Throttling is implemented by checking each incoming URL filename against all
-of the patterns in the throttle file.
-The server accumulates statistics on how much bandwidth each pattern
-has accounted for recently (via a rolling average).
-If a URL matches a pattern that has been exceeding its specified limit,
-then the data returned is actually slowed down, with
-pauses between each block.
-If that's not possible (e.g. for CGI programs) or if the bandwidth has gotten
-way larger than the limit, then the server returns a special code
-saying 'try again later'.
-.PP
-The minimum rates are implemented similarly.
-If too many people are trying to fetch something at the same time,
-throttling may slow down each connection so much that it's not really
-useable.
-Furthermore, all those slow connections clog up the server, using
-up file handles and connection slots.
-Setting a minimum rate says that past a certain point you should not
-even bother - the server returns the "try again later" code and the
-connection isn't even started.
-.PP
+.Ed
+.Pp
+Throttling is implemented by checking each incoming URL filename against
+all of the patterns in the throttle file.  The server accumulates
+statistics on how much bandwidth each pattern has accounted for recently
+(via a rolling average).  If a URL matches a pattern that has been
+exceeding its specified limit, then the data returned is actually slowed
+down, with pauses between each block.  If that's not possible (e.g. for
+CGI programs) or if the bandwidth has gotten way larger than the limit,
+then the server returns a special code saying 'try again later'.
+.Pp
+The minimum rates are implemented similarly.  If too many people are
+trying to fetch something at the same time, throttling may slow down
+each connection so much that it's not really useable.  Furthermore, all
+those slow connections clog up the server, using up file handles and
+connection slots.  Setting a minimum rate says that past a certain point
+you should not even bother - the server returns the "try again later"
+code and the connection isn't even started.
+.Pp
 There is no provision for setting a maximum connections/second throttle,
-because throttling a request uses as much cpu as handling it, so
-there would be no point.
-There is also no provision for throttling the number of simultaneous
-connections on a per-URL basis.
-However you can control the overall number of connections for the whole
-server very simply, by setting the operating system's per-process file
-descriptor limit before starting merecat.
-Be sure to set the hard limit, not the soft limit.
-.SH "MULTIHOMING"
-.PP
-Multihoming means using one machine to serve multiple hostnames.
-For instance, if you're an internet provider and you want to let
-all of your customers have customized web addresses, you might
-have www.joe.acme.com, www.jane.acme.com, and your own www.acme.com,
-all running on the same physical hardware.
-This feature is also known as "virtual hosts".
-There are three steps to setting this up.
-.PP
-One, make DNS entries for all of the hostnames.
-The current way to do this, allowed by HTTP/1.1, is to use CNAME aliases,
-like so:
-.nf
+because throttling a request uses as much cpu as handling it, so there
+would be no point.  There is also no provision for throttling the number
+of simultaneous connections on a per-URL basis.  However you can control
+the overall number of connections for the whole server very simply, by
+setting the operating system's per-process file descriptor limit before
+starting merecat.  Be sure to set the hard limit, not the soft limit.
+.Sh "MULTIHOMING"
+Multihoming means using one machine to serve multiple hostnames.  For
+instance, if you're an internet provider and you want to let all of your
+customers have customized web addresses, you might have
+www.joe.acme.com, www.jane.acme.com, and your own www.acme.com, all
+running on the same physical hardware.  This feature is also known as
+"virtual hosts".  There are three steps to setting this up.
+.Pp
+One, make DNS entries for all of the hostnames.  The current way to do
+this, allowed by HTTP/1.1, is to use CNAME aliases, like so:
+.Bd -unfilled -offset left
   www.acme.com IN A 192.100.66.1
   www.joe.acme.com IN CNAME www.acme.com
   www.jane.acme.com IN CNAME www.acme.com
-.fi
-However, this is incompatible with older HTTP/1.0 browsers.
-If you want to stay compatible, there's a different way - use A records
-instead, each with a different IP address, like so:
-.nf
+.Ed
+.Pp
+However, this is incompatible with older HTTP/1.0 browsers.  If you want
+to stay compatible, there's a different way - use A records instead,
+each with a different IP address, like so:
+.Bd -unfilled -offset left
   www.acme.com IN A 192.100.66.1
   www.joe.acme.com IN A 192.100.66.200
   www.jane.acme.com IN A 192.100.66.201
-.fi
-This is bad because it uses extra IP addresses, a somewhat scarce resource.
-But if you want people with older browsers to be able to visit your
-sites, you still have to do it this way.
-.PP
-Step two.
-If you're using the modern CNAME method of multihoming, then you can
-skip this step.
-Otherwise, using the older multiple-IP-address method you
-must set up IP aliases or multiple interfaces for the extra addresses.
-You can use ifconfig(8)'s alias command to tell the machine to answer to
-all of the different IP addresses.
-Example:
-.nf
+.Ed
+.Pp
+This is bad because it uses extra IP addresses, a somewhat scarce
+resource.  But if you want people with older browsers to be able to
+visit your sites, you still have to do it this way.
+.Pp
+Step two.  If you're using the modern CNAME method of multihoming, then
+you can skip this step.  Otherwise, using the older multiple-IP-address
+method you must set up IP aliases or multiple interfaces for the extra
+addresses.  You can use ifconfig(8)'s alias command to tell the machine
+to answer to all of the different IP addresses.  Example:
+.Bd -unfilled -offset left
   ifconfig le0 www.acme.com
   ifconfig le0 www.joe.acme.com alias
   ifconfig le0 www.jane.acme.com alias
-.fi
+.Ed
+.Pp
 If your OS's version of ifconfig doesn't have an alias command, you're
-probably out of luck (but see http://www.acme.com/software/thttpd/notes.html).
-.PP
+probably out of luck (but see
+http://www.acme.com/software/thttpd/notes.html).
+.Pp
 Third and last, you must set up merecat to handle the multiple hosts.
 The easiest way is with the -v flag.  This works with either CNAME
 multihosting or multiple-IP multihosting.  What it does is send each
@@ -337,117 +311,111 @@ incoming request to a subdirectory based on the hostname it's intended
 for.  All you have to do in order to set things up is to create those
 subdirectories in the directory where merecat will run.  With the
 example above, you'd do like so:
-.nf
+.Bd -unfilled -offset left
   mkdir www.acme.com www.joe.acme.com www.jane.acme.com
-.fi
+.Ed
+.Pp
 If you're using old-style multiple-IP multihosting, you should also create
 symbolic links from the numeric addresses to the names, like so:
-.nf
+.Bd -unfilled -offset left
   ln -s www.acme.com 192.100.66.1
   ln -s www.joe.acme.com 192.100.66.200
   ln -s www.jane.acme.com 192.100.66.201
-.fi
+.Ed
+.Pp
 This lets the older HTTP/1.0 browsers find the right subdirectory.
-.PP
+.Pp
 There's an optional alternate step three if you're using multiple-IP
 multihosting: run a separate merecat process for each hostname This
 gives you more flexibility, since you can run each of these processes in
 separate directories, with different throttle files, etc.  Example:
-.nf
+.Bd -unfilled -offset left
   merecat -r         /usr/www      www.acme.com
   merecat -r -u joe  /usr/www/joe  www.joe.acme.com
   merecat -r -u jane /usr/www/jane www.jane.acme.com
-.fi
+.Ed
+.Pp
 But remember, this multiple-process method does not work with CNAME
 multihosting - for that, you must use a single merecat process with
 the -v flag.
-.SH "CUSTOM ERRORS"
-.PP
-merecat lets you define your own custom error pages for the various
-HTTP errors.
-There's a separate file for each error number, all stored in one
-special directory.
-The directory name is "errors", at the top of the web directory tree.
-The error files should be named "errNNN.html", where NNN is the error number.
-So for example, to make a custom error page for the authentication failure
-error, which is number 401, you would put your HTML into the file
-"errors/err401.html".
-If no custom error file is found for a given error number, then the
-usual built-in error page is generated.
-.PP
+.Sh "CUSTOM ERRORS"
+merecat lets you define your own custom error pages for the various HTTP
+errors.  There's a separate file for each error number, all stored in
+one special directory.  The directory name is "errors", at the top of
+the web directory tree.  The error files should be named "errNNN.html",
+where NNN is the error number.  So for example, to make a custom error
+page for the authentication failure error, which is number 401, you
+would put your HTML into the file "errors/err401.html".  If no custom
+error file is found for a given error number, then the usual built-in
+error page is generated.
+.Pp
 If you're using the virtual hosts option, you can also have different
-custom error pages for each different virtual host.
-In this case you put another "errors" directory in the top of that
-virtual host's web tree.
-merecat will look first in the virtual host errors directory, and
-then in the server-wide errors directory, and if neither of those
-has an appropriate error file then it will generate the built-in error.
-.SH "NON-LOCAL REFERERS"
-.PP
+custom error pages for each different virtual host.  In this case you
+put another "errors" directory in the top of that virtual host's web
+tree.  merecat will look first in the virtual host errors directory, and
+then in the server-wide errors directory, and if neither of those has an
+appropriate error file then it will generate the built-in error.
+.Sh "NON-LOCAL REFERERS"
 Sometimes another site on the net will embed your image files in their
-HTML files, which basically means they're stealing your bandwidth.
-You can prevent them from doing this by using non-local referer filtering.
+HTML files, which basically means they're stealing your bandwidth.  You
+can prevent them from doing this by using non-local referer filtering.
 With this option, certain files can only be fetched via a local referer.
-The files have to be referenced by a local web page.
-If a web page on some other site references the files, that fetch will
-be blocked.
-There are three config-file variables for this feature:
-.TP
-.B url-pattern = "**.jpg|**.gif|**.au|**.wav"
+The files have to be referenced by a local web page.  If a web page on
+some other site references the files, that fetch will be blocked.  There
+are three config-file variables for this feature:
+.Bl -tag -width Ds
+.It url-pattern = "**.jpg|**.gif|**.au|**.wav"
 A wildcard pattern for the URLs that should require a local referer.
-This is typically just image files, sound files, and so on.
-For example:
-.nf
+This is typically just image files, sound files, and so on.  For
+example:
+.Bd -unfilled -offset left
   urlpat=**.jpg|**.gif|**.au|**.wav
-.fi
+.Ed
+.Pp
 For most sites, that one setting is all you need to enable referer filtering.
-.TP
-.B check-referer = <true | false>
+.It check-referer = <true | false>
 By default, requests with no referer at all, or a null referer, or a
-referer with no apparent hostname, are allowed.
-With this variable set, such requests are disallowed.
-.TP
-.B local-pattern = "PATTERN"
+referer with no apparent hostname, are allowed.  With this variable set,
+such requests are disallowed.
+.It local-pattern = "PATTERN"
 A wildcard pattern that specifies the local host or hosts.
 This is used to determine if the host in the referer is local or not.
 If not specified it defaults to the actual local hostname.
-.SH SYMLINKS
-.PP
-merecat is very picky about symbolic links.
-Before delivering any file, it first checks each element in the path
-to see if it's a symbolic link, and expands them all out to get the final
-actual filename.
+.El
+.Sh SYMLINKS
+merecat is very picky about symbolic links.  Before delivering any file,
+it first checks each element in the path to see if it's a symbolic link,
+and expands them all out to get the final actual filename.
+.Pp
 Along the way it checks for things like links with ".." that go above
-the server's directory, and absolute symlinks (ones that start with a /).
-These are prohibited as security holes, so the server returns an
+the server's directory, and absolute symlinks (ones that start with a
+/).  These are prohibited as security holes, so the server returns an
 error page for them.
+.Pp
 This means you can't set up your web directory with a bunch of symlinks
-pointing to individual users' home web directories.
-Instead you do it the other way around - the user web directories are
-real subdirs of the main web directory, and in each user's home
-dir there's a symlink pointing to their actual web dir.
-.PP
+pointing to individual users' home web directories.  Instead you do it
+the other way around - the user web directories are real subdirs of the
+main web directory, and in each user's home dir there's a symlink
+pointing to their actual web dir.
+.Pp
 The CGI pattern is also affected - it gets matched against the fully-expanded
 filename.  So, if you have a single CGI directory but then put a symbolic
 link in it pointing somewhere else, that won't work.  The CGI program will be
 treated as a regular file and returned to the client, instead of getting run.
 This could be confusing.
-.SH PERMISSIONS
-.PP
-merecat is also picky about file permissions.
-It wants data files (HTML, images) to be world readable.
-Readable by the group that the merecat process runs as is not enough - merecat
-checks explicitly for the world-readable bit.
-This is so that no one ever gets surprised by a file that's not set
-world-readable and yet somehow is readable by the HTTP server and
-therefore the *whole* world.
-.PP
-The same logic applies to directories.
-As with the standard Unix "ls" program, merecat will only let you
-look at the contents of a directory if its read bit is on; but
-as with data files, this must be the world-read bit, not just the
-group-read bit.
-.PP
+.Sh PERMISSIONS
+merecat is also picky about file permissions.  It wants data files
+(HTML, images) to be world readable.  Readable by the group that the
+merecat process runs as is not enough - merecat checks explicitly for
+the world-readable bit.  This is so that no one ever gets surprised by a
+file that's not set world-readable and yet somehow is readable by the
+HTTP server and therefore the *whole* world.
+.Pp
+The same logic applies to directories.  As with the standard Unix "ls"
+program, merecat will only let you look at the contents of a directory
+if its read bit is on; but as with data files, this must be the
+world-read bit, not just the group-read bit.
+.Pp
 merecat also wants the execute bit to be *off* for data files.
 A file that is marked executable but doesn't match the CGI pattern
 might be a script or program that got accidentally left in the
@@ -456,62 +424,62 @@ Allowing people to fetch the contents of the file might be a security breach,
 so this is prohibited.
 Of course if an executable file *does* match the CGI pattern, then it
 just gets run as a CGI.
-.PP
-In summary, data files should be mode 644 (rw-r--r--),
-directories should be 755 (rwxr-xr-x) if you want to allow indexing and
-711 (rwx--x--x) to disallow it, and CGI programs should be mode
-755 (rwxr-xr-x) or 711 (rwx--x--x).
-.SH LOGS
-.PP
+.Pp
+In summary, data files should be mode 644 (rw-r--r--), directories
+should be 755 (rwxr-xr-x) if you want to allow indexing and 711
+(rwx--x--x) to disallow it, and CGI programs should be mode 755
+(rwxr-xr-x) or 711 (rwx--x--x).
+.Sh LOGS
 merecat does all of its logging via syslog(3).  The facility it uses is
 configurable.  Aside from error messages, there are only a few log entry
 types of interest, all fairly similar to CERN Common Log Format:
-.nf
+.Bd -unfilled -offset left
   Aug  6 15:40:34 acme merecat[583]: 165.113.207.103 - - "GET /file" 200 357
   Aug  6 15:40:43 acme merecat[583]: 165.113.207.103 - - "HEAD /file" 200 0
   Aug  6 15:41:16 acme merecat[583]: referer http://www.acme.com/ -> /dir
   Aug  6 15:41:16 acme merecat[583]: user-agent Mozilla/1.1N
-.fi
-The package includes a script for translating these log entries info
-CERN-compatible files.
-Note that merecat does not translate numeric IP addresses into domain names.
-This is both to save time and as a minor security measure (the numeric
-address is harder to spoof).
-.PP
+.Ed
+.Pp
+Note that merecat does not translate numeric IP addresses into domain
+names.  This is both to save time and as a minor security measure (the
+numeric address is harder to spoof).
+.Pp
 Relevant merecat.h option: LOG_FACILITY.
-.SH SIGNALS
-.PP
-merecat handles a couple of signals, which you can send via the
-standard Unix kill(1) command:
-.TP
-.B INT,TERM
-These signals tell merecat to shut down immediately.
-Any requests in progress get aborted.
-.TP
-.B USR1
+.Sh SIGNALS
+.Nm
+handles a couple of signals, which you can send via the standard UNIX
+.Xr kill 1
+command:
+.Bl -tag -width INT,TERM
+.It INT,TERM
+These signals tell merecat to shut down immediately.  Any requests in
+progress get aborted.
+.It USR1
 This signal tells merecat to shut down as soon as it's done servicing
 all current requests.
 In addition, the network socket it uses to accept new connections gets
 closed immediately, which means a fresh merecat can be started up
 immediately.
-.TP
-.B USR2
+.It USR2
 This signal tells merecat to generate the statistics syslog messages
 immediately, instead of waiting for the regular hourly update.
-.SH "SEE ALSO"
-redirect(8), ssi(8), makeweb(1), htpasswd(1), syslogtocern(8), weblog_parse(1), http_get(1)
-.SH THANKS
-.PP
+.El
+.Sh "SEE ALSO"
+.Xr redirect 8 ,
+.Xr ssi 8 ,
+.Xr makeweb 1 ,
+.Xr htpasswd 1
+.Sh THANKS
 Merecat is a fork of sthttpd, which in turn is a fork of thttpd.  So
 first and foremost, a huge thanks to Jef Poskanzer for writing thttpd
 and making it open source under the simplified 2-clause BSD license!
 Anthony G. Basile deserves another thank you, for merging Gentoo patches
 and refactoring the build system.
-.PP
+.Pp
 Also, many thanks to contributors, reviewers, testers: John LoVerso,
 Jordan Hayes, Chris Torek, Jim Thompson, Barton Schaffer, Geoff Adams,
 Dan Kegel, John Hascall, Bennett Todd, KIKUCHI Takahiro, Catalin
 Ionescu.  Special thanks to Craig Leres for substantial debugging and
 development, and for not complaining about my coding style very much.
-.SH AUTHOR
+.Sh AUTHOR
 Jef Poskanzer <jef@mail.acme.com>
