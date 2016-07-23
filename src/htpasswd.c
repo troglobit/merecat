@@ -120,7 +120,18 @@ static void add_password(char *user, FILE *f)
 	char pass[100];
 	char *pw;
 	char *cpw;
-	char salt[3];
+	char salt[12] = "$1$"; /* Long enough for MD5 Crypt */
+	int saltLength = 8;
+	int saltIndex = 3;
+
+	/* Test if the system supports MD5 passwords */
+	int useMD5Crypt = 1;
+	const char* testCrypt = "$1$JASka/..$pV3V31AdjgqQmjTbgTNVu/";
+	if ( strcmp( crypt( "123456", testCrypt ), testCrypt ) ) {
+		/* The system does not support MD5 crypt: reset to default crypt. */
+		saltLength = 2;
+		saltIndex = 0;
+	}
 
 	if (!isatty(fileno(stdin))) {
 		if (!fgets(pass, sizeof(pass), stdin)) {
@@ -142,7 +153,7 @@ static void add_password(char *user, FILE *f)
 	}
 
 	srandom((int)time((time_t *)0));
-	to64(&salt[0], random(), 2);
+	to64( &salt[saltIndex], random(), saltLength );
 	cpw = crypt(pw, salt);
 	if (cpw)
 		fprintf(f, "%s:%s\n", user, cpw);
