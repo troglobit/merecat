@@ -87,9 +87,9 @@ static void putline(FILE *f, char *l)
 static unsigned char itoa64[] =	/* 0 ... 63 => ascii - 64 */
     "./0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
 
-static void to64(register char *s, register long v, register int n)
+static void to64(char *s, long v, size_t len)
 {
-	while (--n >= 0) {
+	while (--len >= 0) {
 		*s++ = itoa64[v & 0x3f];
 		v >>= 6;
 	}
@@ -115,22 +115,21 @@ char *getpass(const char *prompt)
 }
 #endif
 
-static void add_password(char *user, FILE *f)
+static void add_password(char *user, FILE *fp)
 {
 	char pass[100];
 	char *pw;
 	char *cpw;
 	char salt[12] = "$1$"; /* Long enough for MD5 Crypt */
-	int saltLength = 8;
-	int saltIndex = 3;
+	size_t index = 3;
+	size_t saltlen = 8;
+	const char *md5 = "$1$JASka/..$pV3V31AdjgqQmjTbgTNVu/";
 
 	/* Test if the system supports MD5 passwords */
-	int useMD5Crypt = 1;
-	const char* testCrypt = "$1$JASka/..$pV3V31AdjgqQmjTbgTNVu/";
-	if ( strcmp( crypt( "123456", testCrypt ), testCrypt ) ) {
+	if (strcmp(crypt("123456", md5), md5)) {
 		/* The system does not support MD5 crypt: reset to default crypt. */
-		saltLength = 2;
-		saltIndex = 0;
+		saltlen = 2;
+		index = 0;
 	}
 
 	if (!isatty(fileno(stdin))) {
@@ -152,11 +151,12 @@ static void add_password(char *user, FILE *f)
 		}
 	}
 
-	srandom((int)time((time_t *)0));
-	to64( &salt[saltIndex], random(), saltLength );
+	srandom(time(NULL));
+	to64(&salt[index], random(), saltlen);
+
 	cpw = crypt(pw, salt);
 	if (cpw)
-		fprintf(f, "%s:%s\n", user, cpw);
+		fprintf(fp, "%s:%s\n", user, cpw);
 	else
 		fprintf(stderr, "crypt() returned NULL, sorry\n");
 }
