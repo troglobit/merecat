@@ -62,7 +62,6 @@ fi
 AC_CONFIG_FILES([Makefile
                  src/Makefile
                  man/Makefile
-                 extras/Makefile
                  scripts/Makefile
                  www/Makefile
                  www/cgi-bin/Makefile])

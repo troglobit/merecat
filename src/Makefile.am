@@ -1,4 +1,5 @@
-sbin_PROGRAMS       = merecat
+sbin_PROGRAMS       = merecat htpasswd
+
 SYMLINK             = in.httpd
 merecat_SOURCES     = merecat.c		merecat.h	\
 		      fdwatch.c		fdwatch.h	\
@@ -13,6 +14,9 @@ merecat_CFLAGS      = -W -Wall -Wextra -Wno-unused-result -Wno-unused-parameter
 merecat_CFLAGS     += $(confuse_CFLAGS)
 merecat_CPPFLAGS    = -D_POSIX_SOURCE -D_BSD_SOURCE -D_GNU_SOURCE
 merecat_LDADD       = libmatch.a $(confuse_LIBS)
+
+htpasswd_CPPFLAGS   = -DWEBDIR='"$(WEBDIR)"'
+htpasswd_SOURCES    = htpasswd.c
 
 noinst_LIBRARIES    = libmatch.a
 libmatch_a_SOURCES  = match.c match.h
