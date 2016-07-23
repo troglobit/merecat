@@ -1,6 +1,6 @@
 sbin_PROGRAMS       = merecat htpasswd
 
-SYMLINK             = in.httpd
+SYMLINK             = in.httpd httpd
 merecat_SOURCES     = merecat.c		merecat.h	\
 		      fdwatch.c		fdwatch.h	\
 		      libhttpd.c	libhttpd.h	\
@@ -21,12 +21,12 @@ htpasswd_SOURCES    = htpasswd.c
 noinst_LIBRARIES    = libmatch.a
 libmatch_a_SOURCES  = match.c match.h
 
-# Hook in install merecat --> in.httpd symlink
+# Hook in install merecat --> in.httpd, httpd symlinks
 install-exec-hook:
-	@for file in $(SYMLINK); do						\
-		link=$(DESTDIR)$(sbindir)/$$file;				\
-		test `readlink $$link` = "$(sbin_PROGRAMS)" && continue;	\
-		$(LN_S) $(sbin_PROGRAMS) $$link;				\
+	@for file in $(SYMLINK); do				\
+		link=$(DESTDIR)$(sbindir)/$$file;		\
+		test `readlink $$link` = merecat && continue;	\
+		$(LN_S) merecat $$link;				\
 	done
 
 uninstall-hook:
