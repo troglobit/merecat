@@ -301,7 +301,7 @@ static void handle_alrm(int signo)
 
 static int usage(int code)
 {
-	printf("Usage: %s [-ghnrsvV] [-f CONFIG] [-d DIR] [-p PORT] [-u USER] [-t THROTTLES] [ROOT] [HOST]\n", __progname);
+	printf("Usage: %s [-ghnrsvV] [-c CGI] [-d DIR] [-f CONFIG] [-p PORT] [-u USER] [-t THROTTLES] [ROOT] [HOST]\n", __progname);
 	return code;
 }
 
