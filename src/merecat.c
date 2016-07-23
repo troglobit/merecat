@@ -766,6 +766,9 @@ static int read_config(char *filename)
 		CFG_END()
 	};
 
+	if (access(filename, F_OK))
+		return 0;
+
 	cfg = cfg_init(opts, CFGF_NONE);
 	if (!cfg) {
 		syslog(LOG_ERR, "Failed initializing configuration file parser: %s", strerror(errno));
