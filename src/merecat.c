@@ -331,10 +331,14 @@ int main(int argc, char **argv)
 
 	openlog(__progname, LOG_NDELAY | LOG_PID, LOG_FACILITY);
 
-	while ((c = getopt(argc, argv, "f:d:ghnp:rsu:vV")) != EOF) {
+	while ((c = getopt(argc, argv, "f:c:d:ghnp:rsu:vV")) != EOF) {
 		switch (c) {
 		case 'f':
 			config = optarg;
+			break;
+
+		case 'c':
+			cgi_pattern = optarg;
 			break;
 
 		case 'd':

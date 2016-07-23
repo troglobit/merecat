@@ -30,6 +30,8 @@ merecat - simple, small and fast HTTP server
 .SH SYNOPSIS
 .B merecat
 .RB [ -nrsvgh ]
+.RB [ -c
+.IR CGI ]
 .RB [ -f
 .IR CONFIG ]
 .RB [ -p
@@ -49,6 +51,11 @@ merecat - simple, small and fast HTTP server
 is a simple, small, and fast HTTP server.  It does not have a lot of
 special features, but is often sufficient for most uses on the web.
 .SH OPTIONS
+.TP
+.B -c CGI
+Specifies a wildcard pattern for CGI programs, for instance "**.cgi" or
+"/cgi-bin/*".  The config file option is 'cgi-pattern = ""'.  See below
+for details.
 .TP
 .B -d
 Specifies a directory to chdir() to after chrooting.  If you're not
@@ -89,8 +96,8 @@ any symbolic links in filenames.  For increased security this option can
 be enabled to check that the resulting path stays within the original
 document tree.  Note, that if you are using the chroot option, the
 symlink checking is unnecessary and is turned off, so the safe way to
-save those CPU cycles is to use chroot.  The config-file option names
-for this flag are "symlinkcheck" and "nosymlinkcheck".
+save those CPU cycles is to use chroot.  The config-file option for this
+is "check-symlinks = <true | false>".
 .TP
 .B -t
 Specifies a file of throttle settings.
@@ -98,10 +105,9 @@ See below for details.
 The config-file option name for this flag is "throttles".
 .TP
 .B -u
-Specifies what user to switch to after initialization when started as root.
-The default is "nobody".
-The config-file option name for this flag is "user",
-and the thttpd.h option is DEFAULT_USER.
+Specifies what user to switch to after initialization when started as
+root.  The default is "nobody", on some systems "www-data" is preferred.
+The config file option name for this flag is "username".
 .TP
 .B -v
 Do el-cheapo virtual hosting.  The config-file option names for this
@@ -131,7 +137,8 @@ whitespace.  The option names are listed below:
 .TP
 .B cgi-pattern = "/cgi-bin/*"
 Specifies a wildcard pattern for CGI programs, for instance "**.cgi" or
-"/cgi-bin/*".  See below for details.
+"/cgi-bin/*", the default is to have CGI disbled.  See below CGI section
+for more on this.
 .TP
 .B charset = "UTF-8"
 Specifies the character set to use with text MIME types.  If the default
@@ -173,9 +180,11 @@ However, one thing you should do is tell syslogd about the chroot tree,
 so that merecat can still generate syslog messages.  Check your system's
 syslogd man page for how to do this.  In FreeBSD you would put something
 like this in /etc/rc.conf:
-.nf
+.NF
+
     syslogd_flags="-l /usr/local/www/data/dev/log"
-.fi
+
+.FI
 Substitute in your own chroot tree's pathname, of course.  Don't worry
 about creating the log socket, syslogd wants to do that itself.  (You
 may need to create the dev directory.)  In Linux the flag is -a instead
@@ -184,45 +193,39 @@ of -l, and there may be other differences.
 .PP
 Merecat httpd supports the CGI 1.1 spec.
 .PP
-In order for a CGI program to be run, its name must match the pattern
-specified either at compile time or on the command line with the -c flag.
-This is a simple shell-style filename pattern.
-You can use * to match any string not including a slash,
-or ** to match any string including slashes,
-or ? to match any single character.
-You can also use multiple such patterns separated by |.
-The patterns get checked against the filename
-part of the incoming URL.
-Don't forget to quote any wildcard characters so that the shell doesn't
-mess with them.
+In order for a CGI program to be allowed to run, its name must match the
+pattern specified either at compile time or in the config file.  This is
+a simple shell-style filename pattern.  Use * to match any string not
+including a slash, or ** to match any string including slashes, or ?  to
+match any single character.  Multiple patterns separated by | can also
+be used.  The patterns get checked against the filename part of the
+incoming URL.  Remember to quote any wildcard characters so that the
+shell doesn't mess with them.
 .PP
-Restricting CGI programs to a single directory lets the site administrator
-review them for security holes, and is strongly recommended.
-If there are individual users that you trust, you can enable their
-directories too.
+Restricting CGI programs to a single directory lets the site admin
+review them for security holes, and is strongly recommended.  If there
+are individual users that you trust, you can enable their directories
+too using the pipe syntax, e.g. "|/jef/**".
 .PP
-If no CGI pattern is specified, neither here nor at compile time,
-then CGI programs cannot be run at all.
-If you want to disable CGI as a security measure, that's how you do it, just
-comment out the patterns in the config file and don't run with the -c flag.
+To disable CGI as a security measure, use the config file and set the
+cgi-pattern = "".
 .PP
-Note: the current working directory when a CGI program gets run is
-the directory that the CGI program lives in.
-This isn't in the CGI 1.1 spec, but it's what most other HTTP servers do.
+Note: the current working directory when a CGI program gets run is the
+directory that the CGI program lives in.  This isn't in the CGI 1.1
+spec, but it's what most other HTTP servers do.
 .PP
-Relevant thttpd.h options: CGI_PATTERN, CGI_TIMELIMIT, CGI_NICE, CGI_PATH, CGI_LD_LIBRARY_PATH, CGIBINDIR.
+Relevant merecat.h options: CGI_PATTERN, CGI_TIMELIMIT, CGI_NICE, CGI_PATH, CGI_LD_LIBRARY_PATH, CGIBINDIR.
 .SH "BASIC AUTHENTICATION"
 .PP
-Basic Authentication is available as an option at compile time.
-If enabled, it uses a password file in the directory to be protected,
-called .htpasswd by default.
-This file is formatted as the familiar colon-separated
-username/encrypted-password pair, records delimited by newlines.
-The protection does not carry over to subdirectories.
-The utility program htpasswd(1) is included to help create and
+Basic Authentication is available as an option at compile time.  If
+enabled, it uses a password file in the directory to be protected,
+called .htpasswd by default.  This file is formatted as the familiar
+colon-separated username/encrypted-password pair, records delimited by
+newlines.  The protection does not carry over to subdirectories.  The
+utility program htpasswd(1) is included to help create and
 modify .htpasswd files.
 .PP
-Relevant thttpd.h option: AUTH_FILE
+Relevant merecat.h option: AUTH_FILE
 .SH "THROTTLING"
 .PP
 The throttle file lets you set maximum byte rates on URLs or URL groups.
@@ -475,7 +478,7 @@ Note that merecat does not translate numeric IP addresses into domain names.
 This is both to save time and as a minor security measure (the numeric
 address is harder to spoof).
 .PP
-Relevant thttpd.h option: LOG_FACILITY.
+Relevant merecat.h option: LOG_FACILITY.
 .SH SIGNALS
 .PP
 merecat handles a couple of signals, which you can send via the
