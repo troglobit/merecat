@@ -301,7 +301,28 @@ static void handle_alrm(int signo)
 
 static int usage(int code)
 {
-	printf("Usage: %s [-ghnrsvV] [-c CGI] [-d DIR] [-f CONFIG] [-p PORT] [-u USER] [-t THROTTLES] [ROOT] [HOST]\n", __progname);
+	printf("\n"
+	       "Usage: %s [OPTIONS] [WEBROOT] [HOSTNAME]\n"
+	       "\n"
+	       "  -c CGI     CGI pattern to allow, e.g. \"**\", \"*.cgi\", \"/cgi-bin/*\"\n"
+	       "  -d DIR     Optional DIR to change into after chrooting to WEBROOT\n"
+	       "  -f FILE    Configuration file name, default: /etc/merecat.conf\n"
+	       "  -g         Use global password file, .htpasswd\n"
+	       "  -h         This help text\n"
+	       "  -n         Run in foreground, do not detach from controlling terminal\n"
+	       "  -p PORT    Port to listen to, default 80\n"
+	       "  -r         Chroot into WEBROOT\n"
+	       "  -s         Check symlinks so they don't point outside chroot\n"
+	       "  -t FILE    Throttle file\n"
+	       "  -u USER    Username to drop to, default: nobody\n"
+	       "  -v         Enable virtual hosting with WEBROOT as base\n"
+	       "  -V         Show Merecat httpd version\n"
+	       "\n", __progname);
+	printf("The optional 'WEBROOT' defaults to the current directory and 'HOSTNAME' is only\n"
+	       "for virtual hosting, to run one httpd per hostname.  The '-d DIR' is not needed\n"
+	       "in virtual hosting mode, see merecat(8) for more information on virtual hosting\n"
+	       "\nBug report address: %-40s\n\n", PACKAGE_BUGREPORT);
+
 	return code;
 }
 
