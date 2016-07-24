@@ -349,9 +349,9 @@ httpd_server *httpd_initialize(char *hostname, httpd_sockaddr *sa4P, httpd_socka
 
 	/* Done initializing. */
 	if (!hs->binding_hostname)
-		syslog(LOG_NOTICE, "%.80s starting on port %d", PACKAGE_STRING, hs->port);
+		syslog(LOG_NOTICE, "%s starting on port %d", PACKAGE_STRING, hs->port);
 	else
-		syslog(LOG_NOTICE, "%.80s starting on %.80s, port %d", PACKAGE_STRING,
+		syslog(LOG_NOTICE, "%s starting on %s, port %d", PACKAGE_STRING,
 		       httpd_ntoa(hs->listen4_fd != -1 ? sa4P : sa6P), (int)hs->port);
 
 	return hs;
@@ -372,7 +372,7 @@ static int initialize_listen_socket(httpd_sockaddr *saP)
 	/* Create socket. */
 	listen_fd = socket(saP->sa.sa_family, SOCK_STREAM, 0);
 	if (listen_fd < 0) {
-		syslog(LOG_CRIT, "socket %.80s - %m", httpd_ntoa(saP));
+		syslog(LOG_CRIT, "socket %s: %s", httpd_ntoa(saP), strerror(errno));
 		return -1;
 	}
 	(void)fcntl(listen_fd, F_SETFD, 1);
@@ -380,11 +380,11 @@ static int initialize_listen_socket(httpd_sockaddr *saP)
 	/* Allow reuse of local addresses. */
 	on = 1;
 	if (setsockopt(listen_fd, SOL_SOCKET, SO_REUSEADDR, (char *)&on, sizeof(on)) < 0)
-		syslog(LOG_CRIT, "setsockopt SO_REUSEADDR - %m");
+		syslog(LOG_CRIT, "setsockopt SO_REUSEADDR: %s", strerror(errno));
 
 	/* Bind to it. */
 	if (bind(listen_fd, &saP->sa, sockaddr_len(saP)) < 0) {
-		syslog(LOG_CRIT, "bind %.80s - %m", httpd_ntoa(saP));
+		syslog(LOG_CRIT, "bind %s: %s", httpd_ntoa(saP), strerror(errno));
 		(void)close(listen_fd);
 		return -1;
 	}
@@ -392,19 +392,19 @@ static int initialize_listen_socket(httpd_sockaddr *saP)
 	/* Set the listen file descriptor to no-delay / non-blocking mode. */
 	flags = fcntl(listen_fd, F_GETFL, 0);
 	if (flags == -1) {
-		syslog(LOG_CRIT, "fcntl F_GETFL - %m");
+		syslog(LOG_CRIT, "fcntl F_GETFL: %s", strerror(errno));
 		(void)close(listen_fd);
 		return -1;
 	}
 	if (fcntl(listen_fd, F_SETFL, flags | O_NDELAY) < 0) {
-		syslog(LOG_CRIT, "fcntl O_NDELAY - %m");
+		syslog(LOG_CRIT, "fcntl O_NDELAY: %s", strerror(errno));
 		(void)close(listen_fd);
 		return -1;
 	}
 
 	/* Start a listen going. */
 	if (listen(listen_fd, LISTEN_BACKLOG) < 0) {
-		syslog(LOG_CRIT, "listen - %m");
+		syslog(LOG_CRIT, "listen: %s", strerror(errno));
 		(void)close(listen_fd);
 		return -1;
 	}
@@ -465,7 +465,7 @@ static char *ok200title = "OK";
 static char *ok206title = "Partial Content";
 
 static char *err302title = "Found";
-static char *err302form = "The actual URL is '%.80s'.\n";
+static char *err302form = "The actual URL is '%s'.\n";
 
 static char *err304title = "Not Modified";
 
@@ -474,29 +474,29 @@ char *httpd_err400form = "Your request has bad syntax or is inherently impossibl
 
 #ifdef AUTH_FILE
 static char *err401title = "Unauthorized";
-static char *err401form = "Authorization required for the URL '%.80s'.\n";
+static char *err401form = "Authorization required for the URL '%s'.\n";
 #endif				/* AUTH_FILE */
 
 static char *err403title = "Forbidden";
 
 #ifndef EXPLICIT_ERROR_PAGES
-static char *err403form = "You do not have permission to get URL '%.80s' from this server.\n";
+static char *err403form = "You do not have permission to get URL '%s' from this server.\n";
 #endif				/* !EXPLICIT_ERROR_PAGES */
 
 static char *err404title = "Not Found";
-static char *err404form = "The requested URL '%.80s' was not found on this server.\n";
+static char *err404form = "The requested URL '%s' was not found on this server.\n";
 
 char *httpd_err408title = "Request Timeout";
 char *httpd_err408form = "No request appeared within a reasonable time period.\n";
 
 static char *err500title = "Internal Error";
-static char *err500form = "There was an unusual problem serving the requested URL '%.80s'.\n";
+static char *err500form = "There was an unusual problem serving the requested URL '%s'.\n";
 
 static char *err501title = "Not Implemented";
-static char *err501form = "The requested method '%.80s' is not implemented by this server.\n";
+static char *err501form = "The requested method '%s' is not implemented by this server.\n";
 
 char *httpd_err503title = "Service Temporarily Overloaded";
-char *httpd_err503form = "The requested URL '%.80s' is temporarily overloaded.  Please try again later.\n";
+char *httpd_err503form = "The requested URL '%s' is temporarily overloaded.  Please try again later.\n";
 
 
 /* Append a string to the buffer waiting to be sent as response. */
@@ -1024,10 +1024,10 @@ static int auth_check2(httpd_conn *hc, char *dirname)
 	fp = fopen(authpath, "r");
 	if (!fp) {
 		/* The file exists but we can't open it?  Disallow access. */
-		syslog(LOG_ERR, "%.80s auth file %.80s could not be opened - %m", httpd_ntoa(&hc->client_addr), authpath);
+		syslog(LOG_ERR, "%s auth file %s could not be opened: %s", httpd_ntoa(&hc->client_addr), authpath, strerror(errno));
 		httpd_send_err(hc, 403, err403title, "",
 			       ERROR_FORM(err403form,
-					  "The requested URL '%.80s' is protected by an authentication file, but the authentication file cannot be opened.\n"),
+					  "The requested URL '%s' is protected by an authentication file, but the authentication file cannot be opened.\n"),
 			       hc->encodedurl);
 		return -1;
 	}
@@ -1282,7 +1282,7 @@ static int vhost_map(httpd_conn *hc)
 	else {
 		sz = sizeof(sa);
 		if (getsockname(hc->conn_fd, &sa.sa, &sz) < 0) {
-			syslog(LOG_ERR, "getsockname - %m");
+			syslog(LOG_ERR, "getsockname: %s", strerror(errno));
 			return 0;
 		}
 		hc->hostname = httpd_ntoa(&sa);
@@ -1490,13 +1490,13 @@ static char *expand_symlinks(char *path, char **restP, int no_symlink_check, int
 				return checked;
 			}
 
-			syslog(LOG_ERR, "readlink %.80s - %m", checked);
+			syslog(LOG_ERR, "readlink %s: %s", checked, strerror(errno));
 			return NULL;
 		}
 
 		++nlinks;
 		if (nlinks > MAX_LINKS) {
-			syslog(LOG_ERR, "too many symlinks in %.80s", path);
+			syslog(LOG_ERR, "too many symlinks in %s", path);
 			return NULL;
 		}
 
@@ -1583,7 +1583,7 @@ int httpd_get_conn(httpd_server *hs, int listen_fd, httpd_conn *hc)
 	if (hc->conn_fd < 0) {
 		if (errno == EWOULDBLOCK)
 			return GC_NO_MORE;
-		syslog(LOG_ERR, "accept - %m");
+		syslog(LOG_ERR, "accept: %s", strerror(errno));
 		return GC_FAIL;
 	}
 	if (!sockaddr_check(&sa)) {
@@ -1950,7 +1950,7 @@ int httpd_parse_request(httpd_conn *hc)
 				cp += strspn(cp, " \t");
 				if (hc->accept[0] != '\0') {
 					if (strlen(hc->accept) > 5000) {
-						syslog(LOG_ERR, "%.80s way too much Accept: data", httpd_ntoa(&hc->client_addr));
+						syslog(LOG_ERR, "%s way too much Accept: data", httpd_ntoa(&hc->client_addr));
 						continue;
 					}
 					httpd_realloc_str(&hc->accept, &hc->maxaccept, strlen(hc->accept) + 2 + strlen(cp));
@@ -1963,7 +1963,7 @@ int httpd_parse_request(httpd_conn *hc)
 				cp += strspn(cp, " \t");
 				if (hc->accepte[0] != '\0') {
 					if (strlen(hc->accepte) > 5000) {
-						syslog(LOG_ERR, "%.80s way too much Accept-Encoding: data",
+						syslog(LOG_ERR, "%s way too much Accept-Encoding: data",
 						       httpd_ntoa(&hc->client_addr));
 						continue;
 					}
@@ -1980,7 +1980,7 @@ int httpd_parse_request(httpd_conn *hc)
 				cp = &buf[18];
 				hc->if_modified_since = tdate_parse(cp);
 				if (hc->if_modified_since == (time_t)-1)
-					syslog(LOG_DEBUG, "unparsable time: %.80s", cp);
+					syslog(LOG_DEBUG, "unparsable time: %s", cp);
 			} else if (strncasecmp(buf, "Cookie:", 7) == 0) {
 				cp = &buf[7];
 				cp += strspn(cp, " \t");
@@ -2011,7 +2011,7 @@ int httpd_parse_request(httpd_conn *hc)
 				cp = &buf[9];
 				hc->range_if = tdate_parse(cp);
 				if (hc->range_if == (time_t)-1)
-					syslog(LOG_DEBUG, "unparsable time: %.80s", cp);
+					syslog(LOG_DEBUG, "unparsable time: %s", cp);
 			} else if (strncasecmp(buf, "Content-Type:", 13) == 0) {
 				cp = &buf[13];
 				cp += strspn(cp, " \t");
@@ -2036,7 +2036,7 @@ int httpd_parse_request(httpd_conn *hc)
 #ifdef LOG_UNKNOWN_HEADERS
 			else if (strncasecmp(buf, "Accept-Charset:", 15) == 0 || strncasecmp(buf, "Accept-Language:", 16) == 0 || strncasecmp(buf, "Agent:", 6) == 0 || strncasecmp(buf, "Cache-Control:", 14) == 0 || strncasecmp(buf, "Cache-Info:", 11) == 0 || strncasecmp(buf, "Charge-To:", 10) == 0 || strncasecmp(buf, "Client-IP:", 10) == 0 || strncasecmp(buf, "Date:", 5) == 0 || strncasecmp(buf, "Extension:", 10) == 0 || strncasecmp(buf, "Forwarded:", 10) == 0 || strncasecmp(buf, "From:", 5) == 0 || strncasecmp(buf, "HTTP-Version:", 13) == 0 || strncasecmp(buf, "Max-Forwards:", 13) == 0 || strncasecmp(buf, "Message-Id:", 11) == 0 || strncasecmp(buf, "MIME-Version:", 13) == 0 || strncasecmp(buf, "Negotiate:", 10) == 0 || strncasecmp(buf, "Pragma:", 7) == 0 || strncasecmp(buf, "Proxy-Agent:", 12) == 0 || strncasecmp(buf, "Proxy-Connection:", 17) == 0 || strncasecmp(buf, "Security-Scheme:", 16) == 0 || strncasecmp(buf, "Session-Id:", 11) == 0 || strncasecmp(buf, "UA-Color:", 9) == 0 || strncasecmp(buf, "UA-CPU:", 7) == 0 || strncasecmp(buf, "UA-Disp:", 8) == 0 || strncasecmp(buf, "UA-OS:", 6) == 0 || strncasecmp(buf, "UA-Pixels:", 10) == 0 || strncasecmp(buf, "User:", 5) == 0 || strncasecmp(buf, "Via:", 4) == 0 || strncasecmp(buf, "X-", 2) == 0) ;	/* ignore */
 			else
-				syslog(LOG_DEBUG, "unknown request header: %.80s", buf);
+				syslog(LOG_DEBUG, "unknown request header: %s", buf);
 #endif				/* LOG_UNKNOWN_HEADERS */
 		}
 	}
@@ -2134,11 +2134,11 @@ int httpd_parse_request(httpd_conn *hc)
 		}
 #endif				/* TILDE_MAP_2 */
 		else {
-			syslog(LOG_NOTICE, "%.80s URL \"%.80s\" goes outside the web tree",
+			syslog(LOG_NOTICE, "%s URL \"%s\" goes outside the web tree",
 			       httpd_ntoa(&hc->client_addr), hc->encodedurl);
 			httpd_send_err(hc, 403, err403title, "",
 				       ERROR_FORM(err403form,
-						  "The requested URL '%.80s' resolves to a file outside the permitted web server directory tree.\n"),
+						  "The requested URL '%s' resolves to a file outside the permitted web server directory tree.\n"),
 				       hc->encodedurl);
 			return -1;
 		}
@@ -2469,7 +2469,7 @@ static int ls(httpd_conn *hc)
 
 	dirp = opendir(hc->expnfilename);
 	if (dirp == (DIR *) 0) {
-		syslog(LOG_ERR, "opendir %.80s - %m", hc->expnfilename);
+		syslog(LOG_ERR, "opendir %s: %s", hc->expnfilename, strerror(errno));
 		httpd_send_err(hc, 404, err404title, "", err404form, hc->encodedurl);
 		return -1;
 	}
@@ -2487,7 +2487,7 @@ static int ls(httpd_conn *hc)
 		++hc->hs->cgi_count;
 		r = fork();
 		if (r < 0) {
-			syslog(LOG_ERR, "fork - %m");
+			syslog(LOG_ERR, "fork: %s", strerror(errno));
 			closedir(dirp);
 			httpd_send_err(hc, 500, err500title, "", err500form, hc->encodedurl);
 			return -1;
@@ -2512,7 +2512,7 @@ static int ls(httpd_conn *hc)
 			 */
 			fp = fdopen(hc->conn_fd, "w");
 			if (!fp) {
-				syslog(LOG_ERR, "fdopen - %m");
+				syslog(LOG_ERR, "fdopen: %s", strerror(errno));
 				httpd_send_err(hc, 500, err500title, "", err500form, hc->encodedurl);
 				httpd_write_response(hc);
 				closedir(dirp);
@@ -3105,14 +3105,14 @@ static void cgi_child(httpd_conn *hc)
 		int p[2];
 
 		if (pipe(p) < 0) {
-			syslog(LOG_ERR, "pipe - %m");
+			syslog(LOG_ERR, "pipe: %s", strerror(errno));
 			httpd_send_err(hc, 500, err500title, "", err500form, hc->encodedurl);
 			httpd_write_response(hc);
 			exit(1);
 		}
 		r = fork();
 		if (r < 0) {
-			syslog(LOG_ERR, "fork - %m");
+			syslog(LOG_ERR, "fork: %s", strerror(errno));
 			httpd_send_err(hc, 500, err500title, "", err500form, hc->encodedurl);
 			httpd_write_response(hc);
 			exit(1);
@@ -3143,14 +3143,14 @@ static void cgi_child(httpd_conn *hc)
 		int p[2];
 
 		if (pipe(p) < 0) {
-			syslog(LOG_ERR, "pipe - %m");
+			syslog(LOG_ERR, "pipe: %s", strerror(errno));
 			httpd_send_err(hc, 500, err500title, "", err500form, hc->encodedurl);
 			httpd_write_response(hc);
 			exit(1);
 		}
 		r = fork();
 		if (r < 0) {
-			syslog(LOG_ERR, "fork - %m");
+			syslog(LOG_ERR, "fork: %s", strerror(errno));
 			httpd_send_err(hc, 500, err500title, "", err500form, hc->encodedurl);
 			httpd_write_response(hc);
 			exit(1);
@@ -3220,7 +3220,7 @@ static void cgi_child(httpd_conn *hc)
 	(void)execve(binary, argp, envp);
 
 	/* Something went wrong. */
-	syslog(LOG_ERR, "execve %.80s - %m", hc->expnfilename);
+	syslog(LOG_ERR, "execve %s: %s", hc->expnfilename, strerror(errno));
 	httpd_send_err(hc, 500, err500title, "", err500form, hc->encodedurl);
 	httpd_write_response(hc);
 	exit(1);
@@ -3241,7 +3241,7 @@ static int cgi(httpd_conn *hc)
 		httpd_clear_ndelay(hc->conn_fd);
 		r = fork();
 		if (r < 0) {
-			syslog(LOG_ERR, "fork - %m");
+			syslog(LOG_ERR, "fork: %s", strerror(errno));
 			httpd_send_err(hc, 500, err500title, "", err500form, hc->encodedurl);
 			return -1;
 		}
@@ -3307,9 +3307,9 @@ static int really_start_request(httpd_conn *hc, struct timeval *nowP)
 	 */
 	if (!(hc->sb.st_mode & (S_IROTH | S_IXOTH))) {
 		syslog(LOG_INFO,
-		       "%.80s URL \"%.80s\" resolves to a non world-readable file", httpd_ntoa(&hc->client_addr), hc->encodedurl);
+		       "%s URL \"%s\" resolves to a non world-readable file", httpd_ntoa(&hc->client_addr), hc->encodedurl);
 		httpd_send_err(hc, 403, err403title, "",
-			       ERROR_FORM(err403form, "The requested URL '%.80s' resolves to a file that is not world-readable.\n"),
+			       ERROR_FORM(err403form, "The requested URL '%s' resolves to a file that is not world-readable.\n"),
 			       hc->encodedurl);
 		return -1;
 	}
@@ -3351,11 +3351,11 @@ static int really_start_request(httpd_conn *hc, struct timeval *nowP)
 		/* Directories must be readable for indexing. */
 		if (!(hc->sb.st_mode & S_IROTH)) {
 			syslog(LOG_INFO,
-			       "%.80s URL \"%.80s\" tried to index a directory with indexing disabled",
+			       "%s URL \"%s\" tried to index a directory with indexing disabled",
 			       httpd_ntoa(&hc->client_addr), hc->encodedurl);
 			httpd_send_err(hc, 403, err403title, "",
 				       ERROR_FORM(err403form,
-						  "The requested URL '%.80s' resolves to a directory that has indexing disabled.\n"),
+						  "The requested URL '%s' resolves to a directory that has indexing disabled.\n"),
 				       hc->encodedurl);
 			return -1;
 		}
@@ -3370,10 +3370,10 @@ static int really_start_request(httpd_conn *hc, struct timeval *nowP)
 		/* Ok, generate an index. */
 		return ls(hc);
 #else				/* GENERATE_INDEXES */
-		syslog(LOG_INFO, "%.80s URL \"%.80s\" tried to index a directory", httpd_ntoa(&hc->client_addr), hc->encodedurl);
+		syslog(LOG_INFO, "%s URL \"%s\" tried to index a directory", httpd_ntoa(&hc->client_addr), hc->encodedurl);
 		httpd_send_err(hc, 403, err403title, "",
 			       ERROR_FORM(err403form,
-					  "The requested URL '%.80s' is a directory, and directory indexing is disabled on this server.\n"),
+					  "The requested URL '%s' is a directory, and directory indexing is disabled on this server.\n"),
 			       hc->encodedurl);
 		return -1;
 #endif				/* GENERATE_INDEXES */
@@ -3396,11 +3396,11 @@ static int really_start_request(httpd_conn *hc, struct timeval *nowP)
 		/* Now, is the index version world-readable or world-executable? */
 		if (!(hc->sb.st_mode & (S_IROTH | S_IXOTH))) {
 			syslog(LOG_INFO,
-			       "%.80s URL \"%.80s\" resolves to a non-world-readable index file",
+			       "%s URL \"%s\" resolves to a non-world-readable index file",
 			       httpd_ntoa(&hc->client_addr), hc->encodedurl);
 			httpd_send_err(hc, 403, err403title, "",
 				       ERROR_FORM(err403form,
-						  "The requested URL '%.80s' resolves to an index file that is not world-readable.\n"),
+						  "The requested URL '%s' resolves to an index file that is not world-readable.\n"),
 				       hc->encodedurl);
 			return -1;
 		}
@@ -3423,10 +3423,10 @@ static int really_start_request(httpd_conn *hc, struct timeval *nowP)
 	if (expnlen == sizeof(AUTH_FILE) - 1) {
 		if (strcmp(hc->expnfilename, AUTH_FILE) == 0) {
 			syslog(LOG_NOTICE,
-			       "%.80s URL \"%.80s\" tried to retrieve an auth file", httpd_ntoa(&hc->client_addr), hc->encodedurl);
+			       "%s URL \"%s\" tried to retrieve an auth file", httpd_ntoa(&hc->client_addr), hc->encodedurl);
 			httpd_send_err(hc, 403, err403title, "",
 				       ERROR_FORM(err403form,
-						  "The requested URL '%.80s' is an authorization file, retrieving it is not permitted.\n"),
+						  "The requested URL '%s' is an authorization file, retrieving it is not permitted.\n"),
 				       hc->encodedurl);
 			return -1;
 		}
@@ -3434,10 +3434,10 @@ static int really_start_request(httpd_conn *hc, struct timeval *nowP)
 		   strcmp(&(hc->expnfilename[expnlen - sizeof(AUTH_FILE) + 1]), AUTH_FILE) == 0 &&
 		   hc->expnfilename[expnlen - sizeof(AUTH_FILE)] == '/') {
 		syslog(LOG_NOTICE,
-		       "%.80s URL \"%.80s\" tried to retrieve an auth file", httpd_ntoa(&hc->client_addr), hc->encodedurl);
+		       "%s URL \"%s\" tried to retrieve an auth file", httpd_ntoa(&hc->client_addr), hc->encodedurl);
 		httpd_send_err(hc, 403, err403title, "",
 			       ERROR_FORM(err403form,
-					  "The requested URL '%.80s' is an authorization file, retrieving it is not permitted.\n"),
+					  "The requested URL '%s' is an authorization file, retrieving it is not permitted.\n"),
 			       hc->encodedurl);
 		return -1;
 	}
@@ -3456,18 +3456,18 @@ static int really_start_request(httpd_conn *hc, struct timeval *nowP)
 	 ** is prohibited.
 	 */
 	if (hc->sb.st_mode & S_IXOTH) {
-		syslog(LOG_NOTICE, "%.80s URL \"%.80s\" is executable but isn't CGI", httpd_ntoa(&hc->client_addr), hc->encodedurl);
+		syslog(LOG_NOTICE, "%s URL \"%s\" is executable but isn't CGI", httpd_ntoa(&hc->client_addr), hc->encodedurl);
 		httpd_send_err(hc, 403, err403title, "",
 			       ERROR_FORM(err403form,
-					  "The requested URL '%.80s' resolves to a file which is marked executable but is not a CGI file; retrieving it is forbidden.\n"),
+					  "The requested URL '%s' resolves to a file which is marked executable but is not a CGI file; retrieving it is forbidden.\n"),
 			       hc->encodedurl);
 		return -1;
 	}
 	if (hc->pathinfo[0] != '\0') {
-		syslog(LOG_INFO, "%.80s URL \"%.80s\" has pathinfo but isn't CGI", httpd_ntoa(&hc->client_addr), hc->encodedurl);
+		syslog(LOG_INFO, "%s URL \"%s\" has pathinfo but isn't CGI", httpd_ntoa(&hc->client_addr), hc->encodedurl);
 		httpd_send_err(hc, 403, err403title, "",
 			       ERROR_FORM(err403form,
-					  "The requested URL '%.80s' resolves to a file plus CGI-style pathinfo, but the file is not a valid CGI file.\n"),
+					  "The requested URL '%s' resolves to a file plus CGI-style pathinfo, but the file is not a valid CGI file.\n"),
 			       hc->encodedurl);
 		return -1;
 	}
@@ -3544,7 +3544,7 @@ static void make_log_entry(httpd_conn *hc, struct timeval *nowP)
 	else
 		(void)strcpy(bytes, "-");
 
-	syslog(LOG_INFO, "%.80s - %.80s \"%.80s %.200s %.80s\" %d %s \"%.200s\" \"%.200s\"",
+	syslog(LOG_INFO, "%s - %s \"%s %.200s %s\" %d %s \"%.200s\" \"%.200s\"",
 	       httpd_ntoa(&hc->client_addr), ru, httpd_method_str(hc->method), url, hc->protocol,
 	       hc->status, bytes, hc->referer, hc->useragent);
 }
@@ -3561,10 +3561,10 @@ static int check_referer(httpd_conn *hc)
 
 	r = really_check_referer(hc);
 	if (!r) {
-		syslog(LOG_INFO, "%.80s non-local referer \"%.80s%.80s\" \"%.80s\"",
+		syslog(LOG_INFO, "%s non-local referer \"%s%s\" \"%s\"",
 		       httpd_ntoa(&hc->client_addr), get_hostname(hc), hc->encodedurl, hc->referer);
 		httpd_send_err(hc, 403, err403title, "",
-			       ERROR_FORM(err403form, "You must supply a local referer to get URL '%.80s' from this server.\n"),
+			       ERROR_FORM(err403form, "You must supply a local referer to get URL '%s' from this server.\n"),
 			       hc->encodedurl);
 	}
 	return r;

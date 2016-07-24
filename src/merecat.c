@@ -209,7 +209,7 @@ static void handle_chld(int signo)
 			 ** but with some kernels it does anyway.  Ignore it.
 			 */
 			if (errno != ECHILD)
-				syslog(LOG_ERR, "child wait - %m");
+				syslog(LOG_ERR, "child wait - %s", strerror(errno));
 			break;
 		}
 		/* Decrement the CGI count.  Note that this is not accurate, since
@@ -454,7 +454,7 @@ int main(int argc, char **argv)
 	/* Switch directories if requested. */
 	if (dir != (char *)0) {
 		if (chdir(dir) < 0) {
-			syslog(LOG_CRIT, "chdir - %m");
+			syslog(LOG_CRIT, "chdir - %s", strerror(errno));
 			exit(1);
 		}
 	}
@@ -465,7 +465,7 @@ int main(int argc, char **argv)
 		 ** home dir.
 		 */
 		if (chdir(pwd->pw_dir) < 0) {
-			syslog(LOG_CRIT, "chdir - %m");
+			syslog(LOG_CRIT, "chdir - %s", strerror(errno));
 			exit(1);
 		}
 	}
@@ -487,7 +487,7 @@ int main(int argc, char **argv)
 		/* Daemonize - make ourselves a subprocess. */
 #ifdef HAVE_DAEMON
 		if (daemon(1, 1) < 0) {
-			syslog(LOG_CRIT, "daemon - %m");
+			syslog(LOG_CRIT, "daemon - %s", strerror(errno));
 			exit(1);
 		}
 #else				/* HAVE_DAEMON */
@@ -495,7 +495,7 @@ int main(int argc, char **argv)
 		case 0:
 			break;
 		case -1:
-			syslog(LOG_CRIT, "fork - %m");
+			syslog(LOG_CRIT, "fork - %s", strerror(errno));
 			exit(1);
 		default:
 			exit(0);
@@ -529,14 +529,14 @@ int main(int argc, char **argv)
 	/* Chroot if requested. */
 	if (do_chroot) {
 		if (chroot(cwd) < 0) {
-			syslog(LOG_CRIT, "chroot - %m");
+			syslog(LOG_CRIT, "chroot - %s", strerror(errno));
 			exit(1);
 		}
 
 		(void)strcpy(cwd, "/");
 		/* Always chdir to / after a chroot. */
 		if (chdir(cwd) < 0) {
-			syslog(LOG_CRIT, "chroot chdir - %m");
+			syslog(LOG_CRIT, "chroot chdir - %s", strerror(errno));
 			exit(1);
 		}
 	}
@@ -544,7 +544,7 @@ int main(int argc, char **argv)
 	/* Switch directories again if requested. */
 	if (data_dir != (char *)0) {
 		if (chdir(data_dir) < 0) {
-			syslog(LOG_CRIT, "data_dir chdir - %m");
+			syslog(LOG_CRIT, "data_dir chdir - %s", strerror(errno));
 			exit(1);
 		}
 	}
@@ -610,24 +610,24 @@ int main(int argc, char **argv)
 	if (getuid() == 0) {
 		/* Set aux groups to null. */
 		if (setgroups(0, (const gid_t *)0) < 0) {
-			syslog(LOG_CRIT, "setgroups - %m");
+			syslog(LOG_CRIT, "setgroups - %s", strerror(errno));
 			exit(1);
 		}
 		/* Set primary group. */
 		if (setgid(gid) < 0) {
-			syslog(LOG_CRIT, "setgid - %m");
+			syslog(LOG_CRIT, "setgid - %s", strerror(errno));
 			exit(1);
 		}
 		/* Try setting aux groups correctly - not critical if this fails. */
 		if (initgroups(user, gid) < 0)
-			syslog(LOG_WARNING, "initgroups - %m");
+			syslog(LOG_WARNING, "initgroups - %s", strerror(errno));
 #ifdef HAVE_SETLOGIN
 		/* Set login name. */
 		(void)setlogin(user);
 #endif				/* HAVE_SETLOGIN */
 		/* Set uid. */
 		if (setuid(uid) < 0) {
-			syslog(LOG_CRIT, "setuid - %m");
+			syslog(LOG_CRIT, "setuid - %s", strerror(errno));
 			exit(1);
 		}
 		/* Check for unnecessary security exposure. */
@@ -671,7 +671,7 @@ int main(int argc, char **argv)
 		if (num_ready < 0) {
 			if (errno == EINTR || errno == EAGAIN)
 				continue;	/* try again */
-			syslog(LOG_ERR, "fdwatch - %m");
+			syslog(LOG_ERR, "fdwatch - %s", strerror(errno));
 			exit(1);
 		}
 		tmr_prepare_timeval(&tv);
@@ -859,7 +859,7 @@ static void lookup_hostname(httpd_sockaddr *sa4P, size_t sa4_len, int *gotv4P, h
 	hints.ai_socktype = SOCK_STREAM;
 	(void)snprintf(portstr, sizeof(portstr), "%d", (int)port);
 	if ((gaierr = getaddrinfo(hostname, portstr, &hints, &ai)) != 0) {
-		syslog(LOG_CRIT, "getaddrinfo %.80s - %.80s", hostname, gai_strerror(gaierr));
+		syslog(LOG_CRIT, "getaddrinfo %s - %s", hostname, gai_strerror(gaierr));
 		exit(1);
 	}
 
@@ -883,7 +883,7 @@ static void lookup_hostname(httpd_sockaddr *sa4P, size_t sa4_len, int *gotv4P, h
 		*gotv6P = 0;
 	else {
 		if (sa6_len < aiv6->ai_addrlen) {
-			syslog(LOG_CRIT, "%.80s - sockaddr too small (%lu < %lu)",
+			syslog(LOG_CRIT, "%s - sockaddr too small (%lu < %lu)",
 			       hostname, (unsigned long)sa6_len, (unsigned long)aiv6->ai_addrlen);
 			exit(1);
 		}
@@ -896,7 +896,7 @@ static void lookup_hostname(httpd_sockaddr *sa4P, size_t sa4_len, int *gotv4P, h
 		*gotv4P = 0;
 	else {
 		if (sa4_len < aiv4->ai_addrlen) {
-			syslog(LOG_CRIT, "%.80s - sockaddr too small (%lu < %lu)",
+			syslog(LOG_CRIT, "%s - sockaddr too small (%lu < %lu)",
 			       hostname, (unsigned long)sa4_len, (unsigned long)aiv4->ai_addrlen);
 			exit(1);
 		}
@@ -923,15 +923,14 @@ static void lookup_hostname(httpd_sockaddr *sa4P, size_t sa4_len, int *gotv4P, h
 			he = gethostbyname(hostname);
 			if (he == (struct hostent *)0) {
 #ifdef HAVE_HSTRERROR
-				syslog(LOG_CRIT, "gethostbyname %.80s - %.80s", hostname, hstrerror(h_errno));
-				syslog(LOG_CRIT, "gethostbyname %.80s failed", hostname);
-#endif				/* HAVE_HSTRERROR */
+				syslog(LOG_CRIT, "gethostbyname %s - %s", hostname, hstrerror(h_errno));
 #else
+				syslog(LOG_CRIT, "gethostbyname %s failed", hostname);
 #endif
 				exit(1);
 			}
 			if (he->h_addrtype != AF_INET) {
-				syslog(LOG_CRIT, "%.80s - non-IP network address", hostname);
+				syslog(LOG_CRIT, "%s - non-IP network address", hostname);
 				exit(1);
 			}
 			(void)memmove(&sa4P->sa_in.sin_addr.s_addr, he->h_addr, he->h_length);
@@ -956,7 +955,7 @@ static void read_throttlefile(char *throttlefile)
 
 	fp = fopen(throttlefile, "r");
 	if (fp == (FILE *)0) {
-		syslog(LOG_CRIT, "%.80s - %m", throttlefile);
+		syslog(LOG_CRIT, "%s: %s", throttlefile, strerror(errno));
 		exit(1);
 	}
 
@@ -982,7 +981,7 @@ static void read_throttlefile(char *throttlefile)
 		} else if (sscanf(buf, " %4900[^ \t] %ld", pattern, &max_limit) == 2)
 			min_limit = 0;
 		else {
-			syslog(LOG_ERR, "unparsable line in %.80s - %.80s", throttlefile, buf);
+			syslog(LOG_ERR, "unparsable line in %s - %s", throttlefile, buf);
 			continue;
 		}
 
@@ -1310,7 +1309,7 @@ static void handle_send(connecttab *c, struct timeval *tvP)
 		 ** And ECONNRESET isn't interesting either.
 		 */
 		if (errno != EPIPE && errno != EINVAL && errno != ECONNRESET)
-			syslog(LOG_ERR, "write - %m sending %.80s", hc->encodedurl);
+			syslog(LOG_ERR, "write failed: %s while sending %s", strerror(errno), hc->encodedurl);
 		clear_connection(c, tvP);
 		return;
 	}
@@ -1455,16 +1454,16 @@ static void update_throttles(ClientData client_data, struct timeval *nowP)
 		/* Log a warning message if necessary. */
 		if (throttles[tnum].rate > throttles[tnum].max_limit && throttles[tnum].num_sending != 0) {
 			if (throttles[tnum].rate > throttles[tnum].max_limit * 2)
-				syslog(LOG_NOTICE, "throttle #%d '%.80s' rate %ld greatly exceeding limit %ld; %d sending", tnum,
+				syslog(LOG_NOTICE, "throttle #%d '%s' rate %ld greatly exceeding limit %ld; %d sending", tnum,
 				       throttles[tnum].pattern, throttles[tnum].rate, throttles[tnum].max_limit,
 				       throttles[tnum].num_sending);
 			else
-				syslog(LOG_INFO, "throttle #%d '%.80s' rate %ld exceeding limit %ld; %d sending", tnum,
+				syslog(LOG_INFO, "throttle #%d '%s' rate %ld exceeding limit %ld; %d sending", tnum,
 				       throttles[tnum].pattern, throttles[tnum].rate, throttles[tnum].max_limit,
 				       throttles[tnum].num_sending);
 		}
 		if (throttles[tnum].rate < throttles[tnum].min_limit && throttles[tnum].num_sending != 0) {
-			syslog(LOG_NOTICE, "throttle #%d '%.80s' rate %ld lower than minimum %ld; %d sending", tnum,
+			syslog(LOG_NOTICE, "throttle #%d '%s' rate %ld lower than minimum %ld; %d sending", tnum,
 			       throttles[tnum].pattern, throttles[tnum].rate, throttles[tnum].min_limit,
 			       throttles[tnum].num_sending);
 		}
@@ -1573,7 +1572,7 @@ static void idle(ClientData client_data, struct timeval *nowP)
 		switch (c->conn_state) {
 		case CNST_READING:
 			if (nowP->tv_sec - c->active_at >= IDLE_READ_TIMELIMIT) {
-				syslog(LOG_INFO, "%.80s connection timed out reading", httpd_ntoa(&c->hc->client_addr));
+				syslog(LOG_INFO, "%s connection timed out reading", httpd_ntoa(&c->hc->client_addr));
 				httpd_send_err(c->hc, 408, httpd_err408title, "", httpd_err408form, "");
 				finish_connection(c, nowP);
 			}
@@ -1581,7 +1580,7 @@ static void idle(ClientData client_data, struct timeval *nowP)
 		case CNST_SENDING:
 		case CNST_PAUSING:
 			if (nowP->tv_sec - c->active_at >= IDLE_SEND_TIMELIMIT) {
-				syslog(LOG_INFO, "%.80s connection timed out sending", httpd_ntoa(&c->hc->client_addr));
+				syslog(LOG_INFO, "%s connection timed out sending", httpd_ntoa(&c->hc->client_addr));
 				clear_connection(c, nowP);
 			}
 			break;

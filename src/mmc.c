@@ -27,13 +27,13 @@
 
 #include "config.h"
 
-/* System headers */
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <sys/time.h>
 #include <stdlib.h>
 #include <unistd.h>
 #include <stdio.h>
+#include <string.h>
 #include <time.h>
 #include <fcntl.h>
 #include <syslog.h>
@@ -43,7 +43,6 @@
 #include <sys/mman.h>
 #endif				/* HAVE_MMAP */
 
-/* Local headers */
 #include "libhttpd.h"
 #include "mmc.h"
 
@@ -121,7 +120,7 @@ void *mmc_map(char *filename, struct stat *sbP, struct timeval *nowP)
 		sb = *sbP;
 	else {
 		if (stat(filename, &sb) != 0) {
-			syslog(LOG_ERR, "stat - %m");
+			syslog(LOG_ERR, "stat: %s", strerror(errno));
 			return (void *)0;
 		}
 	}
@@ -148,7 +147,7 @@ void *mmc_map(char *filename, struct stat *sbP, struct timeval *nowP)
 	/* Open the file. */
 	fd = open(filename, O_RDONLY);
 	if (fd < 0) {
-		syslog(LOG_ERR, "open - %m");
+		syslog(LOG_ERR, "open: %s", strerror(errno));
 		return (void *)0;
 	}
 
@@ -194,7 +193,7 @@ void *mmc_map(char *filename, struct stat *sbP, struct timeval *nowP)
 			m->addr = mmap(0, size_size, PROT_READ, MAP_PRIVATE, fd, 0);
 		}
 		if (m->addr == (void *)-1) {
-			syslog(LOG_ERR, "mmap - %m");
+			syslog(LOG_ERR, "mmap: %s", strerror(errno));
 			(void)close(fd);
 			free((void *)m);
 			--alloc_count;
@@ -218,7 +217,7 @@ void *mmc_map(char *filename, struct stat *sbP, struct timeval *nowP)
 			return (void *)0;
 		}
 		if (httpd_read_fully(fd, m->addr, size_size) != size_size) {
-			syslog(LOG_ERR, "read - %m");
+			syslog(LOG_ERR, "read: %s", strerror(errno));
 			(void)close(fd);
 			free((void *)m);
 			--alloc_count;
@@ -346,7 +345,7 @@ static void really_unmap(Map **mm)
 	if (m->size != 0) {
 #ifdef HAVE_MMAP
 		if (munmap(m->addr, m->size) < 0)
-			syslog(LOG_ERR, "munmap - %m");
+			syslog(LOG_ERR, "munmap: %s", strerror(errno));
 #else				/* HAVE_MMAP */
 		free((void *)m->addr);
 #endif				/* HAVE_MMAP */
