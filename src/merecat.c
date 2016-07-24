@@ -379,6 +379,7 @@ int main(int argc, char **argv)
 
 		case 'v':
 			do_vhost = 1;
+			break;
 
 		case 'V':
 			return version();
