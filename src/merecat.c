@@ -427,8 +427,7 @@ int main(int argc, char **argv)
 	/* Look up hostname now, in case we chroot(). */
 	lookup_hostname(&sa4, sizeof(sa4), &gotv4, &sa6, sizeof(sa6), &gotv6);
 	if (!(gotv4 || gotv6)) {
-		syslog(LOG_ERR, "can't find any valid address");
-		fprintf(stderr, "%s: can't find any valid address\n", __progname);
+		syslog(LOG_ERR, "cannot find any valid address");
 		exit(1);
 	}
 
@@ -445,8 +444,7 @@ int main(int argc, char **argv)
 	if (getuid() == 0) {
 		pwd = getpwnam(user);
 		if (pwd == (struct passwd *)0) {
-			syslog(LOG_CRIT, "unknown user - '%.80s'", user);
-			(void)fprintf(stderr, "%s: unknown user - '%s'\n",  __progname, user);
+			syslog(LOG_CRIT, "unknown user - '%s'", user);
 			exit(1);
 		}
 		uid = pwd->pw_uid;
@@ -457,7 +455,6 @@ int main(int argc, char **argv)
 	if (dir != (char *)0) {
 		if (chdir(dir) < 0) {
 			syslog(LOG_CRIT, "chdir - %m");
-			perror("chdir");
 			exit(1);
 		}
 	}
@@ -469,7 +466,6 @@ int main(int argc, char **argv)
 		 */
 		if (chdir(pwd->pw_dir) < 0) {
 			syslog(LOG_CRIT, "chdir - %m");
-			perror("chdir");
 			exit(1);
 		}
 	}
@@ -534,7 +530,6 @@ int main(int argc, char **argv)
 	if (do_chroot) {
 		if (chroot(cwd) < 0) {
 			syslog(LOG_CRIT, "chroot - %m");
-			perror("chroot");
 			exit(1);
 		}
 
@@ -542,7 +537,6 @@ int main(int argc, char **argv)
 		/* Always chdir to / after a chroot. */
 		if (chdir(cwd) < 0) {
 			syslog(LOG_CRIT, "chroot chdir - %m");
-			perror("chroot chdir");
 			exit(1);
 		}
 	}
@@ -551,7 +545,6 @@ int main(int argc, char **argv)
 	if (data_dir != (char *)0) {
 		if (chdir(data_dir) < 0) {
 			syslog(LOG_CRIT, "data_dir chdir - %m");
-			perror("data_dir chdir");
 			exit(1);
 		}
 	}
@@ -867,7 +860,6 @@ static void lookup_hostname(httpd_sockaddr *sa4P, size_t sa4_len, int *gotv4P, h
 	(void)snprintf(portstr, sizeof(portstr), "%d", (int)port);
 	if ((gaierr = getaddrinfo(hostname, portstr, &hints, &ai)) != 0) {
 		syslog(LOG_CRIT, "getaddrinfo %.80s - %.80s", hostname, gai_strerror(gaierr));
-		fprintf(stderr, "%s: getaddrinfo %s - %s\n", __progname, hostname, gai_strerror(gaierr));
 		exit(1);
 	}
 
@@ -932,16 +924,14 @@ static void lookup_hostname(httpd_sockaddr *sa4P, size_t sa4_len, int *gotv4P, h
 			if (he == (struct hostent *)0) {
 #ifdef HAVE_HSTRERROR
 				syslog(LOG_CRIT, "gethostbyname %.80s - %.80s", hostname, hstrerror(h_errno));
-				(void)fprintf(stderr, "%s: gethostbyname %s - %s\n", __progname, hostname, hstrerror(h_errno));
-#else				/* HAVE_HSTRERROR */
 				syslog(LOG_CRIT, "gethostbyname %.80s failed", hostname);
-				(void)fprintf(stderr, "%s: gethostbyname %s failed\n", __progname, hostname);
 #endif				/* HAVE_HSTRERROR */
+#else
+#endif
 				exit(1);
 			}
 			if (he->h_addrtype != AF_INET) {
 				syslog(LOG_CRIT, "%.80s - non-IP network address", hostname);
-				(void)fprintf(stderr, "%s: %s - non-IP network address\n", __progname, hostname);
 				exit(1);
 			}
 			(void)memmove(&sa4P->sa_in.sin_addr.s_addr, he->h_addr, he->h_length);
@@ -967,7 +957,6 @@ static void read_throttlefile(char *throttlefile)
 	fp = fopen(throttlefile, "r");
 	if (fp == (FILE *)0) {
 		syslog(LOG_CRIT, "%.80s - %m", throttlefile);
-		perror(throttlefile);
 		exit(1);
 	}
 
@@ -1415,9 +1404,11 @@ static int check_throttles(connecttab *c)
 			/* If we're way over the limit, don't even start. */
 			if (throttles[tnum].rate > throttles[tnum].max_limit * 2)
 				return 0;
+
 			/* Also don't start if we're under the minimum. */
 			if (throttles[tnum].rate < throttles[tnum].min_limit)
 				return 0;
+
 			if (throttles[tnum].num_sending < 0) {
 				syslog(LOG_ERR, "throttle sending count was negative - shouldn't happen!");
 				throttles[tnum].num_sending = 0;
