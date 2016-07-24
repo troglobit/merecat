@@ -19,6 +19,5 @@ src/htpasswd
 src/libmatch.a
 src/merecat
 www/cgi-bin/.deps
-www/cgi-bin/phf
 www/cgi-bin/redirect
 www/cgi-bin/ssi
