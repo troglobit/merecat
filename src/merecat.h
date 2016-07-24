@@ -95,7 +95,7 @@
 
 /* Fallback */
 #ifndef CGI_LIMIT
-#define CGI_LIMIT 0
+#define CGI_LIMIT 1
 #endif
 
 
