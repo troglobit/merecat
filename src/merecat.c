@@ -25,10 +25,8 @@
 ** SUCH DAMAGE.
 */
 
-
 #include "config.h"
 
-/* System headers */
 #include <errno.h>
 #ifdef HAVE_FCNTL_H
 #include <fcntl.h>
@@ -53,9 +51,11 @@
 
 #ifdef HAVE_LIBCONFUSE
 #include <confuse.h>
+#define CONF_FILE_OPT "f:"
+#else
+#define CONF_FILE_OPT ""
 #endif
 
-/* Local headers */
 #include "fdwatch.h"
 #include "libhttpd.h"
 #include "match.h"
@@ -148,7 +148,6 @@ static volatile int got_hup, got_usr1, watchdog_flag;
 extern int pidfile(const char *basename);
 
 /* Forwards. */
-static int  read_config(char *filename);
 static void lookup_hostname(httpd_sockaddr *sa4P, size_t sa4_len, int *gotv4P, httpd_sockaddr *sa6P, size_t sa6_len, int *gotv6P);
 static void read_throttlefile(char *throttlefile);
 static void shut_down(void);
@@ -167,6 +166,9 @@ static void wakeup_connection(ClientData client_data, struct timeval *nowP);
 static void linger_clear_connection(ClientData client_data, struct timeval *nowP);
 static void occasional(ClientData client_data, struct timeval *nowP);
 
+#ifdef HAVE_LIBCONFUSE
+static int  read_config(char *filename);
+#endif
 #ifdef STATS_TIME
 static void show_stats(ClientData client_data, struct timeval *nowP);
 #endif				/* STATS_TIME */
@@ -306,7 +308,9 @@ static int usage(int code)
 	       "\n"
 	       "  -c CGI     CGI pattern to allow, e.g. \"**\", \"*.cgi\", \"/cgi-bin/*\"\n"
 	       "  -d DIR     Optional DIR to change into after chrooting to WEBROOT\n"
+#ifdef HAVE_LIBCONFUSE
 	       "  -f FILE    Configuration file name, default: /etc/merecat.conf\n"
+#endif
 	       "  -g         Use global password file, .htpasswd\n"
 	       "  -h         This help text\n"
 	       "  -n         Run in foreground, do not detach from controlling terminal\n"
@@ -335,7 +339,9 @@ static int version(void)
 int main(int argc, char **argv)
 {
 	int c;
+#ifdef HAVE_LIBCONFUSE
 	char *config = "/etc/merecat.conf";
+#endif
 	struct passwd *pwd;
 	uid_t uid = 32767;
 	gid_t gid = 32767;
@@ -352,12 +358,13 @@ int main(int argc, char **argv)
 
 	openlog(__progname, LOG_NDELAY | LOG_PID, LOG_FACILITY);
 
-	while ((c = getopt(argc, argv, "f:c:d:ghnp:rsu:vV")) != EOF) {
+	while ((c = getopt(argc, argv, CONF_FILE_OPT "c:d:ghnp:rsu:vV")) != EOF) {
 		switch (c) {
+#ifdef HAVE_LIBCONFUSE
 		case 'f':
 			config = optarg;
 			break;
-
+#endif
 		case 'c':
 			cgi_pattern = optarg;
 			break;
@@ -416,10 +423,12 @@ int main(int argc, char **argv)
 	if (optind < argc)
 		hostname = strdup(argv[optind++]);
 
+#ifdef HAVE_LIBCONFUSE
 	if (read_config(config)) {
 		fprintf(stderr, "%s: Failed reading config file '%s': %s\n", __progname, config, strerror(errno));
 		return 1;
 	}
+#endif
 
 	/* Read zone info now, in case we chroot(). */
 	tzset();
@@ -832,11 +841,6 @@ static int read_config(char *filename)
 	max_age = cfg_getint(cfg, "max-age");
 	cfg_free(cfg);
 
-	return 0;
-}
-#else
-static int read_config(char *filename __attribute__ ((unused)))
-{
 	return 0;
 }
 #endif /* HAVE_LIBCONFUSE */
