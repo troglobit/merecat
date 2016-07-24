@@ -98,7 +98,7 @@ root.  The default is "nobody", on some systems "www-data" is preferred.
 The config file option name for this flag is "username".
 .It Fl v
 Do el-cheapo virtual hosting.  The config-file option names for this
-flag is "vhost".
+flag is "virtual-host".
 .TP
 .It Fl V
 Shows the current version info.
@@ -123,6 +123,8 @@ and runtime and merecat will pick up the changes with a restart.
 The syntax of the config file is simple UNIX "option=value" separated by
 whitespace.  The option names are listed below:
 .Bl -tag -width Ds
+.It cgi-limit = NUM
+Maximum number of allowed simultaneous CGI programs.  Default 1.
 .It cgi-pattern = "/cgi-bin/*"
 Specifies a wildcard pattern for CGI programs, for instance "**.cgi" or
 "/cgi-bin/*", the default is to have CGI disbled.  See below CGI section
@@ -130,11 +132,52 @@ for more on this.
 .It charset = "UTF-8"
 Specifies the character set to use with text MIME types.  If the default
 unicode charset causes trouble, try "iso-8859-1".
+.It check-referer = <true | false>
+Enable check for external sites referencing material on your web server.
+For more information on referrers, see below. Disabled by default.
+.It check-symlinks = <true | false>
+For increased security, set this option to true.  Unless running chrooted
+in which case this is not really necessary.  Disabled by default.
+.It chroot = <true | false>
+Change web server root to WEBDIR, or the current directory, if no WEBDIR
+is given as argument.  Chrooting is a security measure and means that
+.Nm
+cannot access files outside it, unless files are bind mounted, or
+similar into the chroot.  Disabled by default.
+.It directory = DIR
+If no WEBDIR is given on the command line this option can be used to
+change the web server document root.  Defaults to the current directory.
+.It data-directory = DIR
+When chrooting this can be used to adjust the web server document root.
+.It global-passwd = <true | false>
+Set this to true to protect the entire directory tree with a
+single .htpasswd file.  When unset, which is the default,
+.Nm
+looks for a local .htpasswd file, or serves the file without password.
+.It hostname = HOSTNAME
+The hostname to bind to when multihoming.  For more details on this, see
+below discussion.
+.It local-pattern = PATTERN
+Used with
+.Nm check-referer ,
+see below for more details.
 .It max-age = SEC
 Specifies the number of seconds to be used in a "Cache-Control: max-age"
 header to be returned with all responses.  An equivalent "Expires"
 header is also generated.  The default is no Cache-Control or Expires
 headers, which is just fine for most sites.
+.It port = PORT
+The web server Internet port to listen to, default 80.
+.It url-pattern = PATTERN
+Used with
+.Nm check-referer ,
+see below for more details.
+.It username = NAME
+Set username to drop privileges to after startup.  Defaults to "nobody"
+which usually is defined on all UNIX systems.
+.It virtual-host = <true | false>
+Enable virtual hosting, disabled by default.  For more information on
+this, see below.
 .El
 .Sh "CHROOT"
 chroot() is a system call that restricts the program's view of the
