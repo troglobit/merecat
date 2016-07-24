@@ -89,7 +89,9 @@ static unsigned char itoa64[] =	/* 0 ... 63 => ascii - 64 */
 
 static void to64(char *s, long v, size_t len)
 {
-	while (--len >= 0) {
+	size_t i;
+
+	for (i = 0; i <= len; i++) {
 		*s++ = itoa64[v & 0x3f];
 		v >>= 6;
 	}
@@ -211,14 +213,13 @@ static void interrupted(int signo)
 
 int main(int argc, char *argv[])
 {
+	int found;
 	FILE *tfp, *f;
 	char user[MAX_STRING_LEN];
 	char pwfilename[MAX_STRING_LEN];
 	char line[MAX_STRING_LEN];
 	char l[MAX_STRING_LEN];
 	char w[MAX_STRING_LEN];
-	char command[MAX_STRING_LEN];
-	int found;
 
 	tfd = -1;
 	signal(SIGINT, interrupted);
