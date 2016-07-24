@@ -1,0 +1,54 @@
+## /etc/merecat.conf                                     -*-conf-unix-*-
+## This is a sample configuration file for Merecat httpd
+## For more help and more settings, see merecat(8)
+##
+
+## what interface to bind to?
+## (default is binding to any interface)
+#hostname=www.example.org
+#port = 80
+
+## Unpriviliged user to run as, usually nobody or www-data
+#username = www-data
+
+## CGI:
+##	?	match a single char
+##	*	matches any string excluding "/"
+##	**	matches any string including "/"
+##	separate multiple patterns with "|"
+#cgi-pattern = **.sh|**.cgi
+#cgi-pattern = /cgi-bin/*
+#cgi-limit = 5
+
+## Global .htpasswd (true) or local per-directory (false)
+#global-passwd = true
+
+## Chrooting is a security measure which means isolating the webserver's
+## access to files only available from a the given directory.  To access
+## files outside the chroot the administrator can either copy or bind
+## mount files and directories into the chroot.
+#chroot = true
+
+## Only useful if not chrooting
+#check-symlinks = true
+
+## Alt. charset=iso-8859-1
+#charset = UTF-8
+
+## Webserver document root, or chroot
+#directory = /var/www
+
+## When chrooting, alt. document root inside chroot
+## => /var/www/htdocs
+#data-directory = /htdocs
+
+## Virtual hosting
+## /var/www/cgi-bin/          <-- Shared CGI
+## /var/www/git.example.com   <-- git.example.com
+## /var/www/ftp.example.com   <-- ftp.example.com
+#virtual-host = true
+
+## control the caching: (in secs)
+## Max max-age value 31536000 (1 year)
+## cache-control: send this "max-age" in all HTTP-responses
+#max-age = 0
