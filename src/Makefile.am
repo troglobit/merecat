@@ -11,7 +11,7 @@ merecat_SOURCES     = merecat.c		merecat.h	\
 		      tdate_parse.c	tdate_parse.h	\
 		      mime_encodings.h	mime_types.h
 merecat_CFLAGS      = -W -Wall -Wextra -Wno-unused-result -Wno-unused-parameter
-merecat_CFLAGS     += $(confuse_CFLAGS)
+merecat_CFLAGS     += -std=gnu99 $(confuse_CFLAGS)
 merecat_CPPFLAGS    = -D_POSIX_SOURCE -D_BSD_SOURCE -D_GNU_SOURCE
 merecat_LDADD       = libmatch.a $(confuse_LIBS)
 
