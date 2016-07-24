@@ -68,12 +68,11 @@
 /* Local headers */
 #include "merecat.h"
 
-static void
-internal_error( char* reason )
-    {
-    char* title = "500 Internal Error";
+static void internal_error(char *reason)
+{
+	char *title = "500 Internal Error";
 
-    (void) printf( "\
+	(void)printf("\
 Status: %s\n\
 Content-type: text/html\n\
 \n\
@@ -83,16 +82,15 @@ Something unusual went wrong during a redirection request:\n\
 <BLOCKQUOTE>\n\
 %s\n\
 </BLOCKQUOTE>\n\
-</BODY></HTML>\n", title, title, title, reason );
-    }
+</BODY></HTML>\n", title, title, title, reason);
+}
 
 
-static void
-not_found( char* script_name )
-    {
-    char* title = "404 Not Found";
+static void not_found(char *script_name)
+{
+	char *title = "404 Not Found";
 
-    (void) printf( "\
+	(void)printf("\
 Status: %s\n\
 Content-type: text/html\n\
 \n\
@@ -100,16 +98,15 @@ Content-type: text/html\n\
 <BODY><H2>%s</H2>\n\
 The requested filename, %s, is set up to be redirected to another URL;\n\
 however, the new URL has not yet been specified.\n\
-</BODY></HTML>\n", title, title, title, script_name );
-    }
+</BODY></HTML>\n", title, title, title, script_name);
+}
 
 
-static void
-moved( char* script_name, char* url )
-    {
-    char* title = "Moved";
+static void moved(char *script_name, char *url)
+{
+	char *title = "Moved";
 
-    (void) printf( "\
+	(void)printf("\
 Location: %s\n\
 Content-type: text/html\n\
 \n\
@@ -117,96 +114,85 @@ Content-type: text/html\n\
 <BODY><H2>%s</H2>\n\
 The requested filename, %s, has moved to a new URL:\n\
 <A HREF=\"%s\">%s</A>.\n\
-</BODY></HTML>\n", url, title, title, script_name, url, url );
-    }
-	
+</BODY></HTML>\n", url, title, title, script_name, url, url);
+}
 
-int
-main( int argc, char** argv )
-    {
-    char* script_name;
-    char* path_info;
-    char* cp;
-    FILE* fp;
-    char *star;
-    char buf[5000], file[5000], url[5000];
 
-    /* Get the name that we were run as, which is the filename being
-    ** redirected.
-    */
-    script_name = getenv( "SCRIPT_NAME" );
-    if ( script_name == (char*) 0 )
-	{
-	internal_error( "Couldn't get SCRIPT_NAME environment variable." );
-	exit( 1 );
+int main(int argc, char **argv)
+{
+	char *script_name;
+	char *path_info;
+	char *cp;
+	FILE *fp;
+	char *star;
+	char buf[5000], file[5000], url[5000];
+
+	/* Get the name that we were run as, which is the filename being
+	 ** redirected.
+	 */
+	script_name = getenv("SCRIPT_NAME");
+	if (script_name == (char *)0) {
+		internal_error("Couldn't get SCRIPT_NAME environment variable.");
+		exit(1);
 	}
 
-    /* Append the PATH_INFO, if any.  This allows redirection of whole
-    ** directories.
-    */
-    path_info = getenv( "PATH_INFO" );
-    if ( path_info != (char*) 0 )
-	{
-	cp = (char*) malloc( strlen( script_name ) + strlen( path_info ) + 1 );
-	if ( cp == (char*) 0 )
-	    {
-	    internal_error( "Out of memory." );
-	    exit( 1 );
-	    }
-	(void) sprintf( cp, "%s%s", script_name, path_info );
-	script_name = cp;
-	}
-
-    /* Open the redirects file. */
-    fp = fopen( ".redirects", "r" );
-    if ( fp == (FILE*) 0 )
-	{
-	internal_error( "Couldn't open .redirects file." );
-	exit( 1 );
-	}
-
-    /* Search the file for a matching entry. */
-    while ( fgets( buf, sizeof(buf), fp ) != (char*) 0 )
-	{
-	/* Remove comments. */
-	cp = strchr( buf, '#' );
-	if ( cp != (char*) 0 )
-	    *cp = '\0';
-	/* Skip leading whitespace. */
-	cp = buf;
-	cp += strspn( cp, " \t" );
-	/* Check for blank line. */
-	if ( *cp != '\0' )
-	    {
-	    /* Parse line. */
-	    if ( sscanf( cp, "%[^ \t\n] %[^ \t\n]", file, url ) == 2 )
-		{
-		/* Check for wildcard match. */
-		star = strchr( file, '*' );
-		if ( star != (char*) 0 )
-		    {
-		    /* Check for leading match. */
-		    if ( strncmp( file, script_name, star - file ) == 0 )
-			{
-			/* Got it; put together the full name. */
-			strcat( url, script_name + ( star - file ) );
-			/* XXX Whack the script_name, too? */
-			moved( script_name, url );
-			exit( 0 );
-			}
-		    }
-		/* Check for exact match. */
-		if ( strcmp( file, script_name ) == 0 )
-		    {
-		    /* Got it. */
-		    moved( script_name, url );
-		    exit( 0 );
-		    }
+	/* Append the PATH_INFO, if any.  This allows redirection of whole
+	 ** directories.
+	 */
+	path_info = getenv("PATH_INFO");
+	if (path_info != (char *)0) {
+		cp = (char *)malloc(strlen(script_name) + strlen(path_info) + 1);
+		if (cp == (char *)0) {
+			internal_error("Out of memory.");
+			exit(1);
 		}
-	    }
+		(void)sprintf(cp, "%s%s", script_name, path_info);
+		script_name = cp;
 	}
 
-    /* No match found. */
-    not_found( script_name );
-    exit( 1 );
-    }
+	/* Open the redirects file. */
+	fp = fopen(".redirects", "r");
+	if (fp == (FILE *)0) {
+		internal_error("Couldn't open .redirects file.");
+		exit(1);
+	}
+
+	/* Search the file for a matching entry. */
+	while (fgets(buf, sizeof(buf), fp) != (char *)0) {
+		/* Remove comments. */
+		cp = strchr(buf, '#');
+		if (cp != (char *)0)
+			*cp = '\0';
+		/* Skip leading whitespace. */
+		cp = buf;
+		cp += strspn(cp, " \t");
+		/* Check for blank line. */
+		if (*cp != '\0') {
+			/* Parse line. */
+			if (sscanf(cp, "%[^ \t\n] %[^ \t\n]", file, url) == 2) {
+				/* Check for wildcard match. */
+				star = strchr(file, '*');
+				if (star != (char *)0) {
+					/* Check for leading match. */
+					if (strncmp(file, script_name, star - file) == 0) {
+						/* Got it; put together the full name. */
+						strcat(url, script_name + (star - file));
+						/* XXX Whack the script_name, too? */
+						moved(script_name, url);
+						exit(0);
+					}
+				}
+				/* Check for exact match. */
+				if (strcmp(file, script_name) == 0) {
+					/* Got it. */
+					moved(script_name, url);
+					exit(0);
+				}
+			}
+		}
+	}
+
+	/* No match found. */
+	not_found(script_name);
+	exit(1);
+}
