@@ -34,11 +34,12 @@
 .Nm merecat
 .Op Fl ghnrsvV
 .Op Fl c Ar CGI
-.Op Fl f Ar FILE
-.Op Fl p Ar PORT
 .Op Fl d Ar PATH
-.Op Fl u Ar USER
+.Op Fl f Ar FILE
+.Op Fl l Ar LEVEL
+.Op Fl p Ar PORT
 .Op Fl t Ar FILE
+.Op Fl u Ar USER
 .Op Ar WEBDIR
 .Op Ar HOSTNAME
 .Sh DESCRIPTION
@@ -72,6 +73,10 @@ directory, then merecat proceeds as if the option was not set - first
 looking for a local .htpasswd file, and if that doesn't exist either
 then serving the file without any password.  The config file option
 for this flag is 'global-passwd = <true | false>'.
+.It Fl l Ar LEVEL
+Set log level: none, err, info,
+.Ar notice ,
+debug
 .It Fl n
 Runs merecat in the foreground like a regular program.  This is
 necessary when running in a process monitor like Finit or systemd.

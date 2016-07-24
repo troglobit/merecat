@@ -40,8 +40,10 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <syslog.h>
 #include <unistd.h>
+
+#define SYSLOG_NAMES
+#include <syslog.h>
 
 #include <sys/param.h>
 #include <sys/types.h>
@@ -74,7 +76,8 @@
 
 extern char *__progname;
 
-static int   debug             = 0;
+static int   background        = 0;
+static int   loglevel          = LOG_NOTICE;
 static unsigned short port     = DEFAULT_PORT;
 static char *dir               = NULL;
 static char *data_dir          = NULL;;
@@ -301,6 +304,16 @@ static void handle_alrm(int signo)
 	errno = oerrno;
 }
 
+static int loglvl(char *level)
+{
+	for (int i = 0; prioritynames[i].c_name; i++) {
+		if (!strcmp(prioritynames[i].c_name, level))
+			return prioritynames[i].c_val;
+	}
+
+	return atoi(level);
+}
+
 static int usage(int code)
 {
 	printf("\n"
@@ -313,6 +326,7 @@ static int usage(int code)
 #endif
 	       "  -g         Use global password file, .htpasswd\n"
 	       "  -h         This help text\n"
+		" -l LEVEL   Set log level: none, err, info, notice*, debug\n"
 	       "  -n         Run in foreground, do not detach from controlling terminal\n"
 	       "  -p PORT    Port to listen to, default 80\n"
 	       "  -r         Chroot into WEBROOT\n"
@@ -339,6 +353,7 @@ static int version(void)
 int main(int argc, char **argv)
 {
 	int c;
+	int log_opts = LOG_PID | LOG_CONS | LOG_NDELAY;
 #ifdef HAVE_LIBCONFUSE
 	char *config = "/etc/merecat.conf";
 #endif
@@ -356,9 +371,7 @@ int main(int argc, char **argv)
 	struct timeval tv;
 	struct sigaction sa;
 
-	openlog(__progname, LOG_NDELAY | LOG_PID, LOG_FACILITY);
-
-	while ((c = getopt(argc, argv, CONF_FILE_OPT "c:d:ghnp:rsu:vV")) != EOF) {
+	while ((c = getopt(argc, argv, CONF_FILE_OPT "c:d:ghl:np:rsu:vV")) != EOF) {
 		switch (c) {
 #ifdef HAVE_LIBCONFUSE
 		case 'f':
@@ -380,8 +393,14 @@ int main(int argc, char **argv)
 		case 'h':
 			return usage(0);
 
+		case 'l':
+			loglevel = loglvl(optarg);
+			if (-1 == loglevel)
+				return usage(1);
+			break;
+
 		case 'n':
-			debug = 1;
+			background = 0;
 			break;
 
 		case 'p':
@@ -422,6 +441,9 @@ int main(int argc, char **argv)
 
 	if (optind < argc)
 		hostname = strdup(argv[optind++]);
+
+	openlog(__progname, log_opts, LOG_FACILITY);
+	setlogmask(LOG_UPTO(loglevel));
 
 #ifdef HAVE_LIBCONFUSE
 	if (read_config(config)) {
@@ -485,7 +507,7 @@ int main(int argc, char **argv)
 	if (cwd[strlen(cwd) - 1] != '/')
 		(void)strcat(cwd, "/");
 
-	if (!debug) {
+	if (background) {
 		/* We're not going to use stdin stdout or stderr from here on, so close
 		 ** them to save file descriptors.
 		 */
