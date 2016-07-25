@@ -76,7 +76,7 @@
 
 extern char *__progname;
 
-static int   background        = 0;
+static int   background        = 1;
 static int   loglevel          = LOG_NOTICE;
 static unsigned short port     = DEFAULT_PORT;
 static char *dir               = NULL;
