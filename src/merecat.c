@@ -214,7 +214,7 @@ static void handle_chld(int signo)
 			 ** but with some kernels it does anyway.  Ignore it.
 			 */
 			if (errno != ECHILD)
-				syslog(LOG_ERR, "child wait - %s", strerror(errno));
+				syslog(LOG_ERR, "child wait: %s", strerror(errno));
 			break;
 		}
 		/* Decrement the CGI count.  Note that this is not accurate, since
@@ -485,7 +485,7 @@ int main(int argc, char **argv)
 	/* Switch directories if requested. */
 	if (dir != (char *)0) {
 		if (chdir(dir) < 0) {
-			syslog(LOG_CRIT, "chdir - %s", strerror(errno));
+			syslog(LOG_CRIT, "chdir: %s", strerror(errno));
 			exit(1);
 		}
 	}
@@ -496,7 +496,7 @@ int main(int argc, char **argv)
 		 ** home dir.
 		 */
 		if (chdir(pwd->pw_dir) < 0) {
-			syslog(LOG_CRIT, "chdir - %s", strerror(errno));
+			syslog(LOG_CRIT, "chdir: %s", strerror(errno));
 			exit(1);
 		}
 	}
@@ -518,7 +518,7 @@ int main(int argc, char **argv)
 		/* Daemonize - make ourselves a subprocess. */
 #ifdef HAVE_DAEMON
 		if (daemon(1, 1) < 0) {
-			syslog(LOG_CRIT, "daemon - %s", strerror(errno));
+			syslog(LOG_CRIT, "daemon: %s", strerror(errno));
 			exit(1);
 		}
 #else				/* HAVE_DAEMON */
@@ -526,7 +526,7 @@ int main(int argc, char **argv)
 		case 0:
 			break;
 		case -1:
-			syslog(LOG_CRIT, "fork - %s", strerror(errno));
+			syslog(LOG_CRIT, "fork: %s", strerror(errno));
 			exit(1);
 		default:
 			exit(0);
@@ -560,14 +560,14 @@ int main(int argc, char **argv)
 	/* Chroot if requested. */
 	if (do_chroot) {
 		if (chroot(cwd) < 0) {
-			syslog(LOG_CRIT, "chroot - %s", strerror(errno));
+			syslog(LOG_CRIT, "chroot: %s", strerror(errno));
 			exit(1);
 		}
 
 		(void)strcpy(cwd, "/");
 		/* Always chdir to / after a chroot. */
 		if (chdir(cwd) < 0) {
-			syslog(LOG_CRIT, "chroot chdir - %s", strerror(errno));
+			syslog(LOG_CRIT, "chroot chdir: %s", strerror(errno));
 			exit(1);
 		}
 	}
@@ -575,7 +575,7 @@ int main(int argc, char **argv)
 	/* Switch directories again if requested. */
 	if (data_dir != (char *)0) {
 		if (chdir(data_dir) < 0) {
-			syslog(LOG_CRIT, "data_dir chdir - %s", strerror(errno));
+			syslog(LOG_CRIT, "data_dir chdir: %s", strerror(errno));
 			exit(1);
 		}
 	}
@@ -641,24 +641,24 @@ int main(int argc, char **argv)
 	if (getuid() == 0) {
 		/* Set aux groups to null. */
 		if (setgroups(0, (const gid_t *)0) < 0) {
-			syslog(LOG_CRIT, "setgroups - %s", strerror(errno));
+			syslog(LOG_CRIT, "setgroups: %s", strerror(errno));
 			exit(1);
 		}
 		/* Set primary group. */
 		if (setgid(gid) < 0) {
-			syslog(LOG_CRIT, "setgid - %s", strerror(errno));
+			syslog(LOG_CRIT, "setgid: %s", strerror(errno));
 			exit(1);
 		}
 		/* Try setting aux groups correctly - not critical if this fails. */
 		if (initgroups(user, gid) < 0)
-			syslog(LOG_WARNING, "initgroups - %s", strerror(errno));
+			syslog(LOG_WARNING, "initgroups: %s", strerror(errno));
 #ifdef HAVE_SETLOGIN
 		/* Set login name. */
 		(void)setlogin(user);
 #endif				/* HAVE_SETLOGIN */
 		/* Set uid. */
 		if (setuid(uid) < 0) {
-			syslog(LOG_CRIT, "setuid - %s", strerror(errno));
+			syslog(LOG_CRIT, "setuid: %s", strerror(errno));
 			exit(1);
 		}
 		/* Check for unnecessary security exposure. */
@@ -702,7 +702,7 @@ int main(int argc, char **argv)
 		if (num_ready < 0) {
 			if (errno == EINTR || errno == EAGAIN)
 				continue;	/* try again */
-			syslog(LOG_ERR, "fdwatch - %s", strerror(errno));
+			syslog(LOG_ERR, "fdwatch: %s", strerror(errno));
 			exit(1);
 		}
 		tmr_prepare_timeval(&tv);
@@ -885,7 +885,7 @@ static void lookup_hostname(httpd_sockaddr *sa4P, size_t sa4_len, int *gotv4P, h
 	hints.ai_socktype = SOCK_STREAM;
 	(void)snprintf(portstr, sizeof(portstr), "%d", (int)port);
 	if ((gaierr = getaddrinfo(hostname, portstr, &hints, &ai)) != 0) {
-		syslog(LOG_CRIT, "getaddrinfo %s - %s", hostname, gai_strerror(gaierr));
+		syslog(LOG_CRIT, "getaddrinfo %s: %s", hostname, gai_strerror(gaierr));
 		exit(1);
 	}
 
@@ -949,7 +949,7 @@ static void lookup_hostname(httpd_sockaddr *sa4P, size_t sa4_len, int *gotv4P, h
 			he = gethostbyname(hostname);
 			if (he == (struct hostent *)0) {
 #ifdef HAVE_HSTRERROR
-				syslog(LOG_CRIT, "gethostbyname %s - %s", hostname, hstrerror(h_errno));
+				syslog(LOG_CRIT, "gethostbyname %s: %s", hostname, hstrerror(h_errno));
 #else
 				syslog(LOG_CRIT, "gethostbyname %s failed", hostname);
 #endif
@@ -1007,7 +1007,7 @@ static void read_throttlefile(char *throttlefile)
 		} else if (sscanf(buf, " %4900[^ \t] %ld", pattern, &max_limit) == 2)
 			min_limit = 0;
 		else {
-			syslog(LOG_ERR, "unparsable line in %s - %s", throttlefile, buf);
+			syslog(LOG_ERR, "unparsable line in %s: %s", throttlefile, buf);
 			continue;
 		}
 
