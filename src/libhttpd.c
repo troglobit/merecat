@@ -510,6 +510,36 @@ static void add_response(httpd_conn *hc, char *str)
 	hc->responselen += len;
 }
 
+/* Merecat default style */
+const char *httpd_css_default(void)
+{
+	const char *style = "  <style type=\"text/css\">\n"
+		"    body { background-color:#f2f1f0; font-family: sans-serif;}\n"
+		"    h2 { border-bottom: 1px solid #f2f1f0; font-weight: normal;}"
+		"    address { border-top: 1px solid #f2f1f0; margin-top: 1em; color:#c8c5c2; }"
+		"    table { table-layout: fixed; border-collapse: collapse;}\n"
+		"    table tr:hover { background-color:#f2f1f0;}\n"
+		"    table tr td { text-align: left; padding: 0 5px 0 0px; }\n"
+		"    table tr th { text-align: left; padding: 0 5px 0 0px; }\n"
+		"    table tr td.icon  { text-align: center; }\n"
+		"    table tr th.icon  { text-align: center; }\n"
+		"    table tr td.right { text-align: right; }\n"
+		"    table tr th.right { text-align: right; }\n"
+		"    .right { padding-right: 20px; }\n"
+		"    #wrapper {\n"
+		"     background-color:white; width:1024px;\n"
+		"     padding:1.5em; margin:4em auto; position:absolute;\n"
+		"     top:0; left:0; right:0;\n"
+		"     border-radius: 10px; border: 1px solid #c8c5c2;\n"
+		"    }\n"
+		"    #table {\n"
+		"     padding: 0em; margin: 0em auto; overflow: auto;\n"
+		"    }\n"
+		"  </style>\n";
+
+	return style;
+}
+
 /* Send the buffered response. */
 void httpd_write_response(httpd_conn *hc)
 {
@@ -692,13 +722,19 @@ static void send_response(httpd_conn *hc, int status, char *title, char *extrahe
 	char defanged_arg[1000], buf[2000];
 
 	send_mime(hc, status, title, "", extraheads, "text/html; charset=%s", (off_t) - 1, (time_t)0);
-	my_snprintf(buf, sizeof(buf),
+	my_snprintf(buf, sizeof(buf), "<!DOCTYPE html>\n"
 		    "<html>\n"
 		    " <head>\n"
 		    "  <title>%d %s</title>\n"
+		    "%s"
 		    " </head>\n"
 		    " <body>\n"
-		    "<h1>%d %s</h1>\n", status, title, status, title);
+		    "<div id=\"wrapper\" tabindex=\"-1\">\n"
+		    "<h2>%d %s</h2>\n"
+		    "<p>\n",
+		    status, title,
+		    httpd_css_default(),
+		    status, title);
 	add_response(hc, buf);
 	defang(arg, defanged_arg, sizeof(defanged_arg));
 	my_snprintf(buf, sizeof(buf), form, defanged_arg);
@@ -734,8 +770,9 @@ static void send_response_tail(httpd_conn *hc)
 	char buf[1000];
 
 	my_snprintf(buf, sizeof(buf),
-		    " <hr>\n"
+		    "</p>\n"
 		    " <address>%s server at %s port %d</address>\n"
+		    "</div>\n"
 		    "</body>\n"
 		    "</html>\n", EXPOSED_SERVER_SOFTWARE, get_hostname(hc), (int)hc->hs->port);
 	add_response(hc, buf);
@@ -773,7 +810,6 @@ static void defang(char *str, char *dfstr, int dfsize)
 void httpd_send_err(httpd_conn *hc, int status, char *title, char *extraheads, char *form, char *arg)
 {
 #ifdef ERR_DIR
-
 	char filename[1000];
 
 	/* Try virtual host error page. */
@@ -791,11 +827,9 @@ void httpd_send_err(httpd_conn *hc, int status, char *title, char *extraheads, c
 	/* Fall back on built-in error page. */
 	send_response(hc, status, title, extraheads, form, arg);
 
-#else				/* ERR_DIR */
-
+#else
 	send_response(hc, status, title, extraheads, form, arg);
-
-#endif				/* ERR_DIR */
+#endif
 }
 
 
@@ -2519,34 +2553,12 @@ static int ls(httpd_conn *hc)
 				exit(1);
 			}
 
-			fprintf(fp, "<!DOCTYPE html>"
+			fprintf(fp, "<!DOCTYPE html>\n"
 				"<html>\n"
 				" <head>\n"
 				"  <title>Index of http://%s%s</title>\n"
 				"  <script type=\"text/javascript\">window.onload = function() { document.getElementById('table').focus();} </script>\n"
-				"  <style type=\"text/css\">\n"
-				"    body { background-color:#f2f1f0; font-family: sans-serif;}\n"
-				"    h2 { border-bottom: 1px solid #f2f1f0; font-weight: normal;}"
-				"    address { border-top: 1px solid #f2f1f0; margin-top: 1em; }"
-				"    table { table-layout: fixed; border-collapse: collapse;}\n"
-				"    table tr:hover { background-color:#f2f1f0;}\n"
-				"    table tr td { text-align: left; padding: 0 5px 0 0px; }\n"
-				"    table tr th { text-align: left; padding: 0 5px 0 0px; }\n"
-				"    table tr td.icon  { text-align: center; }\n"
-				"    table tr th.icon  { text-align: center; }\n"
-				"    table tr td.right { text-align: right; }\n"
-				"    table tr th.right { text-align: right; }\n"
-				"    .right { padding-right: 20px; }\n"
-				"    #wrapper {\n"
-				"     background-color:white; width:1024px;\n"
-				"     padding:2em; margin:4em auto; position:absolute;\n"
-				"     top:0; left:0; right:0;\n"
-				"     border-radius: 10px; border: 1px solid #c8c5c2;\n"
-				"    }\n"
-				"    #table {\n"
-				"     padding: 0em; margin: 0em auto; overflow: auto;\n"
-				"    }\n"
-				"  </style>\n"
+				"%s"
 				" </head>\n"
 				" <body>\n"
 				"<div id=\"wrapper\" tabindex=\"-1\">\n"
@@ -2560,7 +2572,9 @@ static int ls(httpd_conn *hc)
 				"  <th class=\"right\" style=\"width: 3em;\">Size</th>\n"
 				"  <th style=\"width: 7em;\">Last modified</th>\n"
 				" </tr>\n",
-				get_hostname(hc), hc->encodedurl, get_hostname(hc), hc->encodedurl);
+				get_hostname(hc), hc->encodedurl,
+				httpd_css_default(),
+				get_hostname(hc), hc->encodedurl);
 
 			/* Read in names. */
 			nnames = 0;
