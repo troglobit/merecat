@@ -326,11 +326,11 @@ static int usage(int code)
 #endif
 	       "  -g         Use global password file, .htpasswd\n"
 	       "  -h         This help text\n"
-		" -l LEVEL   Set log level: none, err, info, notice*, debug\n"
+	       "  -l LEVEL   Set log level: none, err, info, notice*, debug\n"
 	       "  -n         Run in foreground, do not detach from controlling terminal\n"
 	       "  -p PORT    Port to listen to, default 80\n"
 	       "  -r         Chroot into WEBROOT\n"
-	       "  -s         Check symlinks so they don't point outside chroot\n"
+	       "  -s         Check symlinks so they don't point outside WEBROOT\n"
 	       "  -t FILE    Throttle file\n"
 	       "  -u USER    Username to drop to, default: nobody\n"
 	       "  -v         Enable virtual hosting with WEBROOT as base\n"
