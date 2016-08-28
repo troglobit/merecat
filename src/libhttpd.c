@@ -771,7 +771,7 @@ static void send_response_tail(httpd_conn *hc)
 
 	my_snprintf(buf, sizeof(buf),
 		    "</p>\n"
-		    " <address>%s server at %s port %d</address>\n"
+		    " <address>%s httpd at %s port %d</address>\n"
 		    "</div>\n"
 		    "</body>\n"
 		    "</html>\n", EXPOSED_SERVER_SOFTWARE, get_hostname(hc), (int)hc->hs->port);
@@ -2672,7 +2672,7 @@ static int ls(httpd_conn *hc)
 			}
 
 			fprintf(fp, " </table></div>\n");
-			fprintf(fp, " <address>%s server at %s port %d</address>\n", EXPOSED_SERVER_SOFTWARE, get_hostname(hc), (int)hc->hs->port);
+			fprintf(fp, " <address>%s httpd at %s port %d</address>\n", EXPOSED_SERVER_SOFTWARE, get_hostname(hc), (int)hc->hs->port);
 			fprintf(fp, "</div></body>\n</html>\n");
 			fclose(fp);
 			exit(0);
