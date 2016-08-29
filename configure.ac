@@ -64,6 +64,7 @@ AC_CONFIG_FILES([Makefile
                  man/Makefile
                  scripts/Makefile
                  www/Makefile
-                 www/cgi-bin/Makefile])
+                 www/cgi-bin/Makefile
+                 www/icons/Makefile])
 
 AC_OUTPUT
