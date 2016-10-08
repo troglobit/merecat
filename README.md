@@ -35,6 +35,13 @@ If you build from GIT sources and not a released tarball, then remember:
 
     ./autogen.sh
 
+To install `httpd` into `/usr/sbin/`, default index and icons into
+`/var/www`, and config file to `/etc/merecat.conf`:
+
+    ./configure --prefix=/usr --localstatedir=/var --sysconfdir=/etc
+    make
+    sudo make install
+
 
 Origin & References
 -------------------
