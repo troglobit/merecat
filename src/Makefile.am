@@ -13,6 +13,7 @@ merecat_SOURCES     = merecat.c		merecat.h	\
 merecat_CFLAGS      = -W -Wall -Wextra -Wno-unused-result -Wno-unused-parameter
 merecat_CFLAGS     += -std=gnu99 $(confuse_CFLAGS)
 merecat_CPPFLAGS    = -D_POSIX_SOURCE -D_BSD_SOURCE -D_GNU_SOURCE
+merecat_CPPFLAGS   += -DCONFDIR='"$(sysconfdir)"'
 merecat_LDADD       = libmatch.a $(confuse_LIBS)
 
 htpasswd_CFLAGS      = -W -Wall -Wextra -Wno-unused-result -Wno-unused-parameter

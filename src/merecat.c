@@ -322,7 +322,7 @@ static int usage(int code)
 	       "  -c CGI     CGI pattern to allow, e.g. \"**\", \"*.cgi\", \"/cgi-bin/*\"\n"
 	       "  -d DIR     Optional DIR to change into after chrooting to WEBROOT\n"
 #ifdef HAVE_LIBCONFUSE
-	       "  -f FILE    Configuration file name, default: /etc/merecat.conf\n"
+	       "  -f FILE    Configuration file name, default: " CONFDIR "/merecat.conf\n"
 #endif
 	       "  -g         Use global password file, .htpasswd\n"
 	       "  -h         This help text\n"
@@ -355,7 +355,7 @@ int main(int argc, char **argv)
 	int c;
 	int log_opts = LOG_PID | LOG_CONS | LOG_NDELAY;
 #ifdef HAVE_LIBCONFUSE
-	char *config = "/etc/merecat.conf";
+	char *config = CONFDIR "/merecat.conf";
 #endif
 	struct passwd *pwd;
 	uid_t uid = 32767;
