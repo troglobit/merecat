@@ -27,6 +27,10 @@ the Merecat `configure` script:
 
     PKG_CONFIG_LIBDIR=/usr/local/lib/pkgconfig ./configure
 
+To build Merecat without support for `/etc/merecat.conf`:
+
+    ./configure --without-config
+
 If you build from GIT sources and not a released tarball, then remember:
 
     ./autogen.sh

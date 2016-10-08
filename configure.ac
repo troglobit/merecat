@@ -18,8 +18,9 @@ AC_CHECK_LIB(crypt, crypt)
 AC_CHECK_LIB(rt, clock_gettime)
 AC_CHECK_LIB(resolv, hstrerror)
 
-AC_ARG_WITH(config,
-        AS_HELP_STRING([--with-config], [Enable /etc/merecat.conf support using libConfuse]))
+AC_ARG_WITH([config],
+        AS_HELP_STRING([--without-config], [Disable /etc/merecat.conf support using libConfuse]),
+	[], [with_config=yes])
 
 AS_IF([test "x$with_config" != "xno"],[
 	PKG_CHECK_MODULES([confuse], [libconfuse >= 2.7])
