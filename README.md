@@ -17,6 +17,21 @@ For questions see the included man page or the [FAQ][].
 Merecat is released under the [simplified 2-clause BSD license][license].
 
 
+Build Requirements
+------------------
+
+Merecat depends on [libConfuse](https://github.com/martinh/libconfuse/)
+which by default installs to `/usr/local`.  Non Debian/Ubuntu systems
+rarely support this GNU standard, so this is how you reference it for
+the Merecat `configure` script:
+
+    PKG_CONFIG_LIBDIR=/usr/local/lib/pkgconfig ./configure
+
+If you build from GIT sources and not a released tarball, then remember:
+
+    ./autogen.sh
+
+
 Origin & References
 -------------------
 
