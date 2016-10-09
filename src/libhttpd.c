@@ -2464,7 +2464,7 @@ static char *humane_size(struct stat *st)
 		i++;
 	}
 
-	snprintf(str, sizeof(str), "  %zu%s", bytes, mult[i]);
+	snprintf(str, sizeof(str), "  %ld%s", (long int)bytes, mult[i]);
 
 	return str;
 }

@@ -480,7 +480,7 @@ static unsigned int hash(ino_t ino, dev_t dev, off_t size, time_t ctime)
 void mmc_logstats(long secs)
 {
 	syslog(LOG_INFO, "  map cache - %d allocated, %d active (%ld bytes), %d free; hash size: %d; expire age: %ld",
-	       alloc_count, map_count, (int64_t) mapped_bytes, free_count, hash_size, expire_age);
+	       alloc_count, map_count, (long int)mapped_bytes, free_count, hash_size, expire_age);
 	if (map_count + free_count != alloc_count)
 		syslog(LOG_ERR, "map counts don't add up!");
 }

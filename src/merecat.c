@@ -1687,7 +1687,7 @@ static void thttpd_logstats(long secs)
 		syslog(LOG_INFO,
 		       "  %s - %ld connections (%g/sec), %d max simultaneous, %ld bytes (%g/sec), %d httpd_conns allocated",
 		       PACKAGE_NAME, stats_connections, (float)stats_connections / secs,
-		       stats_simultaneous, (int64_t) stats_bytes, (float)stats_bytes / secs, httpd_conn_count);
+		       stats_simultaneous, (long int)stats_bytes, (float)stats_bytes / secs, httpd_conn_count);
 	stats_connections = 0;
 	stats_bytes = 0;
 	stats_simultaneous = 0;
