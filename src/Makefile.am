@@ -25,10 +25,10 @@ libmatch_a_SOURCES  = match.c match.h
 
 # Hook in install merecat --> in.httpd, httpd symlinks
 install-exec-hook:
-	@for file in $(SYMLINK); do				\
-		link=$(DESTDIR)$(sbindir)/$$file;		\
-		test `readlink $$link` = merecat && continue;	\
-		$(LN_S) merecat $$link;				\
+	@for file in $(SYMLINK); do					\
+		link=$(DESTDIR)$(sbindir)/$$file;			\
+		[ "`readlink $$link`" = "merecat" ] && continue;	\
+		$(LN_S) merecat $$link;					\
 	done
 
 uninstall-hook:
