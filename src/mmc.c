@@ -216,7 +216,7 @@ void *mmc_map(char *filename, struct stat *sbP, struct timeval *nowP)
 			--alloc_count;
 			return (void *)0;
 		}
-		if (httpd_read_fully(fd, m->addr, size_size) != size_size) {
+		if (httpd_read_fully(fd, m->addr, size_size) != m->size) {
 			syslog(LOG_ERR, "read: %s", strerror(errno));
 			(void)close(fd);
 			free((void *)m);
