@@ -2477,13 +2477,11 @@ char **b;
 	return strcmp(*a, *b);
 }
 
-/* Forked child process from ls() */
-static int child_ls(httpd_conn *hc, DIR *dirp)
+static int child_ls_read_names(httpd_conn *hc, DIR *dirp, FILE *fp, int onlydir)
 {
-	int nnames;
-	int namlen;
-	struct dirent *de;
+	int i, namlen, nnames = 0;
 	static int maxnames = 0;
+	struct dirent *de;
 	static char *names;
 	static char **nameptrs;
 	static char *name;
@@ -2492,64 +2490,13 @@ static int child_ls(httpd_conn *hc, DIR *dirp)
 	static size_t maxrname = 0;
 	static char *encrname;
 	static size_t maxencrname = 0;
-	FILE *fp;
-	int i;
-	struct stat sb;
-	struct stat lsb;
-	char *icon, *alt;
-	char timestr[42];
 
-	/* Child process. */
-	sub_process = 1;
-	httpd_unlisten(hc->hs);
-	send_mime(hc, 200, ok200title, "", "", "text/html; charset=%s", (off_t) - 1, hc->sb.st_mtime);
-	httpd_write_response(hc);
-
-#ifdef CGI_NICE
-	/* Set priority. */
-	(void)nice(CGI_NICE);
-#endif				/* CGI_NICE */
-
-	/* Open a stdio stream so that we can use fprintf, which is more
-	** efficient than a bunch of separate write()s.  We don't have
-	** to worry about double closes or file descriptor leaks cause
-	** we're in a subprocess.
-	*/
-	fp = fdopen(hc->conn_fd, "w");
-	if (!fp) {
-		syslog(LOG_ERR, "fdopen: %s", strerror(errno));
-		httpd_send_err(hc, 500, err500title, "", err500form, hc->encodedurl);
-		httpd_write_response(hc);
-		closedir(dirp);
-		return 1;
-	}
-
-	fprintf(fp, "<!DOCTYPE html>\n"
-		"<html>\n"
-		" <head>\n"
-		"  <title>Index of http://%s%s</title>\n"
-		"  <script type=\"text/javascript\">window.onload = function() { document.getElementById('table').focus();} </script>\n"
-		"%s"
-		" </head>\n"
-		" <body>\n"
-		"<div id=\"wrapper\" tabindex=\"-1\">\n"
-		"<h2>Index of http://%s%s</h2>\n"
-		"<input type=\"hidden\" autofocus />\n"
-		"<div id=\"table\">"
-		"<table width=\"100%%\">\n"
-		" <tr>"
-		"  <th class=\"icon\" style=\"width:20px;\"><img src=\"/icons/blank.gif\" alt=\"&#8195;\"></th>\n"
-		"  <th style=\"width:35em;\">Name</th>\n"
-		"  <th class=\"right\" style=\"width: 3em;\">Size</th>\n"
-		"  <th style=\"width: 7em;\">Last modified</th>\n"
-		" </tr>\n",
-		get_hostname(hc), hc->encodedurl,
-		httpd_css_default(),
-		get_hostname(hc), hc->encodedurl);
-
-	/* Read in names. */
-	nnames = 0;
-	while ((de = readdir(dirp)) != 0) {	/* dirent or direct */
+	while ((de = readdir(dirp))) {
+		if (onlydir && de->d_type != DT_DIR)
+			continue;
+		if (!onlydir && de->d_type == DT_DIR) 
+			continue;
+			
 		if (nnames >= maxnames) {
 			if (maxnames == 0) {
 				maxnames = 100;
@@ -2574,13 +2521,17 @@ static int child_ls(httpd_conn *hc, DIR *dirp)
 		nameptrs[nnames][namlen] = '\0';
 		++nnames;
 	}
-	closedir(dirp);
 
 	/* Sort the names. */
 	qsort(nameptrs, nnames, sizeof(*nameptrs), name_compare);
 
 	/* Generate output. */
 	for (i = 0; i < nnames; ++i) {
+		struct stat sb;
+		struct stat lsb;
+		char timestr[42];
+		char *icon, *alt;
+
 		if (!strcmp(nameptrs[i], "."))
 			continue;
 		if (!strcmp(nameptrs[i], "..")) {
@@ -2641,6 +2592,69 @@ static int child_ls(httpd_conn *hc, DIR *dirp)
 			encrname, S_ISDIR(sb.st_mode) ? "/" : "", nameptrs[i],
 			humane_size(&lsb), timestr);
 	}
+
+	return 0;
+}
+
+/* Forked child process from ls() */
+static int child_ls(httpd_conn *hc, DIR *dirp)
+{
+	FILE *fp;
+
+	/* Child process. */
+	sub_process = 1;
+	httpd_unlisten(hc->hs);
+	send_mime(hc, 200, ok200title, "", "", "text/html; charset=%s", (off_t) - 1, hc->sb.st_mtime);
+	httpd_write_response(hc);
+
+#ifdef CGI_NICE
+	/* Set priority. */
+	(void)nice(CGI_NICE);
+#endif				/* CGI_NICE */
+
+	/* Open a stdio stream so that we can use fprintf, which is more
+	** efficient than a bunch of separate write()s.  We don't have
+	** to worry about double closes or file descriptor leaks cause
+	** we're in a subprocess.
+	*/
+	fp = fdopen(hc->conn_fd, "w");
+	if (!fp) {
+		syslog(LOG_ERR, "fdopen: %s", strerror(errno));
+		httpd_send_err(hc, 500, err500title, "", err500form, hc->encodedurl);
+		httpd_write_response(hc);
+		closedir(dirp);
+		return 1;
+	}
+
+	fprintf(fp, "<!DOCTYPE html>\n"
+		"<html>\n"
+		" <head>\n"
+		"  <title>Index of http://%s%s</title>\n"
+		"  <script type=\"text/javascript\">window.onload = function() { document.getElementById('table').focus();} </script>\n"
+		"%s"
+		" </head>\n"
+		" <body>\n"
+		"<div id=\"wrapper\" tabindex=\"-1\">\n"
+		"<h2>Index of http://%s%s</h2>\n"
+		"<input type=\"hidden\" autofocus />\n"
+		"<div id=\"table\">"
+		"<table width=\"100%%\">\n"
+		" <tr>"
+		"  <th class=\"icon\" style=\"width:20px;\"><img src=\"/icons/blank.gif\" alt=\"&#8195;\"></th>\n"
+		"  <th style=\"width:35em;\">Name</th>\n"
+		"  <th class=\"right\" style=\"width: 3em;\">Size</th>\n"
+		"  <th style=\"width: 7em;\">Last modified</th>\n"
+		" </tr>\n",
+		get_hostname(hc), hc->encodedurl,
+		httpd_css_default(),
+		get_hostname(hc), hc->encodedurl);
+
+	/* Read in names. */
+	child_ls_read_names(hc, dirp, fp, 1);
+	rewinddir(dirp);
+	child_ls_read_names(hc, dirp, fp, 0);
+	closedir(dirp);
+
 
 	fprintf(fp, " </table></div>\n");
 	fprintf(fp, " <address>%s httpd at %s port %d</address>\n", EXPOSED_SERVER_SOFTWARE, get_hostname(hc), (int)hc->hs->port);
