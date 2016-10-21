@@ -2477,14 +2477,13 @@ char **b;
 	return strcmp(*a, *b);
 }
 
-
-static int ls(httpd_conn *hc)
+/* Forked child process from ls() */
+static int child_ls(httpd_conn *hc, DIR *dirp)
 {
-	DIR *dirp;
-	struct dirent *de;
-	int namlen;
-	static int maxnames = 0;
 	int nnames;
+	int namlen;
+	struct dirent *de;
+	static int maxnames = 0;
 	static char *names;
 	static char **nameptrs;
 	static char *name;
@@ -2494,11 +2493,167 @@ static int ls(httpd_conn *hc)
 	static char *encrname;
 	static size_t maxencrname = 0;
 	FILE *fp;
-	int i, r;
+	int i;
 	struct stat sb;
 	struct stat lsb;
 	char *icon, *alt;
 	char timestr[42];
+
+	/* Child process. */
+	sub_process = 1;
+	httpd_unlisten(hc->hs);
+	send_mime(hc, 200, ok200title, "", "", "text/html; charset=%s", (off_t) - 1, hc->sb.st_mtime);
+	httpd_write_response(hc);
+
+#ifdef CGI_NICE
+	/* Set priority. */
+	(void)nice(CGI_NICE);
+#endif				/* CGI_NICE */
+
+	/* Open a stdio stream so that we can use fprintf, which is more
+	** efficient than a bunch of separate write()s.  We don't have
+	** to worry about double closes or file descriptor leaks cause
+	** we're in a subprocess.
+	*/
+	fp = fdopen(hc->conn_fd, "w");
+	if (!fp) {
+		syslog(LOG_ERR, "fdopen: %s", strerror(errno));
+		httpd_send_err(hc, 500, err500title, "", err500form, hc->encodedurl);
+		httpd_write_response(hc);
+		closedir(dirp);
+		return 1;
+	}
+
+	fprintf(fp, "<!DOCTYPE html>\n"
+		"<html>\n"
+		" <head>\n"
+		"  <title>Index of http://%s%s</title>\n"
+		"  <script type=\"text/javascript\">window.onload = function() { document.getElementById('table').focus();} </script>\n"
+		"%s"
+		" </head>\n"
+		" <body>\n"
+		"<div id=\"wrapper\" tabindex=\"-1\">\n"
+		"<h2>Index of http://%s%s</h2>\n"
+		"<input type=\"hidden\" autofocus />\n"
+		"<div id=\"table\">"
+		"<table width=\"100%%\">\n"
+		" <tr>"
+		"  <th class=\"icon\" style=\"width:20px;\"><img src=\"/icons/blank.gif\" alt=\"&#8195;\"></th>\n"
+		"  <th style=\"width:35em;\">Name</th>\n"
+		"  <th class=\"right\" style=\"width: 3em;\">Size</th>\n"
+		"  <th style=\"width: 7em;\">Last modified</th>\n"
+		" </tr>\n",
+		get_hostname(hc), hc->encodedurl,
+		httpd_css_default(),
+		get_hostname(hc), hc->encodedurl);
+
+	/* Read in names. */
+	nnames = 0;
+	while ((de = readdir(dirp)) != 0) {	/* dirent or direct */
+		if (nnames >= maxnames) {
+			if (maxnames == 0) {
+				maxnames = 100;
+				names = NEW(char, maxnames * (MAXPATHLEN + 1));
+				nameptrs = NEW(char *, maxnames);
+			} else {
+				maxnames *= 2;
+				names = RENEW(names, char, maxnames * (MAXPATHLEN + 1));
+				nameptrs = RENEW(nameptrs, char *, maxnames);
+			}
+
+			if (!names || !nameptrs) {
+				syslog(LOG_ERR, "out of memory reallocating directory names");
+				return 1;
+			}
+
+			for (i = 0; i < maxnames; ++i)
+				nameptrs[i] = &names[i * (MAXPATHLEN + 1)];
+		}
+		namlen = NAMLEN(de);
+		(void)strncpy(nameptrs[nnames], de->d_name, namlen);
+		nameptrs[nnames][namlen] = '\0';
+		++nnames;
+	}
+	closedir(dirp);
+
+	/* Sort the names. */
+	qsort(nameptrs, nnames, sizeof(*nameptrs), name_compare);
+
+	/* Generate output. */
+	for (i = 0; i < nnames; ++i) {
+		if (!strcmp(nameptrs[i], "."))
+			continue;
+		if (!strcmp(nameptrs[i], "..")) {
+			if (!strcmp(hc->encodedurl, "/"))
+				continue;
+
+			fprintf(fp,
+				" <tr>\n"
+				"  <td class=\"icon\"><img src=\"/icons/back.gif\" alt=\"&#8617;\"></td>\n"
+				"  <td><a href=\"..\">Parent Directory</a></td>\n"
+				"  <td class=\"right\">&nbsp;</td>\n"
+				"  <td>&nbsp;</td>\n"
+				" </tr>\n");
+			continue;
+		}
+
+		httpd_realloc_str(&name, &maxname, strlen(hc->expnfilename) + 1 + strlen(nameptrs[i]));
+		httpd_realloc_str(&rname, &maxrname, strlen(hc->origfilename) + 1 + strlen(nameptrs[i]));
+		if (hc->expnfilename[0] == '\0' || strcmp(hc->expnfilename, ".") == 0) {
+			(void)strcpy(name, nameptrs[i]);
+			(void)strcpy(rname, nameptrs[i]);
+		} else {
+			(void)my_snprintf(name, maxname, "%s/%s", hc->expnfilename, nameptrs[i]);
+			if (strcmp(hc->origfilename, ".") == 0)
+				(void)my_snprintf(rname, maxrname, "%s", nameptrs[i]);
+			else
+				(void)my_snprintf(rname, maxrname, "%s%s", hc->origfilename, nameptrs[i]);
+		}
+		httpd_realloc_str(&encrname, &maxencrname, 3 * strlen(rname) + 1);
+		strencode(encrname, maxencrname, rname);
+
+		if (stat(name, &sb) < 0 || lstat(name, &lsb) < 0)
+			continue;
+
+		/* Get time string. */
+		strftime(timestr, sizeof(timestr), "%F&nbsp;&nbsp;%R", localtime(&lsb.st_mtime));
+
+		/* The ls -F file class. */
+		switch (sb.st_mode & S_IFMT) {
+		case S_IFDIR:
+			icon = "/icons/folder.gif";
+			alt  = "&#128193;";
+			break;
+
+		default:
+			icon = "/icons/generic.gif";
+			alt  = "&#128196;";
+			break;
+		}
+
+		fprintf(fp,
+			" <tr>\n"
+			"  <td class=\"icon\"><img src=\"%s\" alt=\"%s\"></td>\n"
+			"  <td><a href=\"/%s%s\">%s</a></td>\n"
+			"  <td class=\"right\">%s</td>\n"
+			"  <td>%s</td>\n"
+			" </tr>\n", icon, alt,
+			encrname, S_ISDIR(sb.st_mode) ? "/" : "", nameptrs[i],
+			humane_size(&lsb), timestr);
+	}
+
+	fprintf(fp, " </table></div>\n");
+	fprintf(fp, " <address>%s httpd at %s port %d</address>\n", EXPOSED_SERVER_SOFTWARE, get_hostname(hc), (int)hc->hs->port);
+	fprintf(fp, "</div></body>\n</html>\n");
+	fclose(fp);
+
+	return 0;
+}
+
+static int ls(httpd_conn *hc)
+{
+	int r;
+	DIR *dirp;
 	ClientData client_data;
 
 	dirp = opendir(hc->expnfilename);
@@ -2527,156 +2682,8 @@ static int ls(httpd_conn *hc)
 			return -1;
 		}
 
-		if (r == 0) {
-			/* Child process. */
-			sub_process = 1;
-			httpd_unlisten(hc->hs);
-			send_mime(hc, 200, ok200title, "", "", "text/html; charset=%s", (off_t) - 1, hc->sb.st_mtime);
-			httpd_write_response(hc);
-
-#ifdef CGI_NICE
-			/* Set priority. */
-			(void)nice(CGI_NICE);
-#endif				/* CGI_NICE */
-
-			/* Open a stdio stream so that we can use fprintf, which is more
-			 ** efficient than a bunch of separate write()s.  We don't have
-			 ** to worry about double closes or file descriptor leaks cause
-			 ** we're in a subprocess.
-			 */
-			fp = fdopen(hc->conn_fd, "w");
-			if (!fp) {
-				syslog(LOG_ERR, "fdopen: %s", strerror(errno));
-				httpd_send_err(hc, 500, err500title, "", err500form, hc->encodedurl);
-				httpd_write_response(hc);
-				closedir(dirp);
-				exit(1);
-			}
-
-			fprintf(fp, "<!DOCTYPE html>\n"
-				"<html>\n"
-				" <head>\n"
-				"  <title>Index of http://%s%s</title>\n"
-				"  <script type=\"text/javascript\">window.onload = function() { document.getElementById('table').focus();} </script>\n"
-				"%s"
-				" </head>\n"
-				" <body>\n"
-				"<div id=\"wrapper\" tabindex=\"-1\">\n"
-				"<h2>Index of http://%s%s</h2>\n"
-				"<input type=\"hidden\" autofocus />\n"
-				"<div id=\"table\">"
-				"<table width=\"100%%\">\n"
-				" <tr>"
-				"  <th class=\"icon\" style=\"width:20px;\"><img src=\"/icons/blank.gif\" alt=\"&#8195;\"></th>\n"
-				"  <th style=\"width:35em;\">Name</th>\n"
-				"  <th class=\"right\" style=\"width: 3em;\">Size</th>\n"
-				"  <th style=\"width: 7em;\">Last modified</th>\n"
-				" </tr>\n",
-				get_hostname(hc), hc->encodedurl,
-				httpd_css_default(),
-				get_hostname(hc), hc->encodedurl);
-
-			/* Read in names. */
-			nnames = 0;
-			while ((de = readdir(dirp)) != 0) {	/* dirent or direct */
-				if (nnames >= maxnames) {
-					if (maxnames == 0) {
-						maxnames = 100;
-						names = NEW(char, maxnames * (MAXPATHLEN + 1));
-						nameptrs = NEW(char *, maxnames);
-					} else {
-						maxnames *= 2;
-						names = RENEW(names, char, maxnames * (MAXPATHLEN + 1));
-						nameptrs = RENEW(nameptrs, char *, maxnames);
-					}
-
-					if (!names || !nameptrs) {
-						syslog(LOG_ERR, "out of memory reallocating directory names");
-						exit(1);
-					}
-
-					for (i = 0; i < maxnames; ++i)
-						nameptrs[i] = &names[i * (MAXPATHLEN + 1)];
-				}
-				namlen = NAMLEN(de);
-				(void)strncpy(nameptrs[nnames], de->d_name, namlen);
-				nameptrs[nnames][namlen] = '\0';
-				++nnames;
-			}
-			closedir(dirp);
-
-			/* Sort the names. */
-			qsort(nameptrs, nnames, sizeof(*nameptrs), name_compare);
-
-			/* Generate output. */
-			for (i = 0; i < nnames; ++i) {
-				if (!strcmp(nameptrs[i], "."))
-					continue;
-				if (!strcmp(nameptrs[i], "..")) {
-					if (!strcmp(hc->encodedurl, "/"))
-						continue;
-
-					fprintf(fp,
-						" <tr>\n"
-						"  <td class=\"icon\"><img src=\"/icons/back.gif\" alt=\"&#8617;\"></td>\n"
-						"  <td><a href=\"..\">Parent Directory</a></td>\n"
-						"  <td class=\"right\">&nbsp;</td>\n"
-						"  <td>&nbsp;</td>\n"
-						" </tr>\n");
-					continue;
-				}
-
-				httpd_realloc_str(&name, &maxname, strlen(hc->expnfilename) + 1 + strlen(nameptrs[i]));
-				httpd_realloc_str(&rname, &maxrname, strlen(hc->origfilename) + 1 + strlen(nameptrs[i]));
-				if (hc->expnfilename[0] == '\0' || strcmp(hc->expnfilename, ".") == 0) {
-					(void)strcpy(name, nameptrs[i]);
-					(void)strcpy(rname, nameptrs[i]);
-				} else {
-					(void)my_snprintf(name, maxname, "%s/%s", hc->expnfilename, nameptrs[i]);
-					if (strcmp(hc->origfilename, ".") == 0)
-						(void)my_snprintf(rname, maxrname, "%s", nameptrs[i]);
-					else
-						(void)my_snprintf(rname, maxrname, "%s%s", hc->origfilename, nameptrs[i]);
-				}
-				httpd_realloc_str(&encrname, &maxencrname, 3 * strlen(rname) + 1);
-				strencode(encrname, maxencrname, rname);
-
-				if (stat(name, &sb) < 0 || lstat(name, &lsb) < 0)
-					continue;
-
-				/* Get time string. */
-				strftime(timestr, sizeof(timestr), "%F&nbsp;&nbsp;%R", localtime(&lsb.st_mtime));
-
-				/* The ls -F file class. */
-				switch (sb.st_mode & S_IFMT) {
-				case S_IFDIR:
-					icon = "/icons/folder.gif";
-					alt  = "&#128193;";
-					break;
-
-				default:
-					icon = "/icons/generic.gif";
-					alt  = "&#128196;";
-					break;
-				}
-
-				fprintf(fp,
-					" <tr>\n"
-					"  <td class=\"icon\"><img src=\"%s\" alt=\"%s\"></td>\n"
-					"  <td><a href=\"/%s%s\">%s</a></td>\n"
-					"  <td class=\"right\">%s</td>\n"
-					"  <td>%s</td>\n"
-					" </tr>\n", icon, alt,
-					encrname, S_ISDIR(sb.st_mode) ? "/" : "", nameptrs[i],
-					humane_size(&lsb), timestr);
-			}
-
-			fprintf(fp, " </table></div>\n");
-			fprintf(fp, " <address>%s httpd at %s port %d</address>\n", EXPOSED_SERVER_SOFTWARE, get_hostname(hc), (int)hc->hs->port);
-			fprintf(fp, "</div></body>\n</html>\n");
-			fclose(fp);
-			exit(0);
-		}
+		if (r == 0)
+			exit(child_ls(hc, dirp));
 
 		/* Parent process. */
 		closedir(dirp);
