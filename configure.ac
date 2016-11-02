@@ -24,8 +24,7 @@ AC_ARG_WITH([config],
 
 AC_ARG_WITH([systemd],
      [AS_HELP_STRING([--with-systemd=DIR], [Directory for systemd service files])],,
-     [with_systemd=auto]
-)
+     [with_systemd=auto])
 
 # Checks for header files.
 AC_CHECK_HEADERS([arpa/inet.h fcntl.h grp.h memory.h netdb.h netinet/in.h osreldate.h paths.h poll.h stdlib.h string.h sys/devpoll.h sys/event.h sys/param.h sys/poll.h sys/socket.h sys/time.h syslog.h unistd.h])
@@ -50,11 +49,11 @@ AC_FUNC_WAIT3
 AC_CHECK_FUNCS([alarm atoll bzero clock_gettime daemon dup2 gai_strerror getcwd getaddrinfo gethostbyname gethostname getnameinfo getpass gettimeofday hstrerror inet_ntoa kqueue malloc memmove memset mkdir munmap poll select setlogin setsid sigaction socket strcasecmp strchr strcspn strdup strerror strncasecmp strpbrk strrchr strspn strstr tzset vsnprintf waitpid])
 
 AC_ARG_VAR(WEBDIR, [Document root of your web server [LOCALSTATEDIR/www]])
-if test "x${WEBDIR}" = "x" ; then
-	WEBDIR=$localstatedir/www
-fi
+AS_IF([test "x${WEBDIR}" = "x"], [
+	WEBDIR=$localstatedir/www])
 
-AS_IF([test "x$with_config" != "xno"],[PKG_CHECK_MODULES([confuse], [libconfuse >= 2.7])])
+AS_IF([test "x$with_config" != "xno"], [
+	PKG_CHECK_MODULES([confuse], [libconfuse >= 2.7])])
 
 # Check where to install the systemd .service file
 AS_IF([test "x$with_systemd" = "xyes" -o "x$with_systemd" = "xauto"], [
