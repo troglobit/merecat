@@ -22,7 +22,10 @@ AC_ARG_WITH([config],
         AS_HELP_STRING([--without-config], [Disable /etc/merecat.conf support using libConfuse]),
 	[], [with_config=yes])
 
-AS_IF([test "x$with_config" != "xno"],[PKG_CHECK_MODULES([confuse], [libconfuse >= 2.7])])
+AC_ARG_WITH([systemd],
+     [AS_HELP_STRING([--with-systemd=DIR], [Directory for systemd service files])],,
+     [with_systemd=auto]
+)
 
 # Checks for header files.
 AC_CHECK_HEADERS([arpa/inet.h fcntl.h grp.h memory.h netdb.h netinet/in.h osreldate.h paths.h poll.h stdlib.h string.h sys/devpoll.h sys/event.h sys/param.h sys/poll.h sys/socket.h sys/time.h syslog.h unistd.h])
@@ -51,7 +54,31 @@ if test "x${WEBDIR}" = "x" ; then
 	WEBDIR=$localstatedir/www
 fi
 
+AS_IF([test "x$with_config" != "xno"],[PKG_CHECK_MODULES([confuse], [libconfuse >= 2.7])])
+
+# Check where to install the systemd .service file
+AS_IF([test "x$with_systemd" = "xyes" -o "x$with_systemd" = "xauto"], [
+     def_systemd=$($PKG_CONFIG --variable=systemdsystemunitdir systemd)
+     AS_IF([test "x$def_systemd" = "x"],
+         [AS_IF([test "x$with_systemd" = "xyes"],
+	     [AC_MSG_ERROR([systemd support requested but pkg-config unable to query systemd package])])
+	     with_systemd=no], [with_systemd="$def_systemd"])]
+)
+AS_IF([test "x$with_systemd" != "xno"],
+     [AC_SUBST([systemddir], [$with_systemd])])
+AM_CONDITIONAL([HAVE_SYSTEMD], [test "x$with_systemd" != "xno"])
+
+# Expand $sbindir early, into $SBINDIR, for systemd unit file
+# NOTE: This does *not* take prefix/exec_prefix override at "make
+#       install" into account, unfortunately.
+test "x$prefix" = xNONE && prefix=$ac_default_prefix
+test "x$exec_prefix" = xNONE && exec_prefix='${prefix}'
+SBINDIR=`eval echo $sbindir`
+SBINDIR=`eval echo $SBINDIR`
+AC_SUBST(SBINDIR)
+
 AC_CONFIG_FILES([Makefile
+                 merecat.service
                  src/Makefile
                  man/Makefile
                  scripts/Makefile

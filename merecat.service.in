@@ -1,0 +1,18 @@
+[Unit]
+Description=Simple, small, and fast HTTP server
+Documentation=man:merecat
+Documentation=man:ssi
+Documentation=man:redirect
+Documentation=man:htpasswd
+Documentation=man:
+Documentation=https://github.com/troglobit/merecat
+ConditionPathExists=/var/www
+After=network-online.target
+Requires=network-online.target
+
+[Service]
+Type=simple
+ExecStart=@SBINDIR@/inadyn -n -v -c '**.cgi' /var/www
+
+[Install]
+WantedBy=multi-user.target
