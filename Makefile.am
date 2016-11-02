@@ -1,9 +1,7 @@
-ACLOCAL_AMFLAGS           = -I m4
+SUBDIRS                   = src man scripts www
+doc_DATA                  = README.md LICENSE merecat.conf.sample
+EXTRA_DIST                = README.md README.thttpd LICENSE merecat.conf.sample
 DISTCHECK_CONFIGURE_FLAGS = --with-systemd=$$dc_install_base/$(systemd)
-
-SUBDIRS         = src man scripts www
-doc_DATA        = README.md LICENSE merecat.conf.sample
-EXTRA_DIST      = README.md README.thttpd LICENSE merecat.conf.sample
 
 if HAVE_SYSTEMD
 systemd_DATA    = merecat.service
