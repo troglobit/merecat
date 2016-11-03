@@ -21,3 +21,4 @@ src/merecat
 www/cgi-bin/.deps
 www/cgi-bin/redirect
 www/cgi-bin/ssi
+/merecat.service
