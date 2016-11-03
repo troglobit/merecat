@@ -1,0 +1,20 @@
+Source: merecat
+Section: web
+Priority: optional
+Maintainer: Joachim Nilsson <troglobit@gmail.com>
+Build-Depends: debhelper (>= 9), libconfuse-dev
+Homepage: https://github.com/troglobit/merecat
+Standards-Version: 3.9.7
+
+Package: merecat
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}
+Provides: httpd, httpd-cgi
+Conflicts: apache2-utils
+Description: Simple, small, and fast HTTP server
+ Merecat is a simple, small, and fast web server based on Jef Poskanzer's
+ thttpd.  It supports all  basic features required for most use-cases.
+ The most prominent feature is probably its URL-traffic-based throttling.
+ .
+ With its small footprint it is very suitable for small and embedded
+ systems, even those smaller than a Raspberry Pi.
