@@ -791,7 +791,7 @@ static void conf_errfunc(cfg_t *cfg, const char *format, va_list args)
 
 static int read_config(char *filename)
 {
-	cfg_t *cfg;
+	static cfg_t *cfg = NULL;
 	cfg_opt_t opts[] = {
 		CFG_INT ("port", DEFAULT_PORT, CFGF_NONE), /* SERVER_PORT_DEFAULT */
 		CFG_BOOL("chroot", cfg_false, CFGF_NONE),
@@ -814,6 +814,9 @@ static int read_config(char *filename)
 
 	if (access(filename, F_OK))
 		return 0;
+
+	if (cfg)
+		cfg_free(cfg);
 
 	cfg = cfg_init(opts, CFGF_NONE);
 	if (!cfg) {
@@ -861,7 +864,6 @@ static int read_config(char *filename)
 
 	charset = cfg_getstr(cfg, "charset");
 	max_age = cfg_getint(cfg, "max-age");
-	cfg_free(cfg);
 
 	return 0;
 }
