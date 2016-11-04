@@ -72,6 +72,9 @@ AM_CONDITIONAL([HAVE_SYSTEMD], [test "x$with_systemd" != "xno"])
 #       install" into account, unfortunately.
 test "x$prefix" = xNONE && prefix=$ac_default_prefix
 test "x$exec_prefix" = xNONE && exec_prefix='${prefix}'
+DOCDIR=`eval echo $docdir`
+DOCDIR=`eval echo $DOCDIR`
+AC_SUBST(DOCDIR)
 SBINDIR=`eval echo $sbindir`
 SBINDIR=`eval echo $SBINDIR`
 AC_SUBST(SBINDIR)
