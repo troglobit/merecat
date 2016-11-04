@@ -16,8 +16,8 @@
 ##	*	matches any string excluding "/"
 ##	**	matches any string including "/"
 ##	separate multiple patterns with "|"
-#cgi-pattern = **.sh|**.cgi
-#cgi-pattern = /cgi-bin/*
+#cgi-pattern = "**.sh|**.cgi"
+#cgi-pattern = "/cgi-bin/*"
 #cgi-limit = 5
 
 ## Global .htpasswd (true) or local per-directory (false)
