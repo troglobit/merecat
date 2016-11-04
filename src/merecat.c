@@ -849,7 +849,7 @@ static int read_config(char *filename)
 
 	user = cfg_getstr(cfg, "username");
 	cgi_pattern = cfg_getstr(cfg, "cgi-pattern");
-	cgi_limit = cfg_getint(cfg, "cfg-limit");
+	cgi_limit = cfg_getint(cfg, "cgi-limit");
 	url_pattern = cfg_getstr(cfg, "url-pattern");
 	local_pattern = cfg_getstr(cfg, "local-pattern");
 
