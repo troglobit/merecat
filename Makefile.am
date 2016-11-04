@@ -1,5 +1,6 @@
 SUBDIRS                   = src man scripts www
-doc_DATA                  = README.md LICENSE merecat.conf.sample
+sysconf_DATA              = merecat.conf
+doc_DATA                  = README.md LICENSE
 EXTRA_DIST                = README.md README.thttpd LICENSE merecat.conf.sample
 DISTCHECK_CONFIGURE_FLAGS = --with-systemd=$$dc_install_base/$(systemd)
 
