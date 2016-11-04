@@ -78,9 +78,9 @@ extern char *__progname;
 
 static int   background        = 1;
 static int   loglevel          = LOG_NOTICE;
-static unsigned short port     = DEFAULT_PORT;
-static char *dir               = NULL;
-static char *data_dir          = NULL;;
+static unsigned short port     = DEFAULT_PORT;    /* SERVER_PORT_DEFAULT */
+static char *dir               = NULL;            /* SERVER_DIR_DEFUALT: /var/www */
+static char *data_dir          = NULL;
 static int   do_chroot         = 0;
 static int   no_log            = 0;
 static int   no_symlink_check  = 0;
@@ -93,7 +93,7 @@ static int   no_empty_referers = 0;
 static char *local_pattern     = NULL;
 static char *throttlefile      = NULL;
 static char *hostname          = NULL;
-static char *user              = DEFAULT_USER;
+static char *user              = DEFAULT_USER;    /* Usually www-data or nobody */
 static char *charset           = DEFAULT_CHARSET;
 static int   max_age           = -1;
 
@@ -793,22 +793,22 @@ static int read_config(char *filename)
 {
 	static cfg_t *cfg = NULL;
 	cfg_opt_t opts[] = {
-		CFG_INT ("port", DEFAULT_PORT, CFGF_NONE), /* SERVER_PORT_DEFAULT */
-		CFG_BOOL("chroot", cfg_false, CFGF_NONE),
-		CFG_STR ("directory", NULL, CFGF_NONE), /* SERVER_DIR_DEFUALT: /var/www */
-		CFG_STR ("data-directory", NULL, CFGF_NONE), /*  */
-		CFG_BOOL("global-passwd", cfg_false, CFGF_NONE),
-		CFG_BOOL("check-symlink", cfg_false, CFGF_NONE),
+		CFG_INT ("port", port, CFGF_NONE),
+		CFG_BOOL("chroot", do_chroot, CFGF_NONE),
+		CFG_STR ("directory", dir, CFGF_NONE),
+		CFG_STR ("data-directory", data_dir, CFGF_NONE),
+		CFG_BOOL("global-passwd", do_global_passwd, CFGF_NONE),
+		CFG_BOOL("check-symlink", !no_symlink_check, CFGF_NONE),
 		CFG_BOOL("check-referer", cfg_false, CFGF_NONE),
-		CFG_STR ("charset", DEFAULT_CHARSET, CFGF_NONE), /*  */
-		CFG_INT ("cgi-limit", CGI_LIMIT, CFGF_NONE), /*  */
-		CFG_STR ("cgi-pattern", CGI_PATTERN, CFGF_NONE), /*  */
-		CFG_STR ("local-pattern", NULL, CFGF_NONE), /*  */
-		CFG_STR ("url-pattern", NULL, CFGF_NONE), /*  */
+		CFG_STR ("charset", DEFAULT_CHARSET, CFGF_NONE),
+		CFG_INT ("cgi-limit", CGI_LIMIT, CFGF_NONE),
+		CFG_STR ("cgi-pattern", cgi_pattern, CFGF_NONE),
+		CFG_STR ("local-pattern", NULL, CFGF_NONE),
+		CFG_STR ("url-pattern", NULL, CFGF_NONE),
 		CFG_INT ("max-age", -1, CFGF_NONE), /* 0: Disabled */
-		CFG_STR ("username", DEFAULT_USER, CFGF_NONE), /* Usually www-data or nobody */
-		CFG_STR ("hostname", NULL, CFGF_NONE),
-		CFG_BOOL("virtual-host", cfg_false, CFGF_NONE),
+		CFG_STR ("username", user, CFGF_NONE),
+		CFG_STR ("hostname", hostname, CFGF_NONE),
+		CFG_BOOL("virtual-host", do_vhost, CFGF_NONE),
 		CFG_END()
 	};
 
