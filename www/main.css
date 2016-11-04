@@ -26,6 +26,10 @@ img {
     border:        1px solid #c8c5c2;
 }
 
+dl.config dt {
+    font-family: monospace;
+}
+
 .pull-right {
     float: right;
 }
