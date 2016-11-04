@@ -841,8 +841,8 @@ static int read_config(char *filename)
 	do_chroot = cfg_getbool(cfg, "chroot");
 	if (do_chroot)
 		no_symlink_check = 1;
-	dir = cfg_getstr(cfg, "dir");
-	data_dir = cfg_getstr(cfg, "data-dir");
+	dir = cfg_getstr(cfg, "directory");
+	data_dir = cfg_getstr(cfg, "data-directory");
 
 	if (cfg_getbool(cfg, "check-symlink"))
 		no_symlink_check = 0;
