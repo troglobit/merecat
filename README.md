@@ -9,8 +9,8 @@ actual web serving purposes.  It is however not a real [Meerekat][],
 merely yet another copycat, forked from the great [thttpd][] created by
 Jef&nbsp;Poskanzer.
 
-The limited feature set makes it very quick.  URL-traffic-based
-throttling and virtual hosts are just about its only features.  This
+The limited feature set makes it very quick.  Virtual hosts and the
+URL-traffic-based throttling are just about its only features.  This
 small footprint makes Merecat very suitable for small and embedded
 systems, even those smaller than a Raspberry Pi.
 
