@@ -53,6 +53,7 @@ AS_IF([test "x${WEBDIR}" = "x"], [
 	WEBDIR=$localstatedir/www])
 
 AS_IF([test "x$with_config" != "xno"], [
+	AC_DEFINE([HAVE_LIBCONFUSE], [1], [Build with support for /etc/merecat.conf])
 	PKG_CHECK_MODULES([confuse], [libconfuse >= 2.7])])
 
 # Check where to install the systemd .service file
