@@ -83,6 +83,7 @@ AC_CONFIG_FILES([Makefile
                  scripts/Makefile
                  www/Makefile
                  www/cgi-bin/Makefile
-                 www/icons/Makefile])
+                 www/icons/Makefile]
+                 www/img/Makefile)
 
 AC_OUTPUT
