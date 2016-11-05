@@ -13,6 +13,15 @@ h2 {
     font-weight: normal;
 }
 
+p {
+    text-align: justify;
+}
+
+pre {
+    font-family: monospace;
+    font-size:   0.9em;
+}
+
 address {
     border-top: 1px solid #f2f1f0;
     margin-top: 1em;
@@ -30,8 +39,35 @@ dl.config dt {
     font-family: monospace;
 }
 
-.pull-right {
+dl.config dd {
+    text-align: justify;
+}
+
+#right {
     float: right;
+    width:  48%;
+}
+
+#left {
+    float: left;
+    width:  48%;
+}
+
+#header {
+  text-align: center;
+}
+
+#footer {
+  text-align: center;
+  clear: both;
+}
+
+#leftcontent {
+    padding-right: 10px;
+}
+
+#rightcontent {
+    padding-left:  10px;
 }
 
 #wrapper {
