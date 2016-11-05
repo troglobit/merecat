@@ -57,7 +57,7 @@
 ** the binary lives.  Perhaps CGI 1.2 will address this.
 */
 
-#include "config.h"
+#include <config.h>
 
 /* System headers */
 #include <stdio.h>

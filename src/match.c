@@ -27,7 +27,7 @@
 ** SUCH DAMAGE.
 */
 
-#include "config.h"
+#include <config.h>
 
 /* System headers */
 #include <string.h>

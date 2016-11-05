@@ -26,7 +26,7 @@
 */
 
 
-#include "config.h"
+#include <config.h>
 
 /* System headers */
 #include <sys/types.h>

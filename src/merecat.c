@@ -25,7 +25,7 @@
 ** SUCH DAMAGE.
 */
 
-#include "config.h"
+#include <config.h>
 
 #include <errno.h>
 #ifdef HAVE_FCNTL_H

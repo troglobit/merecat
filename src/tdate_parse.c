@@ -29,7 +29,7 @@
 ** http://www.acme.com/software/date_parse/
 */
 
-#include "config.h"
+#include <config.h>
 
 /* System headers */
 #include <ctype.h>
