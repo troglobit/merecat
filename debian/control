@@ -11,6 +11,8 @@ Architecture: any
 Depends: ${shlibs:Depends}, ${misc:Depends}
 Provides: httpd, httpd-cgi
 Conflicts: apache2-utils
+Recommends: libcgi-pm-perl
+Suggests: libcgi-fast-perl
 Description: Simple, small, and fast HTTP server
  Merecat is a simple, small, and fast web server based on Jef Poskanzer's
  thttpd.  It supports all  basic features required for most use-cases.
