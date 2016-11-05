@@ -918,7 +918,16 @@ static void lookup_hostname(httpd_sockaddr *sa4P, size_t sa4_len, int *gotv4P, h
 		*gotv6P = 1;
 	}
 
-	if (aiv4 == (struct addrinfo *)0)
+#ifdef __linux__
+	/*
+	 * On Linux listening to IN6ADDR_ANY_INIT means also listening
+	 * to INADDR_ANY, so for this special case we do not need to
+	 * try to bind() to both.  In fact, it will cause an error.
+	 */
+	if (!aiv4 || (aiv6 && !hostname))
+#else
+	if (!aiv4)
+#endif
 		*gotv4P = 0;
 	else {
 		if (sa4_len < aiv4->ai_addrlen) {
