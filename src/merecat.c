@@ -183,7 +183,7 @@ static void thttpd_logstats(long secs);
 static void handle_term(int signo)
 {
 	shut_down();
-	syslog(LOG_NOTICE, "exiting due to signal %d", signo);
+	syslog(LOG_NOTICE, "Exiting due to signal %d, dropping %d connections.", signo, num_connects);
 	closelog();
 	exit(0);
 }
@@ -257,7 +257,7 @@ static void handle_usr1(int signo)
 		 ** main loop won't wake up until the next new connection.
 		 */
 		shut_down();
-		syslog(LOG_NOTICE, "exiting");
+		syslog(LOG_NOTICE, "Exiting due to SIGUSR1");
 		closelog();
 		exit(0);
 	}
@@ -767,7 +767,7 @@ int main(int argc, char **argv)
 
 	/* The main loop terminated. */
 	shut_down();
-	syslog(LOG_NOTICE, "exiting");
+	syslog(LOG_NOTICE, "Exiting cleanly, all connections completed.");
 	closelog();
 	exit(0);
 }
