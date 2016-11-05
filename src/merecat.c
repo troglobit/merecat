@@ -473,7 +473,7 @@ int main(int argc, char **argv)
 	if (getuid() == 0) {
 		pwd = getpwnam(user);
 		if (pwd == (struct passwd *)0) {
-			syslog(LOG_CRIT, "unknown user - '%s'", user);
+			syslog(LOG_CRIT, "Unknown user - '%s'", user);
 			exit(1);
 		}
 		uid = pwd->pw_uid;
@@ -494,7 +494,7 @@ int main(int argc, char **argv)
 		 ** home dir.
 		 */
 		if (chdir(pwd->pw_dir) < 0) {
-			syslog(LOG_CRIT, "chdir: %s", strerror(errno));
+			syslog(LOG_CRIT, "chdir %s: %s", pwd->pw_dir, strerror(errno));
 			exit(1);
 		}
 	}
@@ -573,7 +573,7 @@ int main(int argc, char **argv)
 	/* Switch directories again if requested. */
 	if (data_dir != (char *)0) {
 		if (chdir(data_dir) < 0) {
-			syslog(LOG_CRIT, "data_dir chdir: %s", strerror(errno));
+			syslog(LOG_CRIT, "data-directory chdir: %s", strerror(errno));
 			exit(1);
 		}
 	}
@@ -661,14 +661,14 @@ int main(int argc, char **argv)
 		}
 		/* Check for unnecessary security exposure. */
 		if (!do_chroot)
-			syslog(LOG_WARNING, "started as root without requesting chroot(), warning only");
+			syslog(LOG_WARNING, "Started as root without requesting chroot(), warning only");
 	}
 
 	/* Initialize our connections table. */
 	connects = NEW(connecttab, max_connects);
 
 	if (connects == (connecttab *)0) {
-		syslog(LOG_CRIT, "out of memory allocating a connecttab");
+		syslog(LOG_CRIT, "Out of memory allocating a connecttab");
 		exit(1);
 	}
 	for (cnum = 0; cnum < max_connects; ++cnum) {
@@ -1036,7 +1036,7 @@ static void read_throttlefile(char *throttlefile)
 				throttles = RENEW(throttles, throttletab, maxthrottles);
 			}
 			if (throttles == (throttletab *)0) {
-				syslog(LOG_CRIT, "out of memory allocating a throttletab");
+				syslog(LOG_CRIT, "Out of memory allocating a throttletab");
 				exit(1);
 			}
 		}
@@ -1044,7 +1044,7 @@ static void read_throttlefile(char *throttlefile)
 		/* Add to table. */
 		throttles[numthrottles].pattern = strdup(pattern);
 		if (!throttles[numthrottles].pattern) {
-			syslog(LOG_CRIT, "failed storing throttle pattern: %s", strerror(errno));
+			syslog(LOG_CRIT, "Failed storing throttle pattern: %s", strerror(errno));
 			exit(1);
 		}
 		throttles[numthrottles].max_limit = max_limit;
@@ -1109,13 +1109,13 @@ static int handle_newconnect(struct timeval *tvP, int listen_fd)
 			 ** existing connections, and maybe we'll free up a slot
 			 ** by the time we get back here.
 			 */
-			syslog(LOG_WARNING, "too many connections!");
+			syslog(LOG_WARNING, "Too many connections (%d >) %d)!", num_connects, max_connects);
 			tmr_run(tvP);
 			return 0;
 		}
 		/* Get the first free connection entry off the free list. */
 		if (first_free_connect == -1 || connects[first_free_connect].conn_state != CNST_FREE) {
-			syslog(LOG_CRIT, "the connects free list is messed up");
+			syslog(LOG_CRIT, "The connects free list is messed up");
 			exit(1);
 		}
 		c = &connects[first_free_connect];
@@ -1124,7 +1124,7 @@ static int handle_newconnect(struct timeval *tvP, int listen_fd)
 			c->hc = NEW(httpd_conn, 1);
 
 			if (c->hc == (httpd_conn *)0) {
-				syslog(LOG_CRIT, "out of memory allocating an httpd_conn");
+				syslog(LOG_CRIT, "Out of memory allocating an httpd_conn");
 				exit(1);
 			}
 			c->hc->initialized = 0;
