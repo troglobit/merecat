@@ -5,7 +5,7 @@ EXTRA_DIST                = README.md README.thttpd LICENSE merecat.conf.sample
 DISTCHECK_CONFIGURE_FLAGS = --with-systemd=$$dc_install_base/$(systemd)
 
 if HAVE_SYSTEMD
-systemd_DATA    = merecat.service
+systemd_DATA              = merecat.service
 endif
 
 # Target to run when building a release
