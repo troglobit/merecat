@@ -130,11 +130,11 @@ whitespace.  The option names are listed below:
 .Bl -tag -width Ds
 .It cgi-limit = NUM
 Maximum number of allowed simultaneous CGI programs.  Default 1.
-.It cgi-pattern = "/cgi-bin/*"
+.It cgi-pattern = Qq **.cgi|/cgi-bin/*
 Specifies a wildcard pattern for CGI programs, for instance "**.cgi" or
 "/cgi-bin/*", the default is to have CGI disbled.  See below CGI section
 for more on this.
-.It charset = "UTF-8"
+.It charset = Qq UTF-8
 Specifies the character set to use with text MIME types.  If the default
 unicode charset causes trouble, try "iso-8859-1".
 .It check-referer = <true | false>
@@ -162,7 +162,7 @@ looks for a local .htpasswd file, or serves the file without password.
 .It hostname = HOSTNAME
 The hostname to bind to when multihoming.  For more details on this, see
 below discussion.
-.It local-pattern = PATTERN
+.It local-pattern = Qq PATTERN
 Used with
 .Nm check-referer ,
 see below for more details.
@@ -173,11 +173,11 @@ header is also generated.  The default is no Cache-Control or Expires
 headers, which is just fine for most sites.
 .It port = PORT
 The web server Internet port to listen to, default 80.
-.It url-pattern = PATTERN
+.It url-pattern = Qq PATTERN
 Used with
 .Nm check-referer ,
 see below for more details.
-.It username = NAME
+.It username = Qq NAME
 Set username to drop privileges to after startup.  Defaults to "nobody"
 which usually is defined on all UNIX systems.
 .It virtual-host = <true | false>
@@ -412,12 +412,12 @@ The files have to be referenced by a local web page.  If a web page on
 some other site references the files, that fetch will be blocked.  There
 are three config-file variables for this feature:
 .Bl -tag -width Ds
-.It url-pattern = "**.jpg|**.gif|**.au|**.wav"
+.It url-pattern = Qq **.jpg|**.gif|**.au|**.wav
 A wildcard pattern for the URLs that should require a local referer.
 This is typically just image files, sound files, and so on.  For
 example:
 .Bd -unfilled -offset left
-  urlpat=**.jpg|**.gif|**.au|**.wav
+  urlpat = "**.jpg|**.gif|**.au|**.wav"
 .Ed
 .Pp
 For most sites, that one setting is all you need to enable referer filtering.
@@ -425,7 +425,7 @@ For most sites, that one setting is all you need to enable referer filtering.
 By default, requests with no referer at all, or a null referer, or a
 referer with no apparent hostname, are allowed.  With this variable set,
 such requests are disallowed.
-.It local-pattern = "PATTERN"
+.It local-pattern = Qq PATTERN
 A wildcard pattern that specifies the local host or hosts.
 This is used to determine if the host in the referer is local or not.
 If not specified it defaults to the actual local hostname.
