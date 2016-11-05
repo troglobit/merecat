@@ -1,5 +1,7 @@
 #!/usr/bin/make -f
 # export DH_VERBOSE=1
-export DEB_BUILD_MAINT_OPTIONS = hardening=+all
+export DEB_BUILD_MAINT_OPTIONS   = hardening=+all
+export DEB_CONFIGURE_EXTRA_FLAGS = --enable-public-html
+
 %:
 	dh $@ --with=systemd
