@@ -1289,6 +1289,51 @@ static int tilde_map_2(httpd_conn *hc)
 #endif				/* TILDE_MAP_2 */
 
 
+/*
+ * Return basename, if the expanded filename is prefixed with vhost
+ */
+static char *drop_vhost_prefix(char *fn, char *vhost)
+{
+	int len;
+	char buf[256];
+
+	len = snprintf(buf, sizeof(buf), "%s/**", vhost) - 2;
+	if (match(buf, fn))
+		fn += len;
+
+	return fn;
+}
+
+/*
+ * Drop vhost prefix for (reserved) shared directories
+ */
+static int is_vhost_shared(httpd_conn *hc)
+{
+	int i;
+	char *fn;
+	char *reserved[] = {
+		"icons/",
+		"cgi-bin/",
+		NULL
+	};
+
+	if (!hc->hs->vhost)
+		return 0;
+
+	fn = drop_vhost_prefix(hc->expnfilename, hc->hostdir);
+	for (i = 0; reserved[i]; i++) {
+		size_t len = strlen(reserved[i]);
+
+		if (!strncmp(fn, reserved[i], len)) {
+			memmove(hc->expnfilename, fn, len);
+			return 1;
+		}
+	}
+
+	return 0;
+}
+
+
 /* Virtual host mapping. */
 static int vhost_map(httpd_conn *hc)
 {
@@ -1302,15 +1347,7 @@ static int vhost_map(httpd_conn *hc)
 #ifdef VHOST_DIRLEVELS
 	int i;
 	char *cp2;
-#endif				/* VHOST_DIRLEVELS */
-
-	/* Allow vhosts to use top level /icons/ */
-	if (!strncmp(hc->expnfilename, "icons/", 6))
-		return 1;
-
-	/* Allow vhosts to use top level /cgi-bin/ */
-	if (!strncmp(hc->expnfilename, "cgi-bin/", 8))
-		return 1;
+#endif
 
 	/* Figure out the virtual hostname. */
 	if (hc->reqhost[0] != '\0')
@@ -2133,8 +2170,14 @@ int httpd_parse_request(httpd_conn *hc)
 	 */
 	cp = expand_symlinks(hc->expnfilename, &pi, hc->hs->no_symlink_check, hc->tildemapped);
 	if (!cp) {
-		httpd_send_err(hc, 500, err500title, "", err500form, hc->encodedurl);
-		return -1;
+		/* Try again for vhosts if shared dirs: /icons, /cgi-bin ... */
+		if (is_vhost_shared(hc))
+			cp = expand_symlinks(hc->expnfilename, &pi, hc->hs->no_symlink_check, hc->tildemapped);
+
+		if (!cp) {
+			httpd_send_err(hc, 500, err500title, "", err500form, hc->encodedurl);
+			return -1;
+		}
 	}
 
 	httpd_realloc_str(&hc->expnfilename, &hc->maxexpnfilename, strlen(cp));
@@ -3320,14 +3363,10 @@ static int cgi(httpd_conn *hc)
  */
 static int is_cgi(httpd_conn *hc)
 {
-	int len;
-	char buf[256];
 	char *fn = hc->expnfilename;
 
-	/* Check if the expanded filename is prefixed with vhost */
-	len = snprintf(buf, sizeof(buf), "%s/**", hc->hostdir) - 2;
-	if (match(buf, fn))
-		fn += len;
+	if (hc->hs->vhost)
+		fn = drop_vhost_prefix(fn, hc->hostdir);
 
 	/* With the vhost prefix out of the way we can match CGI patterns */
 	if (hc->hs->cgi_pattern && match(hc->hs->cgi_pattern, fn))
