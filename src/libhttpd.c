@@ -1308,6 +1308,10 @@ static int vhost_map(httpd_conn *hc)
 	if (!strncmp(hc->expnfilename, "icons/", 6))
 		return 1;
 
+	/* Allow vhosts to use top level /cgi-bin/ */
+	if (!strncmp(hc->expnfilename, "cgi-bin/", 8))
+		return 1;
+
 	/* Figure out the virtual hostname. */
 	if (hc->reqhost[0] != '\0')
 		hc->hostname = hc->reqhost;
