@@ -182,12 +182,10 @@ static void thttpd_logstats(long secs);
 /* SIGTERM and SIGINT say to exit immediately. */
 static void handle_term(int signo)
 {
-	/* Don't need to set up the handler again, since it's a one-shot. */
-
 	shut_down();
 	syslog(LOG_NOTICE, "exiting due to signal %d", signo);
 	closelog();
-	exit(1);
+	exit(0);
 }
 
 
