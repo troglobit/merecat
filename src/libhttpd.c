@@ -2171,6 +2171,7 @@ int httpd_parse_request(httpd_conn *hc)
 	cp = expand_symlinks(hc->expnfilename, &pi, hc->hs->no_symlink_check, hc->tildemapped);
 	if (!cp) {
 		/* Try again for vhosts if shared dirs: /icons, /cgi-bin ... */
+	is_shared:
 		if (is_vhost_shared(hc))
 			cp = expand_symlinks(hc->expnfilename, &pi, hc->hs->no_symlink_check, hc->tildemapped);
 
@@ -2224,6 +2225,10 @@ int httpd_parse_request(httpd_conn *hc)
 			return -1;
 		}
 	}
+
+	/* If not found, check if it exists as shared (vhosts only) */
+	if (stat(hc->expnfilename, &hc->sb) < 0)
+		goto is_shared;
 
 	return 0;
 }
@@ -3393,12 +3398,6 @@ static int really_start_request(httpd_conn *hc, struct timeval *nowP)
 
 	if (hc->method != METHOD_GET && hc->method != METHOD_HEAD && hc->method != METHOD_POST) {
 		httpd_send_err(hc, 501, err501title, "", err501form, httpd_method_str(hc->method));
-		return -1;
-	}
-
-	/* Stat the file. */
-	if (stat(hc->expnfilename, &hc->sb) < 0) {
-		httpd_send_err(hc, 500, err500title, "", err500form, hc->encodedurl);
 		return -1;
 	}
 
