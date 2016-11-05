@@ -1,6 +1,6 @@
 cgidir            = $(WEBDIR)/cgi-bin
 cgi_PROGRAMS      = redirect ssi
-cgi_SCRIPTS       = printenv
+dist_cgi_SCRIPTS  = printenv
 
 redirect_SOURCES  = redirect.c
 redirect_CPPFLAGS = -I$(top_srcdir)/src
