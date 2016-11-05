@@ -18,6 +18,9 @@ AC_CHECK_LIB(crypt, crypt)
 AC_CHECK_LIB(rt, clock_gettime)
 AC_CHECK_LIB(resolv, hstrerror)
 
+AC_ARG_ENABLE(public-html,
+        AS_HELP_STRING([--enable-public-html], [Enable ~user/public_html in non-chrooted setups]))
+
 AC_ARG_WITH([config],
         AS_HELP_STRING([--without-config], [Disable /etc/merecat.conf support using libConfuse]),
 	[], [with_config=yes])
@@ -47,6 +50,9 @@ AC_FUNC_LSTAT_FOLLOWS_SLASHED_SYMLINK
 AC_FUNC_MMAP
 AC_FUNC_WAIT3
 AC_CHECK_FUNCS([alarm atoll bzero clock_gettime daemon dup2 gai_strerror getcwd getaddrinfo gethostbyname gethostname getnameinfo getpass gettimeofday hstrerror inet_ntoa kqueue malloc memmove memset mkdir munmap poll select setlogin setsid sigaction socket strcasecmp strchr strcspn strdup strerror strncasecmp strpbrk strrchr strspn strstr tzset vsnprintf waitpid])
+
+AS_IF([test "x$enable_public_html" = "xyes"], [
+        AC_DEFINE_UNQUOTED(TILDE_MAP_2, "public_html", [Enables ~user/public_html])])
 
 AC_ARG_VAR(WEBDIR, [Document root of your web server [LOCALSTATEDIR/www]])
 AS_IF([test "x${WEBDIR}" = "x"], [
