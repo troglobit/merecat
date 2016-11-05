@@ -3309,6 +3309,30 @@ static int cgi(httpd_conn *hc)
 }
 
 
+/*
+ * This function checks the requested (expanded) filename against the
+ * CGI pattern, taking into account if the filename is prefixed with
+ * a VHOST.
+ */
+static int is_cgi(httpd_conn *hc)
+{
+	int len;
+	char buf[256];
+	char *fn = hc->expnfilename;
+
+	/* Check if the expanded filename is prefixed with vhost */
+	len = snprintf(buf, sizeof(buf), "%s/**", hc->hostdir) - 2;
+	if (match(buf, fn))
+		fn += len;
+
+	/* With the vhost prefix out of the way we can match CGI patterns */
+	if (hc->hs->cgi_pattern && match(hc->hs->cgi_pattern, fn))
+		return 1;
+
+	return 0;
+}
+
+
 static int really_start_request(httpd_conn *hc, struct timeval *nowP)
 {
 	static char *indexname;
@@ -3483,8 +3507,17 @@ static int really_start_request(httpd_conn *hc, struct timeval *nowP)
 		return -1;
 
 	/* Is it world-executable and in the CGI area? */
-	if (hc->hs->cgi_pattern && (hc->sb.st_mode & S_IXOTH) && match(hc->hs->cgi_pattern, hc->expnfilename))
-		return cgi(hc);
+	if (is_cgi(hc)) {
+		if (hc->sb.st_mode & S_IXOTH)
+			return cgi(hc);
+
+		syslog(LOG_DEBUG, "%s URL \"%s\" is a CGI but not executable, rejecting.", httpd_ntoa(&hc->client_addr), hc->encodedurl);
+		httpd_send_err(hc, 403, err403title, "",
+			       ERROR_FORM(err403form,
+					  "The requested URL '%s' resolves to a file which matches a CGI but is not executable; retrieving it is forbidden.\n"),
+			       hc->encodedurl);
+		return -1;
+	}
 
 	/* It's not CGI.  If it's executable or there's pathinfo, someone's
 	 ** trying to either serve or run a non-CGI file as CGI.   Either case
