@@ -870,51 +870,51 @@ static int read_config(char *filename)
 static void lookup_hostname(httpd_sockaddr *sa4P, size_t sa4_len, int *gotv4P, httpd_sockaddr *sa6P, size_t sa6_len, int *gotv6P)
 {
 #ifdef USE_IPV6
-
 	struct addrinfo hints;
-	char portstr[10];
+	char service[10];
 	int gaierr;
 	struct addrinfo *ai;
-	struct addrinfo *ai2;
+	struct addrinfo *ptr;
 	struct addrinfo *aiv6;
 	struct addrinfo *aiv4;
 
-	(void)memset(&hints, 0, sizeof(hints));
+	memset(&hints, 0, sizeof(hints));
 	hints.ai_family = PF_UNSPEC;
 	hints.ai_flags = AI_PASSIVE;
 	hints.ai_socktype = SOCK_STREAM;
-	(void)snprintf(portstr, sizeof(portstr), "%d", (int)port);
-	if ((gaierr = getaddrinfo(hostname, portstr, &hints, &ai)) != 0) {
+	snprintf(service, sizeof(service), "%d", port);
+	if ((gaierr = getaddrinfo(hostname, service, &hints, &ai)) != 0) {
 		syslog(LOG_CRIT, "getaddrinfo %s: %s", hostname, gai_strerror(gaierr));
 		exit(1);
 	}
 
 	/* Find the first IPv6 and IPv4 entries. */
-	aiv6 = (struct addrinfo *)0;
-	aiv4 = (struct addrinfo *)0;
-	for (ai2 = ai; ai2 != (struct addrinfo *)0; ai2 = ai2->ai_next) {
-		switch (ai2->ai_family) {
+	aiv6 = NULL;
+	aiv4 = NULL;
+	for (ptr = ai; ptr; ptr = ptr->ai_next) {
+		switch (ptr->ai_family) {
 		case AF_INET6:
-			if (aiv6 == (struct addrinfo *)0)
-				aiv6 = ai2;
+			if (!aiv6)
+				aiv6 = ptr;
 			break;
+
 		case AF_INET:
-			if (aiv4 == (struct addrinfo *)0)
-				aiv4 = ai2;
+			if (!aiv4)
+				aiv4 = ptr;
 			break;
 		}
 	}
 
-	if (aiv6 == (struct addrinfo *)0)
+	if (!aiv6) {
 		*gotv6P = 0;
-	else {
+	} else {
 		if (sa6_len < aiv6->ai_addrlen) {
 			syslog(LOG_CRIT, "%s - sockaddr too small (%lu < %lu)",
 			       hostname, (unsigned long)sa6_len, (unsigned long)aiv6->ai_addrlen);
 			exit(1);
 		}
-		(void)memset(sa6P, 0, sa6_len);
-		(void)memmove(sa6P, aiv6->ai_addr, aiv6->ai_addrlen);
+		memset(sa6P, 0, sa6_len);
+		memmove(sa6P, aiv6->ai_addr, aiv6->ai_addrlen);
 		*gotv6P = 1;
 	}
 
@@ -926,8 +926,8 @@ static void lookup_hostname(httpd_sockaddr *sa4P, size_t sa4_len, int *gotv4P, h
 			       hostname, (unsigned long)sa4_len, (unsigned long)aiv4->ai_addrlen);
 			exit(1);
 		}
-		(void)memset(sa4P, 0, sa4_len);
-		(void)memmove(sa4P, aiv4->ai_addr, aiv4->ai_addrlen);
+		memset(sa4P, 0, sa4_len);
+		memmove(sa4P, aiv4->ai_addr, aiv4->ai_addrlen);
 		*gotv4P = 1;
 	}
 
@@ -941,9 +941,9 @@ static void lookup_hostname(httpd_sockaddr *sa4P, size_t sa4_len, int *gotv4P, h
 
 	(void)memset(sa4P, 0, sa4_len);
 	sa4P->sa.sa_family = AF_INET;
-	if (hostname == (char *)0)
+	if (!hostname) {
 		sa4P->sa_in.sin_addr.s_addr = htonl(INADDR_ANY);
-	else {
+	} else {
 		sa4P->sa_in.sin_addr.s_addr = inet_addr(hostname);
 		if ((int)sa4P->sa_in.sin_addr.s_addr == -1) {
 			he = gethostbyname(hostname);
