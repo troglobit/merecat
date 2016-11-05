@@ -1290,44 +1290,23 @@ static int tilde_map_2(httpd_conn *hc)
 
 
 /*
- * Return basename, if the expanded filename is prefixed with vhost
+ * Allow vhosts to share top-level icons/ and cgi-bin/
  */
-static char *drop_vhost_prefix(char *fn, char *vhost)
-{
-	int len;
-	char buf[256];
-
-	len = snprintf(buf, sizeof(buf), "%s/**", vhost) - 2;
-	if (match(buf, fn))
-		fn += len;
-
-	return fn;
-}
-
-/*
- * Drop vhost prefix for (reserved) shared directories
- */
-static int is_vhost_shared(httpd_conn *hc)
+static int is_vhost_shared(char *path)
 {
 	int i;
-	char *fn;
-	char *reserved[] = {
+	char *shared[] = {
 		"icons/",
 		"cgi-bin/",
 		NULL
 	};
 
-	if (!hc->hs->vhost)
+	if (!path || path[0] == 0)
 		return 0;
 
-	fn = drop_vhost_prefix(hc->expnfilename, hc->hostdir);
-	for (i = 0; reserved[i]; i++) {
-		size_t len = strlen(reserved[i]);
-
-		if (!strncmp(fn, reserved[i], len)) {
-			memmove(hc->expnfilename, fn, len);
+	for (i = 0; shared[i]; i++) {
+		if (!strncmp(path, shared[i], strlen(shared[i])))
 			return 1;
-		}
 	}
 
 	return 0;
@@ -2170,19 +2149,22 @@ int httpd_parse_request(httpd_conn *hc)
 	 */
 	cp = expand_symlinks(hc->expnfilename, &pi, hc->hs->no_symlink_check, hc->tildemapped);
 	if (!cp) {
-		/* Try again for vhosts if shared dirs: /icons, /cgi-bin ... */
-			cp = expand_symlinks(hc->expnfilename, &pi, hc->hs->no_symlink_check, hc->tildemapped);
-
-		if (!cp) {
-			httpd_send_err(hc, 500, err500title, "", err500form, hc->encodedurl);
-			return -1;
-		}
+		httpd_send_err(hc, 500, err500title, "", err500form, hc->encodedurl);
+		return -1;
 	}
 
-	httpd_realloc_str(&hc->expnfilename, &hc->maxexpnfilename, strlen(cp));
-	(void)strcpy(hc->expnfilename, cp);
-	httpd_realloc_str(&hc->pathinfo, &hc->maxpathinfo, strlen(pi));
-	(void)strcpy(hc->pathinfo, pi);
+	/* Fall back to shared (restricted) top-level directory for missing files */
+	if (hc->hs->vhost && is_vhost_shared(pi)) {
+		httpd_realloc_str(&hc->expnfilename, &hc->maxexpnfilename, strlen(pi));
+		strcpy(hc->expnfilename, pi);
+		httpd_realloc_str(&hc->pathinfo, &hc->maxpathinfo, 1);
+		strcpy(hc->pathinfo, "");
+	} else {
+		httpd_realloc_str(&hc->expnfilename, &hc->maxexpnfilename, strlen(cp));
+		strcpy(hc->expnfilename, cp);
+		httpd_realloc_str(&hc->pathinfo, &hc->maxpathinfo, strlen(pi));
+		strcpy(hc->pathinfo, pi);
+	}
 
 	/* Remove pathinfo stuff from the original filename too. */
 	if (hc->pathinfo[0] != '\0') {
@@ -3364,8 +3346,14 @@ static int is_cgi(httpd_conn *hc)
 {
 	char *fn = hc->expnfilename;
 
-	if (hc->hs->vhost)
-		fn = drop_vhost_prefix(fn, hc->hostdir);
+	if (hc->hs->vhost) {
+		int len;
+		char buf[256];
+
+		len = snprintf(buf, sizeof(buf), "%s/**", hc->hostdir) - 2;
+		if (match(buf, fn))
+			fn += len;
+	}
 
 	/* With the vhost prefix out of the way we can match CGI patterns */
 	if (hc->hs->cgi_pattern && match(hc->hs->cgi_pattern, fn))
