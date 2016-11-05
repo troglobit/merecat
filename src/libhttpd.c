@@ -125,7 +125,7 @@ static void defang(char *str, char *dfstr, int dfsize);
 
 #ifdef ERR_DIR
 static int send_err_file(httpd_conn *hc, int status, char *title, char *extraheads, char *filename);
-#endif				/* ERR_DIR */
+#endif
 #ifdef AUTH_FILE
 static void send_authenticate(httpd_conn *hc, char *realm);
 static int b64_decode(const char *str, unsigned char *space, int size);
@@ -747,6 +747,7 @@ static void send_response(httpd_conn *hc, int status, char *title, char *extrahe
 			add_response(hc, "Padding so that MSIE deigns to show this error instead of its own canned one.\n");
 		add_response(hc, "-->\n");
 	}
+	add_response(hc, "</p>");
 	send_response_tail(hc);
 }
 
@@ -770,7 +771,6 @@ static void send_response_tail(httpd_conn *hc)
 	char buf[1000];
 
 	my_snprintf(buf, sizeof(buf),
-		    "</p>\n"
 		    " <address>%s httpd at %s port %d</address>\n"
 		    "</div>\n"
 		    "</body>\n"
@@ -826,7 +826,6 @@ void httpd_send_err(httpd_conn *hc, int status, char *title, char *extraheads, c
 
 	/* Fall back on built-in error page. */
 	send_response(hc, status, title, extraheads, form, arg);
-
 #else
 	send_response(hc, status, title, extraheads, form, arg);
 #endif
