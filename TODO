@@ -1,9 +1,8 @@
 - - - - - - - - - - before release - - - - - - - - - -
 
-- make install does not install icons for dir listing
-- look into integrating HTTPS support using Libre/OpenSSL and GnuTLS
-
 - - - - - - - - - - high priority - - - - - - - - - -
+
+Look into integrating HTTPS support using Libre/OpenSSL and GnuTLS
 
 IPv6 not working right.
 
@@ -15,12 +14,6 @@ Fetches with numeric IP addresses and no Host: header are screwing up the
 vhost code?
 143.90.193.229 - - [06/Apr/2000:09:21:34 -0700] "GET /209.133.38.22/software/thttpd/ HTTP/1.0" 200 12093 "http://www.dbphotography.demon.co.uk/index.html" "Mozilla/1.22 (compatible; MSIE 2.0; Windows 95)"
 143.90.193.229 - - [06/Apr/2000:09:21:37 -0700] "GET /143.90.193.229/software/thttpd/anvil_thttpd.gif HTTP/1.0" 403 - "http://www.acme.com/software/thttpd/" "Mozilla/1.22 (compatible; MSIE 2.0; Windows 95)"
-
-Have directory indexing skip files that start with dot?  Except ..?
-In libhttpd.c:
-+               if (*(de->d_name) == '.' && *(de->d_name+1) != '.')
-+                   continue;
-                namlen = NAMLEN(de);
 
 Add comment on INDEX_NAMES that it should be simple filenames only.
 
