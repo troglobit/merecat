@@ -1,3 +1,10 @@
+merecat (2.31-3) unstable; urgency=low
+
+  * Fixes to landing page: layout, spelling, grammar, and helpful pointers
+    by Martin Olsson.
+
+ -- Joachim Nilsson <troglobit@gmail.com>  Mon,  6 Nov 2016 03:49:42 +0100
+
 merecat (2.31-2) unstable; urgency=low
 
   * Fix spelling: Meerekat --> Meerkat, reported by Anders Bornäs.
