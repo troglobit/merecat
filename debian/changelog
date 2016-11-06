@@ -1,3 +1,9 @@
+merecat (2.31-2) unstable; urgency=low
+
+  * Fix spelling: Meerekat --> Meerkat, reported by Anders Bornäs.
+
+ -- Joachim Nilsson <troglobit@gmail.com>  Mon,  6 Nov 2016 01:03:42 +0100
+
 merecat (2.31-1) unstable; urgency=low
 
   * New upstream release, for details see the ChangeLog at GitHub
