@@ -2,7 +2,7 @@
 <html>
 <head>
   <meta charset="UTF-8">
-  <title>Welcome to the Web</title>
+  <title>Welcome to the Merecat web server</title>
   <link rel="stylesheet" type="text/css" href="main.css">
 </head>
 <body>
@@ -12,63 +12,69 @@
  </div>
  <div id="right">
   <a href="http://imgur.com/gallery/Yqty6rI">
-	<img style="width: 80%; height: auto;" src="img/merecat.jpg" />
+	<img style="width: 80%; height: auto;" src="img/merecat.jpg" title="I think they're kitten suspicious ..." alt="A mere cat among a group of meerekats" />
   </a>
  </div>
  <div id="left">
  <div id="leftcontent">
 <p>
   Welcome to the Merecat web server.  This is the default landing
-  page for new installations, seeing this means the web server is
+  page for new installations.  Seeing this means the web server is
   working and the owner has not set up any pages of their own yet.
 </p>
 <h3>About</h3>
 <p>
   Merecat started out as a pun at
-  <a href="https://github.com/cesanta/mongoose">Monoose</a>, but is
+  <a href="https://github.com/cesanta/mongoose">Mongoose</a>, but is
   now useful for actual web serving purposes.  However, it is not a
   real <a href="https://en.wikipedia.org/wiki/Meerkat">Meerkat</a>,
-  merely another copycat, forked from the great
-  <a href="http://www.acme.com/software/thttpd/">thttpd</a> created
-  by Jef Poskanzer.
+  merely another copycat, forked from 
+  <a href="http://www.acme.com/software/thttpd/">thttpd</a>.
 </p>
 <p>
   The limited feature set makes it very quick.  Virtual hosts and
   the URL-traffic-based throttling are just about its only features.
-  This small footprint makes Merecat very suitable for small and
-  embedded systems, even those smaller than a Raspberry Pi.
+  The resulting footprint makes Merecat very suitable for small and
+  embedded systems.
+</p>
+<h3>Credits</h3>
+<p>
+  <a href="http://www.acme.com">Jef Poskanzer</a> for creating thttpd.
+  Anthony G. Basile for <a href="https://github.com/blueness/sthttpd/">sthttpd</a>,
+  and all the fixes.  <a href="http://imgur.com/user/SunShot">SunShot</a>
+  for the Mere Cat meme, huge props!
 </p>
 <h3>Usage</h3>
 <p>
   <pre>
 Usage: merecat [OPTIONS] [WEBROOT] [HOSTNAME]
 
-  -c CGI     CGI pattern to allow, e.g. "**", "*.cgi", "/cgi-bin/*"
-  -d DIR     Optional DIR to change into after chrooting to WEBROOT
-  -g         Use global password file, .htpasswd
-  -h         This help text
-  -l LEVEL   Set log level: none, err, info, notice*, debug
-  -n         Run in foreground, do not detach from controlling terminal
-  -p PORT    Port to listen to, default 80
-  -r         Chroot into WEBROOT
-  -s         Check symlinks so they don't point outside WEBROOT
-  -t FILE    Throttle file
-  -u USER    Username to drop to, default: nobody
-  -v         Enable virtual hosting with WEBROOT as base
-  -V         Show Merecat httpd version
+-c CGI    CGI pattern to allow, e.g. "**", "*.cgi", "/cgi-bin/*"
+-d DIR    Optional DIR to change into after chrooting to WEBROOT
+-g        Use global password file, .htpasswd
+-h        This help text
+-l LEVEL  Set log level: none, err, info, notice*, debug
+-n        Run in foreground, do not detach from terminal
+-p PORT   Port to listen to, default 80
+-r        Chroot into WEBROOT
+-s        Check symlinks so they don't point outside WEBROOT
+-t FILE   Throttle file
+-u USER   Username to drop to, default: nobody
+-v        Enable virtual hosting with WEBROOT as base
+-V        Show Merecat httpd version
 
-The 'WEBROOT' defaults to the current directory and 'HOSTNAME' is only
-for virtual hosting, to run one httpd per hostname.  The '-d DIR' is
-not needed in virtual hosting mode, see merecat(8) for more information
-on virtual hosting</pre>
-<tt>Bug report address: <a href="https://github.com/troglobit/merecat/issues">https://github.com/troglobit/merecat/issues</a></tt>
+'WEBROOT' defaults to the current directory
+'HOSTNAME' is for virtual hosting (one httpd per hostname)
+
+Note: '-d DIR' is not needed in virtual hosting mode, see
+      merecat(8) for more information on virtual hosting.</pre>
+<tt>Bug reports: <a href="https://github.com/troglobit/merecat/issues">https://github.com/troglobit/merecat/issues</a></tt>
 </p>
 <h3>Virtual Hosts</h3>
 <p>
-  Serving multiple (virtual) hosts from one server, e.g.
-  ftp.example.com, git.example.com, and www.example.com can be a bit
-  of a hassle to set up with other web servers.  To do this with
-  merecat, create directories for each host in the web server root:
+  Setting up virtual hosts on a server can be a bit of a hassle with
+  other web servers.  With Merecat you simply create directories for
+  each host in the web server root:
 </p>
 <pre>
      /var/www/
@@ -77,23 +83,19 @@ on virtual hosting</pre>
        |-- errors/
        |    `-- err404.html
        |-- ftp.example.com/
-       |-- git.example.com/
        `-- www.example.com/
 </pre>
 <p>
   Then set <tt>virtual-host=true</tt> in <tt>/etc/merecat.conf</tt>.
-  Now, the web server root no longer serves files, only the virtual
+  Now the web server root no longer serves files, only the virtual
   host directories do, execpt for the shared files
-  in <tt>icons/</tt> and <tt>cgi-bin/</tt>
+  in <tt>icons/</tt>, <tt>cgi-bin/</tt>, and <tt>errors/</tt>.
 </p>
 <p>
-  On Linux you can bind mount <tt>/srv/ftp</tt>
-  and <tt>/usr/share/gitweb/</tt> to the above directories to reduce
-  the amount of work needed to set up shared FTP and web access to
-  the same files.  In <tt>/etc/fstab</tt> it can look like this:
+  On Linux bind mounts can be used to set up FTP and web access to the
+  same files.  Example <tt>/etc/fstab</tt>:
   <pre>
-/srv/ftp           /var/www/ftp.example.com  none  defaults,bind  0  0
-/usr/share/gitweb  /var/www/git.example.com  none  defaults,bind  0  0
+/srv/ftp  /var/www/ftp.example.com  none  defaults,bind  0  0
   </pre>
 </p>
 </div>
@@ -102,9 +104,9 @@ on virtual hosting</pre>
  <div id="rightcontent">
 <h3>Configuration</h3>
 <p>
-  This section provides a brief overview of available settings in
-  <tt>/etc/merecat.conf</tt>, see the merecat(8) man page for more
-  information.  In particular, the throttling configuration.
+  This section provides a brief overview of settings available in
+  <tt>/etc/merecat.conf</tt>.  See the merecat(8) man page for more
+  information, in particular the throttling configuration.
 </p>
 <dl class="config">
   <dt>port = NUM</dt>
