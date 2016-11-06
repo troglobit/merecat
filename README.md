@@ -5,7 +5,7 @@ Merecat httpd ∴ Small Simple Speedy Server
 <img align="right" width="500" src="www/img/merecat.jpg">
 
 [Merecat][] started out as a pun at [Mongoose][], but is now useful for
-actual web serving purposes.  It is however not a real [Meerekat][],
+actual web serving purposes.  It is however not a real [Meerkat][],
 merely yet another copycat, forked from the great [thttpd][] created by
 Jef&nbsp;Poskanzer.
 
@@ -56,7 +56,7 @@ fork of [thttpd][] -- the tiny/turbo/throttling HTTP server.
 
 
 [Merecat]:       https://github.com/troglobit/merecat/
-[Meerekat]:      https://en.wikipedia.org/wiki/Meerkat
+[Meerkat]:       https://en.wikipedia.org/wiki/Meerkat
 [license]:       https://github.com/troglobit/merecat/blob/master/LICENSE
 [Mongoose]:      https://github.com/cesanta/mongoose
 [FAQ]:           http://halplant.com:2001/server/thttpd_FAQ.html
