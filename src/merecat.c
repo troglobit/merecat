@@ -74,7 +74,8 @@
 	sa.sa_handler = cb;		\
 	(void)sigaction(signo, &sa, NULL)
 
-extern char *__progname;
+/* Instead of non-portable __progname */
+char        *prognm;
 
 static int   background        = 1;
 static int   loglevel          = LOG_NOTICE;
@@ -333,7 +334,7 @@ static int usage(int code)
 	       "  -u USER    Username to drop to, default: nobody\n"
 	       "  -v         Enable virtual hosting with WEBROOT as base\n"
 	       "  -V         Show Merecat httpd version\n"
-	       "\n", __progname);
+	       "\n", prognm);
 	printf("The optional 'WEBROOT' defaults to the current directory and 'HOSTNAME' is only\n"
 	       "for virtual hosting, to run one httpd per hostname.  The '-d DIR' is not needed\n"
 	       "in virtual hosting mode, see merecat(8) for more information on virtual hosting\n"
@@ -346,6 +347,19 @@ static int version(void)
 {
 	printf("%s\n", PACKAGE_VERSION);
 	return 0;
+}
+
+static char *progname(char *arg0)
+{
+       char *nm;
+
+       nm = strrchr(arg0, '/');
+       if (nm)
+	       nm++;
+       else
+	       nm = arg0;
+
+       return nm;
 }
 
 int main(int argc, char **argv)
@@ -369,6 +383,7 @@ int main(int argc, char **argv)
 	struct timeval tv;
 	struct sigaction sa;
 
+	prognm = progname(argv[0]);
 	while ((c = getopt(argc, argv, CONF_FILE_OPT "c:d:ghl:np:rsu:vV")) != EOF) {
 		switch (c) {
 #ifdef HAVE_LIBCONFUSE
@@ -440,12 +455,12 @@ int main(int argc, char **argv)
 	if (optind < argc)
 		hostname = strdup(argv[optind++]);
 
-	openlog(__progname, log_opts, LOG_FACILITY);
+	openlog(prognm, log_opts, LOG_FACILITY);
 	setlogmask(LOG_UPTO(loglevel));
 
 #ifdef HAVE_LIBCONFUSE
 	if (read_config(config)) {
-		fprintf(stderr, "%s: Failed reading config file '%s': %s\n", __progname, config, strerror(errno));
+		fprintf(stderr, "%s: Failed reading config file '%s': %s\n", prognm, config, strerror(errno));
 		return 1;
 	}
 #endif
