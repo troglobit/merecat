@@ -111,6 +111,13 @@ extern char *crypt(const char *key, const char *setting);
 #define MIN(a,b) ((a) < (b) ? (a) : (b))
 #endif
 
+#define SETSOCKOPT(sd, level, opt)					\
+	do {								\
+		int val = 1;						\
+		if (setsockopt(sd, level, opt, &val, sizeof(val)) < 0)	\
+			syslog(LOG_CRIT, "Failed enabling %s: %s",	\
+			       #opt, strerror(errno));			\
+	} while (0)
 
 /* Forwards. */
 static void check_options(void);
@@ -361,7 +368,7 @@ httpd_server *httpd_initialize(char *hostname, httpd_sockaddr *sa4P, httpd_socka
 static int initialize_listen_socket(httpd_sockaddr *saP)
 {
 	int listen_fd;
-	int on, flags;
+	int flags;
 
 	/* Check sockaddr. */
 	if (!sockaddr_check(saP)) {
@@ -378,10 +385,10 @@ static int initialize_listen_socket(httpd_sockaddr *saP)
 	(void)fcntl(listen_fd, F_SETFD, 1);
 
 	/* Allow reuse of local addresses. */
-	on = 1;
-	if (setsockopt(listen_fd, SOL_SOCKET, SO_REUSEADDR, (char *)&on, sizeof(on)) < 0)
-		syslog(LOG_CRIT, "setsockopt SO_REUSEADDR: %s", strerror(errno));
-
+	SETSOCKOPT(listen_fd, SOL_SOCKET, SO_REUSEADDR);
+#ifdef SO_REUSEPORT
+	SETSOCKOPT(listen_fd, SOL_SOCKET, SO_REUSEPORT);
+#endif
 	/* Bind to it. */
 	if (bind(listen_fd, &saP->sa, sockaddr_len(saP)) < 0) {
 		syslog(LOG_CRIT, "bind %s: %s", httpd_ntoa(saP), strerror(errno));
