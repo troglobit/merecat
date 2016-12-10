@@ -419,11 +419,11 @@ static int initialize_listen_socket(httpd_sockaddr *saP)
 #endif
 		struct accept_filter_arg af;
 
-		(void)bzero(&af, sizeof(af));
-		(void)strcpy(af.af_name, ACCEPT_FILTER_NAME);
-		(void)setsockopt(listen_fd, SOL_SOCKET, SO_ACCEPTFILTER, (char *)&af, sizeof(af));
+		memset(&af, 0, sizeof(af));
+		strcpy(af.af_name, ACCEPT_FILTER_NAME);
+		setsockopt(listen_fd, SOL_SOCKET, SO_ACCEPTFILTER, &af, sizeof(af));
 	}
-#endif				/* SO_ACCEPTFILTER */
+#endif /* SO_ACCEPTFILTER */
 
 	return listen_fd;
 }

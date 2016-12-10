@@ -49,7 +49,7 @@ AC_FUNC_FORK
 AC_FUNC_LSTAT_FOLLOWS_SLASHED_SYMLINK
 AC_FUNC_MMAP
 AC_FUNC_WAIT3
-AC_CHECK_FUNCS([alarm atoll bzero clock_gettime daemon dup2 gai_strerror getcwd getaddrinfo gethostbyname gethostname getnameinfo getpass gettimeofday hstrerror inet_ntoa kqueue malloc memmove memset mkdir munmap poll select setlogin setsid sigaction socket strcasecmp strchr strcspn strdup strerror strncasecmp strpbrk strrchr strspn strstr tzset vsnprintf waitpid])
+AC_CHECK_FUNCS([alarm atoll clock_gettime daemon dup2 gai_strerror getcwd getaddrinfo gethostbyname gethostname getnameinfo getpass gettimeofday hstrerror inet_ntoa kqueue malloc memmove memset mkdir munmap poll select setlogin setsid sigaction socket strcasecmp strchr strcspn strdup strerror strncasecmp strpbrk strrchr strspn strstr tzset vsnprintf waitpid])
 
 AS_IF([test "x$enable_public_html" = "xyes"], [
         AC_DEFINE_UNQUOTED(TILDE_MAP_2, "public_html", [Enables ~user/public_html])])
