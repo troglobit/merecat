@@ -48,14 +48,14 @@ To install `httpd` into `/usr/sbin/`, default index and icons into
 Origin & References
 -------------------
 
-Merecat forked from [sthttpd][] by Anthony G. Basile, which in turn is a
-fork of [thttpd][] -- the tiny/turbo/throttling HTTP server.
+Merecat is a fork of [sthttpd][], which in turn is a fork of the
+original [thttpd][] -- the tiny/turbo/throttling HTTP server.
 
 * [thttpd][] was written by Jef Poskanzer <mailto:jef@mail.acme.com>
 * [sthttpd][] was created by Anthony G. Basile <mailto:blueness@gentoo.org>
 
 
-[Merecat]:       https://github.com/troglobit/merecat/
+[Merecat]:       http://merecat.troglobit.com
 [Meerkat]:       https://en.wikipedia.org/wiki/Meerkat
 [license]:       https://github.com/troglobit/merecat/blob/master/LICENSE
 [Mongoose]:      https://github.com/cesanta/mongoose
