@@ -23,9 +23,9 @@ Build Requirements
 ------------------
 
 Merecat depends on [libConfuse](https://github.com/martinh/libconfuse/)
-which by default installs to `/usr/local`.  Non Debian/Ubuntu systems
-rarely support this GNU standard, so this is how you reference it for
-the Merecat `configure` script:
+which, if built from source, by default installs to `/usr/local`.  Non
+Debian/Ubuntu systems rarely support this GNU standard, so this is how
+you reference it for the Merecat `configure` script:
 
     PKG_CONFIG_LIBDIR=/usr/local/lib/pkgconfig ./configure
 
