@@ -1,5 +1,5 @@
 AC_PREREQ([2.68])
-AC_INIT([Merecat httpd], [2.31], [https://github.com/troglobit/merecat/issues], [merecat])
+AC_INIT([Merecat httpd], [2.32-beta1], [https://github.com/troglobit/merecat/issues], [merecat])
 AC_CONFIG_SRCDIR([src/libhttpd.c])
 AC_CONFIG_HEADERS([config.h])
 AM_INIT_AUTOMAKE([1.11 foreign no-dist-gzip dist-xz])
