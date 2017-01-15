@@ -19,6 +19,19 @@ For questions see the included `merecat(8)` man page or the [FAQ][].
 Merecat is free software under the simplified 2-clause [BSD license][license].
 
 
+Authentication
+--------------
+
+To protect a directory in your `~USERNAME/public_html/`, create a simple
+`.htpasswd` file using the included `htpasswd` tool:
+
+    cd ~/public_html/Downloads
+    htpasswd -c .htpasswd friend
+	Changing password for user friend
+    New password: *****
+    Re-type new password: *****
+
+
 Build Requirements
 ------------------
 
