@@ -150,6 +150,12 @@
 */
 #define AUTH_FILE ".htpasswd"
 
+/*
+** This file is ignored by merecat but may exist on systems where
+** another webserver has been used before.
+*/
+#define AUTH_IGNORE ".htaccess"
+
 /* CONFIGURE: The default character set name to use with text MIME types.
 ** This gets substituted into the MIME types where they have a "%s".
 **

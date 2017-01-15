@@ -3595,8 +3595,8 @@ static int really_start_request(httpd_conn *hc, struct timeval *nowP)
 		return -1;
 
 	/* Check if the filename is the AUTH_FILE itself - that's verboten. */
-	if (expnlen == sizeof(AUTH_FILE) - 1) {
-		if (strcmp(hc->expnfilename, AUTH_FILE) == 0) {
+	if (expnlen == sizeof(AUTH_FILE) - 1 || expnlen == sizeof(AUTH_IGNORE) - 1) {
+		if (!strcmp(hc->expnfilename, AUTH_FILE) || !strcmp(hc->expnfilename, AUTH_IGNORE)) {
 			syslog(LOG_NOTICE,
 			       "%s URL \"%s\" tried to retrieve an auth file", httpd_ntoa(&hc->client_addr), hc->encodedurl);
 			httpd_send_err(hc, 403, err403title, "",
