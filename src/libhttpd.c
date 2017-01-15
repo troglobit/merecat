@@ -38,7 +38,7 @@
 #include <fcntl.h>
 #ifdef HAVE_MEMORY_H
 #include <memory.h>
-#endif				/* HAVE_MEMORY_H */
+#endif
 #include <pwd.h>
 #include <signal.h>
 #include <stdio.h>
@@ -50,7 +50,7 @@
 
 #ifdef HAVE_OSRELDATE_H
 #include <osreldate.h>
-#endif				/* HAVE_OSRELDATE_H */
+#endif
 
 #ifdef HAVE_DIRENT_H
 # include <dirent.h>
@@ -82,9 +82,9 @@ extern char *crypt(const char *key, const char *setting);
 
 #ifdef SHOW_SERVER_VERSION
 #define EXPOSED_SERVER_SOFTWARE SERVER_SOFTWARE
-#else				/* SHOW_SERVER_VERSION */
+#else
 #define EXPOSED_SERVER_SOFTWARE PACKAGE_NAME
-#endif				/* SHOW_SERVER_VERSION */
+#endif
 
 #ifndef STDIN_FILENO
 #define STDIN_FILENO 0
@@ -138,20 +138,20 @@ static void send_authenticate(httpd_conn *hc, char *realm);
 static int b64_decode(const char *str, unsigned char *space, int size);
 static int auth_check(httpd_conn *hc, char *dirname);
 static int auth_check2(httpd_conn *hc, char *dirname);
-#endif				/* AUTH_FILE */
+#endif
 static void send_dirredirect(httpd_conn *hc);
 static int hexit(char c);
 static void strdecode(char *to, char *from);
 
 #ifdef GENERATE_INDEXES
 static void strencode(char *to, int tosize, char *from);
-#endif				/* GENERATE_INDEXES */
+#endif
 #ifdef TILDE_MAP_1
 static int tilde_map_1(httpd_conn *hc);
-#endif				/* TILDE_MAP_1 */
+#endif
 #ifdef TILDE_MAP_2
 static int tilde_map_2(httpd_conn *hc);
-#endif				/* TILDE_MAP_2 */
+#endif
 static int vhost_map(httpd_conn *hc);
 static char *expand_symlinks(char *path, char **restP, int no_symlink_check, int tildemapped);
 static char *bufgets(httpd_conn *hc);
@@ -162,15 +162,15 @@ static void figure_mime(httpd_conn *hc);
 #ifdef CGI_TIMELIMIT
 static void cgi_kill2(ClientData client_data, struct timeval *nowP);
 static void cgi_kill(ClientData client_data, struct timeval *nowP);
-#endif				/* CGI_TIMELIMIT */
+#endif
 #ifdef GENERATE_INDEXES
 static int ls(httpd_conn *hc);
-#endif				/* GENERATE_INDEXES */
+#endif
 static char *build_env(char *fmt, char *arg);
 
 #ifdef SERVER_NAME_LIST
 static char *hostname_map(char *hostname);
-#endif				/* SERVER_NAME_LIST */
+#endif
 static char **make_envp(httpd_conn *hc);
 static char **make_argp(httpd_conn *hc);
 static void cgi_interpose_input(httpd_conn *hc, int wfd);
@@ -188,7 +188,7 @@ static int my_snprintf(char *str, size_t size, const char *format, ...);
 
 #ifndef HAVE_ATOLL
 static long long atoll(const char *str);
-#endif				/* HAVE_ATOLL */
+#endif
 
 
 /* This global keeps track of whether we are in the main process or a
@@ -207,7 +207,7 @@ static void check_options(void)
 #if defined(TILDE_MAP_1) && defined(TILDE_MAP_2)
 	syslog(LOG_CRIT, "both TILDE_MAP_1 and TILDE_MAP_2 are defined");
 	exit(1);
-#endif				/* both */
+#endif
 }
 
 
@@ -264,15 +264,15 @@ httpd_server *httpd_initialize(char *hostname, httpd_sockaddr *sa4P, httpd_socka
 #ifdef SERVER_NAME_LIST
 		if (ghnbuf[0] != '\0')
 			hs->server_hostname = hostname_map(ghnbuf);
-#endif				/* SERVER_NAME_LIST */
+#endif
 
 		if (!hs->server_hostname) {
 #ifdef SERVER_NAME
 			hs->server_hostname = SERVER_NAME;
-#else				/* SERVER_NAME */
+#else
 			if (ghnbuf[0] != '\0')
 				hs->server_hostname = ghnbuf;
-#endif				/* SERVER_NAME */
+#endif
 		}
 	}
 
@@ -463,9 +463,9 @@ void httpd_unlisten(httpd_server *hs)
 */
 #ifdef EXPLICIT_ERROR_PAGES
 #define ERROR_FORM(a,b) b
-#else				/* EXPLICIT_ERROR_PAGES */
+#else
 #define ERROR_FORM(a,b) a
-#endif				/* EXPLICIT_ERROR_PAGES */
+#endif
 
 
 static char *ok200title = "OK";
@@ -482,13 +482,13 @@ char *httpd_err400form = "Your request has bad syntax or is inherently impossibl
 #ifdef AUTH_FILE
 static char *err401title = "Unauthorized";
 static char *err401form = "Authorization required for the URL '%s'.\n";
-#endif				/* AUTH_FILE */
+#endif
 
 static char *err403title = "Forbidden";
 
 #ifndef EXPLICIT_ERROR_PAGES
 static char *err403form = "You do not have permission to get URL '%s' from this server.\n";
-#endif				/* !EXPLICIT_ERROR_PAGES */
+#endif
 
 static char *err404title = "Not Found";
 static char *err404form = "The requested URL '%s' was not found on this server.\n";
@@ -862,11 +862,11 @@ static int send_err_file(httpd_conn *hc, int status, char *title, char *extrahea
 
 #ifdef ERR_APPEND_SERVER_INFO
 	send_response_tail(hc);
-#endif				/* ERR_APPEND_SERVER_INFO */
+#endif
 
 	return 1;
 }
-#endif				/* ERR_DIR */
+#endif /* ERR_DIR */
 
 
 #ifdef AUTH_FILE
@@ -939,18 +939,21 @@ static int b64_decode(const char *str, unsigned char *space, int size)
 			case 0:
 				++phase;
 				break;
+
 			case 1:
 				c = ((prev_d << 2) | ((d & 0x30) >> 4));
 				if (space_idx < size)
 					space[space_idx++] = c;
 				++phase;
 				break;
+
 			case 2:
 				c = (((prev_d & 0xf) << 4) | ((d & 0x3c) >> 2));
 				if (space_idx < size)
 					space[space_idx++] = c;
 				++phase;
 				break;
+
 			case 3:
 				c = (((prev_d & 0x03) << 6) | d);
 				if (space_idx < size)
@@ -961,6 +964,7 @@ static int b64_decode(const char *str, unsigned char *space, int size)
 			prev_d = d;
 		}
 	}
+
 	return space_idx;
 }
 
@@ -975,13 +979,16 @@ static int auth_check(httpd_conn *hc, char *dirname)
 			topdir = hc->hostdir;
 		else
 			topdir = ".";
+
 		switch (auth_check2(hc, topdir)) {
 		case -1:
 			return -1;
+
 		case 1:
 			return 1;
 		}
 	}
+
 	return auth_check2(hc, dirname);
 }
 
@@ -1048,16 +1055,17 @@ static int auth_check2(httpd_conn *hc, char *dirname)
 		crypt_result = crypt(authpass, prevcryp);
 		if (!crypt_result)
 			return -1;
+
 		if (strcmp(crypt_result, prevcryp) == 0) {
 			/* Ok! */
 			httpd_realloc_str(&hc->remoteuser, &hc->maxremoteuser, strlen(authinfo));
 			(void)strcpy(hc->remoteuser, authinfo);
 			return 1;
-		} else {
-			/* No. */
-			send_authenticate(hc, dirname);
-			return -1;
 		}
+
+		/* No. */
+		send_authenticate(hc, dirname);
+		return -1;
 	}
 
 	/* Open the password file. */
@@ -1108,21 +1116,22 @@ static int auth_check2(httpd_conn *hc, char *dirname)
 				httpd_realloc_str(&prevcryp, &maxprevcryp, strlen(cryp));
 				(void)strcpy(prevcryp, cryp);
 				return 1;
-			} else {
-				/* No. */
-				send_authenticate(hc, dirname);
-				return -1;
 			}
+
+			/* No. */
+			send_authenticate(hc, dirname);
+			return -1;
 		}
 	}
 
 	/* Didn't find that user.  Access denied. */
 	(void)fclose(fp);
 	send_authenticate(hc, dirname);
+
 	return -1;
 }
 
-#endif				/* AUTH_FILE */
+#endif /* AUTH_FILE */
 
 
 static void send_dirredirect(httpd_conn *hc)
@@ -1178,7 +1187,8 @@ static int hexit(char c)
 		return c - 'a' + 10;
 	if (c >= 'A' && c <= 'F')
 		return c - 'A' + 10;
-	return 0;		/* shouldn't happen, we're guarded by isxdigit() */
+
+	return 0;    /* shouldn't happen, we're guarded by isxdigit() */
 }
 
 
@@ -1191,8 +1201,9 @@ static void strdecode(char *to, char *from)
 		if (from[0] == '%' && isxdigit(from[1]) && isxdigit(from[2])) {
 			*to = hexit(from[1]) * 16 + hexit(from[2]);
 			from += 2;
-		} else
+		} else {
 			*to = *from;
+		}
 	}
 	*to = '\0';
 }
@@ -1217,7 +1228,7 @@ static void strencode(char *to, int tosize, char *from)
 	}
 	*to = '\0';
 }
-#endif				/* GENERATE_INDEXES */
+#endif /* GENERATE_INDEXES */
 
 
 #ifdef TILDE_MAP_1
@@ -1239,7 +1250,7 @@ static int tilde_map_1(httpd_conn *hc)
 	(void)strcat(hc->expnfilename, temp);
 	return 1;
 }
-#endif				/* TILDE_MAP_1 */
+#endif /* TILDE_MAP_1 */
 
 #ifdef TILDE_MAP_2
 /* Map a ~username/whatever URL into <user's homedir>/<postfix>. */
@@ -1292,7 +1303,7 @@ static int tilde_map_2(httpd_conn *hc)
 
 	return 1;
 }
-#endif				/* TILDE_MAP_2 */
+#endif /* TILDE_MAP_2 */
 
 
 /*
@@ -1380,10 +1391,10 @@ static int vhost_map(httpd_conn *hc)
 		*cp2++ = '/';
 	}
 	(void)strcpy(cp2, hc->hostname);
-#else				/* VHOST_DIRLEVELS */
+#else /* VHOST_DIRLEVELS */
 	httpd_realloc_str(&hc->hostdir, &hc->maxhostdir, strlen(hc->hostname));
 	(void)strcpy(hc->hostdir, hc->hostname);
-#endif				/* VHOST_DIRLEVELS */
+#endif /* VHOST_DIRLEVELS */
 
 	/* Prepend hostdir to the filename. */
 	len = strlen(hc->expnfilename);
@@ -1393,6 +1404,7 @@ static int vhost_map(httpd_conn *hc)
 	(void)strcpy(hc->expnfilename, hc->hostdir);
 	(void)strcat(hc->expnfilename, "/");
 	(void)strcat(hc->expnfilename, tempfilename);
+
 	return 1;
 }
 
@@ -1437,14 +1449,17 @@ static char *expand_symlinks(char *path, char **restP, int no_symlink_check, int
 			checkedlen = strlen(path);
 			httpd_realloc_str(&checked, &maxchecked, checkedlen);
 			(void)strcpy(checked, path);
+
 			/* Trim trailing slashes. */
 			while (checkedlen && checked[checkedlen - 1] == '/') {
 				checked[checkedlen - 1] = '\0';
 				--checkedlen;
 			}
+
 			httpd_realloc_str(&rest, &maxrest, 0);
 			rest[0] = '\0';
 			*restP = rest;
+
 			return checked;
 		}
 	}
@@ -1618,7 +1633,7 @@ int httpd_get_conn(httpd_server *hs, int listen_fd, httpd_conn *hc)
 		    hc->maxaccepte = hc->maxreqhost = hc->maxhostdir = hc->maxremoteuser = hc->maxresponse = 0;
 #ifdef TILDE_MAP_2
 		hc->maxaltdir = 0;
-#endif				/* TILDE_MAP_2 */
+#endif
 		httpd_realloc_str(&hc->decodedurl, &hc->maxdecodedurl, 1);
 		httpd_realloc_str(&hc->origfilename, &hc->maxorigfilename, 1);
 		httpd_realloc_str(&hc->expnfilename, &hc->maxexpnfilename, 0);
@@ -1633,7 +1648,7 @@ int httpd_get_conn(httpd_server *hs, int listen_fd, httpd_conn *hc)
 		httpd_realloc_str(&hc->response, &hc->maxresponse, 0);
 #ifdef TILDE_MAP_2
 		httpd_realloc_str(&hc->altdir, &hc->maxaltdir, 0);
-#endif				/* TILDE_MAP_2 */
+#endif
 		hc->initialized = 1;
 	}
 
@@ -1643,15 +1658,19 @@ int httpd_get_conn(httpd_server *hs, int listen_fd, httpd_conn *hc)
 	if (hc->conn_fd < 0) {
 		if (errno == EWOULDBLOCK)
 			return GC_NO_MORE;
+
 		syslog(LOG_ERR, "accept: %s", strerror(errno));
 		return GC_FAIL;
 	}
+
 	if (!sockaddr_check(&sa)) {
 		syslog(LOG_ERR, "unknown sockaddr family");
 		close(hc->conn_fd);
 		hc->conn_fd = -1;
+
 		return GC_FAIL;
 	}
+
 	(void)fcntl(hc->conn_fd, F_SETFD, 1);
 	hc->hs = hs;
 	(void)memset(&hc->client_addr, 0, sizeof(hc->client_addr));
@@ -1686,7 +1705,7 @@ int httpd_get_conn(httpd_server *hs, int listen_fd, httpd_conn *hc)
 	hc->response[0] = '\0';
 #ifdef TILDE_MAP_2
 	hc->altdir[0] = '\0';
-#endif				/* TILDE_MAP_2 */
+#endif
 	hc->responselen = 0;
 	hc->if_modified_since = (time_t)-1;
 	hc->range_if = (time_t)-1;
@@ -1727,146 +1746,177 @@ int httpd_got_request(httpd_conn *hc)
 			case '\t':
 				hc->checked_state = CHST_FIRSTWS;
 				break;
+
 			case '\n':
 			case '\r':
 				hc->checked_state = CHST_BOGUS;
 				return GR_BAD_REQUEST;
 			}
 			break;
+
 		case CHST_FIRSTWS:
 			switch (c) {
 			case ' ':
 			case '\t':
 				break;
+
 			case '\n':
 			case '\r':
 				hc->checked_state = CHST_BOGUS;
 				return GR_BAD_REQUEST;
+
 			default:
 				hc->checked_state = CHST_SECONDWORD;
 				break;
 			}
 			break;
+
 		case CHST_SECONDWORD:
 			switch (c) {
 			case ' ':
 			case '\t':
 				hc->checked_state = CHST_SECONDWS;
 				break;
+
 			case '\n':
 			case '\r':
 				/* The first line has only two words - an HTTP/0.9 request. */
 				return GR_GOT_REQUEST;
 			}
 			break;
+
 		case CHST_SECONDWS:
 			switch (c) {
 			case ' ':
 			case '\t':
 				break;
+
 			case '\n':
 			case '\r':
 				hc->checked_state = CHST_BOGUS;
 				return GR_BAD_REQUEST;
+
 			default:
 				hc->checked_state = CHST_THIRDWORD;
 				break;
 			}
 			break;
+
 		case CHST_THIRDWORD:
 			switch (c) {
 			case ' ':
 			case '\t':
 				hc->checked_state = CHST_THIRDWS;
 				break;
+
 			case '\n':
 				hc->checked_state = CHST_LF;
 				break;
+
 			case '\r':
 				hc->checked_state = CHST_CR;
 				break;
 			}
 			break;
+
 		case CHST_THIRDWS:
 			switch (c) {
 			case ' ':
 			case '\t':
 				break;
+
 			case '\n':
 				hc->checked_state = CHST_LF;
 				break;
+
 			case '\r':
 				hc->checked_state = CHST_CR;
 				break;
+
 			default:
 				hc->checked_state = CHST_BOGUS;
 				return GR_BAD_REQUEST;
 			}
 			break;
+
 		case CHST_LINE:
 			switch (c) {
 			case '\n':
 				hc->checked_state = CHST_LF;
 				break;
+
 			case '\r':
 				hc->checked_state = CHST_CR;
 				break;
 			}
 			break;
+
 		case CHST_LF:
 			switch (c) {
 			case '\n':
 				/* Two newlines in a row - a blank line - end of request. */
 				return GR_GOT_REQUEST;
+
 			case '\r':
 				hc->checked_state = CHST_CR;
 				break;
+
 			default:
 				hc->checked_state = CHST_LINE;
 				break;
 			}
 			break;
+
 		case CHST_CR:
 			switch (c) {
 			case '\n':
 				hc->checked_state = CHST_CRLF;
 				break;
+
 			case '\r':
 				/* Two returns in a row - end of request. */
 				return GR_GOT_REQUEST;
+
 			default:
 				hc->checked_state = CHST_LINE;
 				break;
 			}
 			break;
+
 		case CHST_CRLF:
 			switch (c) {
 			case '\n':
 				/* Two newlines in a row - end of request. */
 				return GR_GOT_REQUEST;
+
 			case '\r':
 				hc->checked_state = CHST_CRLFCR;
 				break;
+
 			default:
 				hc->checked_state = CHST_LINE;
 				break;
 			}
 			break;
+
 		case CHST_CRLFCR:
 			switch (c) {
 			case '\n':
 			case '\r':
 				/* Two CRLFs or two CRs in a row - end of request. */
 				return GR_GOT_REQUEST;
+
 			default:
 				hc->checked_state = CHST_LINE;
 				break;
 			}
 			break;
+
 		case CHST_BOGUS:
 			return GR_BAD_REQUEST;
 		}
 	}
+
 	return GR_NO_REQUEST;
 }
 
@@ -1889,6 +1939,7 @@ int httpd_parse_request(httpd_conn *hc)
 		httpd_send_err(hc, 400, httpd_err400title, "", httpd_err400form, "");
 		return -1;
 	}
+
 	*url++ = '\0';
 	url += strspn(url, " \t\n\r");
 
@@ -1903,6 +1954,7 @@ int httpd_parse_request(httpd_conn *hc)
 			eol = strpbrk(protocol, " \t\n\r");
 			if (eol)
 				*eol = '\0';
+
 			if (strcasecmp(protocol, "HTTP/1.0") != 0)
 				hc->one_one = 1;
 		}
@@ -2094,10 +2146,38 @@ int httpd_parse_request(httpd_conn *hc)
 				inet_aton(cp, &(hc->client_addr.sa_in.sin_addr));
 			}
 #ifdef LOG_UNKNOWN_HEADERS
-			else if (strncasecmp(buf, "Accept-Charset:", 15) == 0 || strncasecmp(buf, "Accept-Language:", 16) == 0 || strncasecmp(buf, "Agent:", 6) == 0 || strncasecmp(buf, "Cache-Control:", 14) == 0 || strncasecmp(buf, "Cache-Info:", 11) == 0 || strncasecmp(buf, "Charge-To:", 10) == 0 || strncasecmp(buf, "Client-IP:", 10) == 0 || strncasecmp(buf, "Date:", 5) == 0 || strncasecmp(buf, "Extension:", 10) == 0 || strncasecmp(buf, "Forwarded:", 10) == 0 || strncasecmp(buf, "From:", 5) == 0 || strncasecmp(buf, "HTTP-Version:", 13) == 0 || strncasecmp(buf, "Max-Forwards:", 13) == 0 || strncasecmp(buf, "Message-Id:", 11) == 0 || strncasecmp(buf, "MIME-Version:", 13) == 0 || strncasecmp(buf, "Negotiate:", 10) == 0 || strncasecmp(buf, "Pragma:", 7) == 0 || strncasecmp(buf, "Proxy-Agent:", 12) == 0 || strncasecmp(buf, "Proxy-Connection:", 17) == 0 || strncasecmp(buf, "Security-Scheme:", 16) == 0 || strncasecmp(buf, "Session-Id:", 11) == 0 || strncasecmp(buf, "UA-Color:", 9) == 0 || strncasecmp(buf, "UA-CPU:", 7) == 0 || strncasecmp(buf, "UA-Disp:", 8) == 0 || strncasecmp(buf, "UA-OS:", 6) == 0 || strncasecmp(buf, "UA-Pixels:", 10) == 0 || strncasecmp(buf, "User:", 5) == 0 || strncasecmp(buf, "Via:", 4) == 0 || strncasecmp(buf, "X-", 2) == 0) ;	/* ignore */
+			else if (strncasecmp(buf, "Accept-Charset:", 15)   == 0 ||
+				 strncasecmp(buf, "Accept-Language:", 16)  == 0 ||
+				 strncasecmp(buf, "Agent:", 6)             == 0 ||
+				 strncasecmp(buf, "Cache-Control:", 14)    == 0 ||
+				 strncasecmp(buf, "Cache-Info:", 11)       == 0 ||
+				 strncasecmp(buf, "Charge-To:", 10)        == 0 ||
+				 strncasecmp(buf, "Client-IP:", 10)        == 0 ||
+				 strncasecmp(buf, "Date:", 5)              == 0 ||
+				 strncasecmp(buf, "Extension:", 10)        == 0 ||
+				 strncasecmp(buf, "Forwarded:", 10)        == 0 ||
+				 strncasecmp(buf, "From:", 5)              == 0 ||
+				 strncasecmp(buf, "HTTP-Version:", 13)     == 0 ||
+				 strncasecmp(buf, "Max-Forwards:", 13)     == 0 ||
+				 strncasecmp(buf, "Message-Id:", 11)       == 0 ||
+				 strncasecmp(buf, "MIME-Version:", 13)     == 0 ||
+				 strncasecmp(buf, "Negotiate:", 10)        == 0 ||
+				 strncasecmp(buf, "Pragma:", 7)            == 0 ||
+				 strncasecmp(buf, "Proxy-Agent:", 12)      == 0 ||
+				 strncasecmp(buf, "Proxy-Connection:", 17) == 0 ||
+				 strncasecmp(buf, "Security-Scheme:", 16)  == 0 ||
+				 strncasecmp(buf, "Session-Id:", 11)       == 0 ||
+				 strncasecmp(buf, "UA-Color:", 9)          == 0 ||
+				 strncasecmp(buf, "UA-CPU:", 7)            == 0 ||
+				 strncasecmp(buf, "UA-Disp:", 8)           == 0 ||
+				 strncasecmp(buf, "UA-OS:", 6)             == 0 ||
+				 strncasecmp(buf, "UA-Pixels:", 10)        == 0 ||
+				 strncasecmp(buf, "User:", 5)              == 0 ||
+				 strncasecmp(buf, "Via:", 4)               == 0 ||
+				 strncasecmp(buf, "X-", 2)                 == 0) ; /* ignore */
 			else
 				syslog(LOG_DEBUG, "unknown request header: %s", buf);
-#endif				/* LOG_UNKNOWN_HEADERS */
+#endif /* LOG_UNKNOWN_HEADERS */
 		}
 	}
 
@@ -2133,13 +2213,13 @@ int httpd_parse_request(httpd_conn *hc)
 			httpd_send_err(hc, 404, err404title, "", err404form, hc->encodedurl);
 			return -1;
 		}
-#endif				/* TILDE_MAP_1 */
+#endif
 #ifdef TILDE_MAP_2
 		if (!tilde_map_2(hc)) {
 			httpd_send_err(hc, 404, err404title, "", err404form, hc->encodedurl);
 			return -1;
 		}
-#endif				/* TILDE_MAP_2 */
+#endif
 	}
 
 	/* Virtual host mapping. */
@@ -2200,7 +2280,7 @@ int httpd_parse_request(httpd_conn *hc)
 				  strlen(hc->altdir)) == 0 &&
 			  (hc->expnfilename[strlen(hc->altdir)] == '\0' || hc->expnfilename[strlen(hc->altdir)] == '/'))) {
 		}
-#endif				/* TILDE_MAP_2 */
+#endif
 		else {
 			syslog(LOG_NOTICE, "%s URL \"%s\" goes outside the web tree",
 			       httpd_ntoa(&hc->client_addr), hc->encodedurl);
@@ -2317,7 +2397,7 @@ void httpd_destroy_conn(httpd_conn *hc)
 		free(hc->response);
 #ifdef TILDE_MAP_2
 		free(hc->altdir);
-#endif				/* TILDE_MAP_2 */
+#endif
 		hc->initialized = 0;
 	}
 }
@@ -2474,7 +2554,7 @@ static void cgi_kill(ClientData client_data, struct timeval *nowP)
 		}
 	}
 }
-#endif				/* CGI_TIMELIMIT */
+#endif /* CGI_TIMELIMIT */
 
 
 #ifdef GENERATE_INDEXES
@@ -2644,7 +2724,7 @@ static int child_ls(httpd_conn *hc, DIR *dirp)
 #ifdef CGI_NICE
 	/* Set priority. */
 	(void)nice(CGI_NICE);
-#endif				/* CGI_NICE */
+#endif
 
 	/* Open a stdio stream so that we can use fprintf, which is more
 	** efficient than a bunch of separate write()s.  We don't have
@@ -2743,7 +2823,7 @@ static int ls(httpd_conn *hc)
 			syslog(LOG_CRIT, "tmr_create(cgi_kill ls) failed");
 			exit(1);
 		}
-#endif				/* CGI_TIMELIMIT */
+#endif
 		hc->status = 200;
 		hc->bytes_sent = CGI_BYTECOUNT;
 		hc->should_linger = 0;
@@ -2756,7 +2836,7 @@ static int ls(httpd_conn *hc)
 	return 0;
 }
 
-#endif				/* GENERATE_INDEXES */
+#endif /* GENERATE_INDEXES */
 
 
 static char *build_env(char *fmt, char *arg)
@@ -2797,7 +2877,7 @@ static char *hostname_map(char *hostname)
 
 	return NULL;
 }
-#endif				/* SERVER_NAME_LIST */
+#endif /* SERVER_NAME_LIST */
 
 
 /* Set up environment variables. Be real careful here to avoid
@@ -2815,7 +2895,7 @@ static char **make_envp(httpd_conn *hc)
 	envp[envn++] = build_env("PATH=%s", CGI_PATH);
 #ifdef CGI_LD_LIBRARY_PATH
 	envp[envn++] = build_env("LD_LIBRARY_PATH=%s", CGI_LD_LIBRARY_PATH);
-#endif				/* CGI_LD_LIBRARY_PATH */
+#endif
 	envp[envn++] = build_env("SERVER_SOFTWARE=%s", SERVER_SOFTWARE);
 	/* If vhosting, use that server-name here. */
 	cp = get_hostname(hc);
@@ -3072,7 +3152,7 @@ static void cgi_interpose_output(httpd_conn *hc, int rfd)
 	case 401:
 		title = err401title;
 		break;
-#endif				/* AUTH_FILE */
+#endif
 	case 403:
 		title = err403title;
 		break;
@@ -3263,7 +3343,7 @@ static void cgi_child(httpd_conn *hc)
 #ifdef CGI_NICE
 	/* Set priority. */
 	(void)nice(CGI_NICE);
-#endif				/* CGI_NICE */
+#endif
 
 	/* Split the program into directory and binary, so we can chdir()
 	 ** to the program's own directory.  This isn't in the CGI 1.1
@@ -3330,7 +3410,7 @@ static int cgi(httpd_conn *hc)
 			syslog(LOG_CRIT, "tmr_create(cgi_kill child) failed");
 			exit(1);
 		}
-#endif				/* CGI_TIMELIMIT */
+#endif
 		hc->status = 200;
 		hc->bytes_sent = CGI_BYTECOUNT;
 		hc->should_linger = 0;
@@ -3377,7 +3457,7 @@ static int really_start_request(httpd_conn *hc, struct timeval *nowP)
 #ifdef AUTH_FILE
 	static char *dirname;
 	static size_t maxdirname = 0;
-#endif				/* AUTH_FILE */
+#endif
 	size_t expnlen, indxlen, i;
 	char *cp;
 	char *pi;
@@ -3401,8 +3481,8 @@ static int really_start_request(httpd_conn *hc, struct timeval *nowP)
 	 ** readable by the HTTP server and therefore the *whole* world.
 	 */
 	if (!(hc->sb.st_mode & (S_IROTH | S_IXOTH))) {
-		syslog(LOG_INFO,
-		       "%s URL \"%s\" resolves to a non world-readable file", httpd_ntoa(&hc->client_addr), hc->encodedurl);
+		syslog(LOG_INFO, "%s URL \"%s\" resolves to a non world-readable file",
+		       httpd_ntoa(&hc->client_addr), hc->encodedurl);
 		httpd_send_err(hc, 403, err403title, "",
 			       ERROR_FORM(err403form, "The requested URL '%s' resolves to a file that is not world-readable.\n"),
 			       hc->encodedurl);
@@ -3458,20 +3538,20 @@ static int really_start_request(httpd_conn *hc, struct timeval *nowP)
 		/* Check authorization for this directory. */
 		if (auth_check(hc, hc->expnfilename) == -1)
 			return -1;
-#endif				/* AUTH_FILE */
+#endif
 		/* Referer check. */
 		if (!check_referer(hc))
 			return -1;
 		/* Ok, generate an index. */
 		return ls(hc);
-#else				/* GENERATE_INDEXES */
+#else /* GENERATE_INDEXES */
 		syslog(LOG_INFO, "%s URL \"%s\" tried to index a directory", httpd_ntoa(&hc->client_addr), hc->encodedurl);
 		httpd_send_err(hc, 403, err403title, "",
 			       ERROR_FORM(err403form,
 					  "The requested URL '%s' is a directory, and directory indexing is disabled on this server.\n"),
 			       hc->encodedurl);
 		return -1;
-#endif				/* GENERATE_INDEXES */
+#endif /* GENERATE_INDEXES */
 
  got_one:	;
 
@@ -3536,7 +3616,7 @@ static int really_start_request(httpd_conn *hc, struct timeval *nowP)
 			       hc->encodedurl);
 		return -1;
 	}
-#endif				/* AUTH_FILE */
+#endif /* AUTH_FILE */
 
 	/* Referer check. */
 	if (!check_referer(hc))
@@ -3671,6 +3751,7 @@ static int check_referer(httpd_conn *hc)
 			       ERROR_FORM(err403form, "You must supply a local referer to get URL '%s' from this server.\n"),
 			       hc->encodedurl);
 	}
+
 	return r;
 }
 
@@ -3739,6 +3820,7 @@ static int really_check_referer(httpd_conn *hc)
 	 */
 	if (!match(lp, refhost) && match(hs->url_pattern, hc->origfilename))
 		return 0;
+
 	/* Otherwise ok. */
 	return 1;
 }
@@ -3757,12 +3839,9 @@ char *httpd_ntoa(httpd_sockaddr *saP)
 		(void)memmove(str, &str[7], strlen(str) - 6);
 
 	return str;
-
-#else				/* USE_IPV6 */
-
+#else
 	return inet_ntoa(saP->sa_in.sin_addr);
-
-#endif				/* USE_IPV6 */
+#endif
 }
 
 
@@ -3771,10 +3850,12 @@ static int sockaddr_check(httpd_sockaddr *saP)
 	switch (saP->sa.sa_family) {
 	case AF_INET:
 		return 1;
+
 #ifdef USE_IPV6
 	case AF_INET6:
 		return 1;
-#endif				/* USE_IPV6 */
+#endif
+
 	default:
 		return 0;
 	}
@@ -3786,10 +3867,12 @@ static size_t sockaddr_len(httpd_sockaddr *saP)
 	switch (saP->sa.sa_family) {
 	case AF_INET:
 		return sizeof(struct sockaddr_in);
+
 #ifdef USE_IPV6
 	case AF_INET6:
 		return sizeof(struct sockaddr_in6);
-#endif				/* USE_IPV6 */
+#endif
+
 	default:
 		return 0;	/* shouldn't happen */
 	}
@@ -3809,9 +3892,9 @@ static int my_snprintf(char *str, size_t size, const char *format, ...)
 	va_start(ap, format);
 #ifdef HAVE_VSNPRINTF
 	r = vsnprintf(str, size, format, ap);
-#else				/* HAVE_VSNPRINTF */
+#else
 	r = vsprintf(str, format, ap);
-#endif				/* HAVE_VSNPRINTF */
+#endif
 	va_end(ap);
 	return r;
 }
@@ -3825,27 +3908,32 @@ static long long atoll(const char *str)
 
 	while (isspace(*str))
 		++str;
+
 	switch (*str) {
 	case '-':
 		sign = -1;
 		++str;
 		break;
+
 	case '+':
 		sign = 1;
 		++str;
 		break;
+
 	default:
 		sign = 1;
 		break;
 	}
+
 	value = 0;
 	while (isdigit(*str)) {
 		value = value * 10 + (*str - '0');
 		++str;
 	}
+
 	return sign * value;
 }
-#endif				/* HAVE_ATOLL */
+#endif /* HAVE_ATOLL */
 
 
 /* Read the requested buffer completely, accounting for interruptions. */
