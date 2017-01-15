@@ -1,3 +1,13 @@
+merecat (2.32-1) unstable; urgency=medium
+
+  * New upstream release:
+    - Skip .htpasswd (and .htaccess) in dir listings
+    - Allow SO_REUSEPORT, useful for load balancing
+    - Cute cat faviocon added
+    - Portability fixes
+
+ -- Joachim Nilsson <troglobit@gmail.com>  Sun, 15 Jan 2017 19:37:12 +0100
+
 merecat (2.31-3) unstable; urgency=low
 
   * Fixes to landing page: layout, spelling, grammar, and helpful pointers
