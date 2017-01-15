@@ -2662,6 +2662,12 @@ static int child_ls_read_names(httpd_conn *hc, DIR *dirp, FILE *fp, int onlydir)
 			continue;
 		}
 
+		/* Do not show .htpasswd and .htaccess files */
+		if (!strcmp(nameptrs[i], AUTH_FILE))
+			continue;
+		if (!strcmp(nameptrs[i], AUTH_IGNORE))
+			continue;
+
 		httpd_realloc_str(&name, &maxname, strlen(hc->expnfilename) + 1 + strlen(nameptrs[i]));
 		httpd_realloc_str(&rname, &maxrname, strlen(hc->origfilename) + 1 + strlen(nameptrs[i]));
 		if (hc->expnfilename[0] == '\0' || strcmp(hc->expnfilename, ".") == 0) {
