@@ -2331,7 +2331,7 @@ static void de_dotdot(char *file)
 		for (cp2 = cp + 2; *cp2 == '/'; ++cp2)
 			continue;
 
-		(void)strcpy(cp + 1, cp2);
+		memmove(cp + 1, cp2, strlen(cp2) + 1);
 	}
 
 	/* Collapse leading // (first one is lost prior to this fn) */
@@ -2340,14 +2340,14 @@ static void de_dotdot(char *file)
 
 	/* Remove leading ./ and any /./ sequences. */
 	while (strncmp(file, "./", 2) == 0)
-		(void)memmove(file, file + 2, strlen(file) - 1);
+		memmove(file, file + 2, strlen(file) - 1);
 	while ((cp = strstr(file, "/./")))
-		(void)memmove(cp, cp + 2, strlen(file) - 1);
+		memmove(cp, cp + 2, strlen(file) - 1);
 
 	/* Alternate between removing leading ../ and removing xxx/../ */
 	for (;;) {
 		while (strncmp(file, "../", 3) == 0)
-			(void)memmove(file, file + 3, strlen(file) - 2);
+			memmove(file, file + 3, strlen(file) - 2);
 		cp = strstr(file, "/../");
 		if (!cp)
 			break;
@@ -2355,7 +2355,7 @@ static void de_dotdot(char *file)
 		for (cp2 = cp - 1; cp2 >= file && *cp2 != '/'; --cp2)
 			continue;
 
-		(void)strcpy(cp2 + 1, cp + 4);
+		memmove(cp2 + 1, cp + 4, strlen(cp + 3));
 	}
 
 	/* Also elide any xxx/.. at the end. */
