@@ -477,7 +477,7 @@ static char *err302form = "The actual URL is '%s'.\n";
 static char *err304title = "Not Modified";
 
 char *httpd_err400title = "Bad Request";
-char *httpd_err400form = "Your request has bad syntax or is inherently impossible to satisfy.\n";
+char *httpd_err400form = "Your request has bad syntax(%s) or is inherently impossible to satisfy.\n";
 
 #ifdef AUTH_FILE
 static char *err401title = "Unauthorized";
@@ -1937,7 +1937,7 @@ int httpd_parse_request(httpd_conn *hc)
 	method_str = bufgets(hc);
 	url = strpbrk(method_str, " \t\n\r");
 	if (!url) {
-		httpd_send_err(hc, 400, httpd_err400title, "", httpd_err400form, "");
+		httpd_send_err(hc, 400, httpd_err400title, "", httpd_err400form, "1");
 		return -1;
 	}
 
@@ -1965,20 +1965,20 @@ int httpd_parse_request(httpd_conn *hc)
 	/* Check for HTTP/1.1 absolute URL. */
 	if (strncasecmp(url, "http://", 7) == 0) {
 		if (!hc->one_one) {
-			httpd_send_err(hc, 400, httpd_err400title, "", httpd_err400form, "");
+			httpd_send_err(hc, 400, httpd_err400title, "", httpd_err400form, "2");
 			return -1;
 		}
 
 		reqhost = url + 7;
 		url = strchr(reqhost, '/');
 		if (!url) {
-			httpd_send_err(hc, 400, httpd_err400title, "", httpd_err400form, "");
+			httpd_send_err(hc, 400, httpd_err400title, "", httpd_err400form, "3");
 			return -1;
 		}
 		*url = '\0';
 
 		if (strchr(reqhost, '/') || reqhost[0] == '.') {
-			httpd_send_err(hc, 400, httpd_err400title, "", httpd_err400form, "");
+			httpd_send_err(hc, 400, httpd_err400title, "", httpd_err400form, "4");
 			return -1;
 		}
 
@@ -1988,7 +1988,7 @@ int httpd_parse_request(httpd_conn *hc)
 	}
 
 	if (*url != '/') {
-		httpd_send_err(hc, 400, httpd_err400title, "", httpd_err400form, "");
+		httpd_send_err(hc, 400, httpd_err400title, "", httpd_err400form, "5");
 		return -1;
 	}
 
@@ -2029,7 +2029,7 @@ int httpd_parse_request(httpd_conn *hc)
 	if (hc->origfilename[0] == '/' ||
 	    (hc->origfilename[0] == '.' && hc->origfilename[1] == '.' &&
 	     (hc->origfilename[2] == '\0' || hc->origfilename[2] == '/'))) {
-		httpd_send_err(hc, 400, httpd_err400title, "", httpd_err400form, "");
+		httpd_send_err(hc, 400, httpd_err400title, "", httpd_err400form, "6");
 		return -1;
 	}
 
@@ -2055,7 +2055,7 @@ int httpd_parse_request(httpd_conn *hc)
 				if (cp)
 					*cp = '\0';
 				if (strchr(hc->hdrhost, '/') || hc->hdrhost[0] == '.') {
-					httpd_send_err(hc, 400, httpd_err400title, "", httpd_err400form, "");
+					httpd_send_err(hc, 400, httpd_err400title, "", httpd_err400form, "7");
 					return -1;
 				}
 			} else if (strncasecmp(buf, "Accept:", 7) == 0) {
@@ -2185,7 +2185,7 @@ int httpd_parse_request(httpd_conn *hc)
 	if (hc->one_one) {
 		/* Check that HTTP/1.1 requests specify a host, as required. */
 		if (hc->reqhost[0] == '\0' && hc->hdrhost[0] == '\0') {
-			httpd_send_err(hc, 400, httpd_err400title, "", httpd_err400form, "");
+			httpd_send_err(hc, 400, httpd_err400title, "", httpd_err400form, "8");
 			return -1;
 		}
 
