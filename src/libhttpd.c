@@ -2334,6 +2334,10 @@ static void de_dotdot(char *file)
 		(void)strcpy(cp + 1, cp2);
 	}
 
+	/* Collapse leading // (first one is lost prior to this fn) */
+	if (file[0] == '/')
+		memmove(file, &file[1], strlen(file));
+
 	/* Remove leading ./ and any /./ sequences. */
 	while (strncmp(file, "./", 2) == 0)
 		(void)memmove(file, file + 2, strlen(file) - 1);
