@@ -792,7 +792,7 @@ static void defang(char *str, char *dfstr, int dfsize)
 	char *cp1;
 	char *cp2;
 
-	for (cp1 = str, cp2 = dfstr; *cp1 != '\0' && cp2 - dfstr < dfsize - 5; ++cp1, ++cp2) {
+	for (cp1 = str, cp2 = dfstr; *cp1 != '\0' && cp2 - dfstr < dfsize - 8; ++cp1, ++cp2) {
 		switch (*cp1) {
 		case '<':
 			*cp2++ = '&';
@@ -800,12 +800,47 @@ static void defang(char *str, char *dfstr, int dfsize)
 			*cp2++ = 't';
 			*cp2 = ';';
 			break;
+
 		case '>':
 			*cp2++ = '&';
 			*cp2++ = 'g';
 			*cp2++ = 't';
 			*cp2 = ';';
 			break;
+
+		case '&':
+			*cp2++ = '&';
+			*cp2++ = 'a';
+			*cp2++ = 'm';
+			*cp2++ = 'p';
+			*cp2 = ';';
+			break;
+
+		case '"':
+			*cp2++ = '&';
+			*cp2++ = 'q';
+			*cp2++ = 'u';
+			*cp2++ = 'o';
+			*cp2++ = 't';
+			*cp2 = ';';
+			break;
+
+		case '\'':
+			*cp2++ = '&';
+			*cp2++ = '#';
+			*cp2++ = '3';
+			*cp2++ = '9';
+			*cp2 = ';';
+			break;
+
+		case '?':
+			*cp2++ = '&';
+			*cp2++ = '#';
+			*cp2++ = '6';
+			*cp2++ = '3';
+			*cp2 = ';';
+			break;
+
 		default:
 			*cp2 = *cp1;
 			break;
@@ -2651,6 +2686,7 @@ static int child_ls_read_names(httpd_conn *hc, DIR *dirp, FILE *fp, int onlydir)
 	for (i = 0; i < nnames; ++i) {
 		struct stat sb;
 		struct stat lsb;
+		char buf[256];
 		char timestr[42];
 		char *icon, *alt;
 
@@ -2710,6 +2746,7 @@ static int child_ls_read_names(httpd_conn *hc, DIR *dirp, FILE *fp, int onlydir)
 			break;
 		}
 
+		defang(nameptrs[i], buf, sizeof(buf));
 		fprintf(fp,
 			" <tr>\n"
 			"  <td class=\"icon\"><img src=\"%s\" alt=\"%s\"></td>\n"
@@ -2717,7 +2754,7 @@ static int child_ls_read_names(httpd_conn *hc, DIR *dirp, FILE *fp, int onlydir)
 			"  <td class=\"right\">%s</td>\n"
 			"  <td>%s</td>\n"
 			" </tr>\n", icon, alt,
-			encrname, S_ISDIR(sb.st_mode) ? "/" : "", nameptrs[i],
+			encrname, S_ISDIR(sb.st_mode) ? "/" : "", buf,
 			humane_size(&lsb), timestr);
 	}
 
