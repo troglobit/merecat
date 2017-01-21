@@ -32,6 +32,31 @@ To protect a directory in your `~USERNAME/public_html/`, create a simple
     Re-type new password: *****
 
 
+Virtual Hosts
+-------------
+
+Setting up virtual hosts on a server can be a bit of a hassle with other
+web servers.  With Merecat you simply create directories for each host
+in the web server root:
+
+     /var/www/
+       |-- icons/
+       |-- cgi-bin/
+       |-- errors/
+       |    `-- err404.html
+       |-- ftp.example.com/
+       `-- www.example.com/
+
+Then set `virtual-host=true` in `/etc/merecat.conf`.  Now the web server
+root, `/var/www/`, no longer serves files, only virtual host directories
+do, execpt for the shared files in `icons/`, `cgi-bin/`, and `errors/`.
+
+On Linux bind mounts can be used to set up FTP and web access to the
+same files. Example `/etc/fstab`:
+
+    /srv/ftp  /var/www/ftp.example.com  none  defaults,bind  0  0
+
+
 Build Requirements
 ------------------
 
