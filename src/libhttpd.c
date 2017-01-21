@@ -2282,7 +2282,10 @@ int httpd_parse_request(httpd_conn *hc)
 			  (hc->expnfilename[strlen(hc->altdir)] == '\0' || hc->expnfilename[strlen(hc->altdir)] == '/'))) {
 		}
 #endif
-		else {
+		else if (hc->hs->no_symlink_check) {
+			httpd_send_err(hc, 404, err404title, "", err404form, hc->encodedurl);
+			return -1;
+		} else {
 			syslog(LOG_NOTICE, "%s URL \"%s\" goes outside the web tree",
 			       httpd_ntoa(&hc->client_addr), hc->encodedurl);
 			httpd_send_err(hc, 403, err403title, "",
