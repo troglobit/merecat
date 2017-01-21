@@ -66,7 +66,7 @@ original [thttpd][] -- the tiny/turbo/throttling HTTP server.
 
 * [thttpd][] was written by Jef Poskanzer <mailto:jef@mail.acme.com>
 * [sthttpd][] was created by Anthony G. Basile <mailto:blueness@gentoo.org>
-
+* [Merecat][] is maintained by Joachim Nilsson <mailto:troglobit@gmail.com>
 
 [Merecat]:       http://merecat.troglobit.com
 [Meerkat]:       https://en.wikipedia.org/wiki/Meerkat
@@ -77,9 +77,3 @@ original [thttpd][] -- the tiny/turbo/throttling HTTP server.
 [sthttpd]:       https://github.com/blueness/sthttpd/
 [Travis]:        https://travis-ci.org/troglobit/merecat
 [Travis Status]: https://travis-ci.org/troglobit/merecat.png?branch=master
-
-<!--
-  -- Local Variables:
-  -- mode: markdown
-  -- End:
-  -->
