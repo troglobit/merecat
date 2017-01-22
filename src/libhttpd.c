@@ -233,7 +233,7 @@ httpd_server *httpd_initialize(char *hostname, httpd_sockaddr *sa4P, httpd_socka
 			       unsigned short port, char *cgi_pattern, int cgi_limit, char *charset,
 			       int max_age, char *cwd, int no_log,
 			       int no_symlink_check, int vhost, int global_passwd, char *url_pattern,
-			       char *local_pattern, int no_empty_referers)
+			       char *local_pattern, int no_empty_referers, int list_dotfiles)
 {
 	httpd_server *hs;
 	static char ghnbuf[256];
@@ -332,6 +332,7 @@ httpd_server *httpd_initialize(char *hostname, httpd_sockaddr *sa4P, httpd_socka
 	hs->vhost = vhost;
 	hs->global_passwd = global_passwd;
 	hs->no_empty_referers = no_empty_referers;
+	hs->list_dotfiles = list_dotfiles;
 
 	/* Initialize listen sockets.  Try v6 first because of a Linux peculiarity;
 	 ** like some other systems, it has magical v6 sockets that also listen for
@@ -2705,6 +2706,10 @@ static int child_ls_read_names(httpd_conn *hc, DIR *dirp, FILE *fp, int onlydir)
 				" </tr>\n");
 			continue;
 		}
+
+		/* Skip listing dotfiles unless enabled in .conf file */
+		if (!hc->hs->list_dotfiles && nameptrs[i][0] == '.' && strlen(nameptrs[i]) > 2)
+			continue;
 
 		/* Do not show .htpasswd and .htaccess files */
 		if (!strcmp(nameptrs[i], AUTH_FILE))

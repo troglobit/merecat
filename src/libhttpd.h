@@ -88,6 +88,7 @@ typedef struct {
 	char *url_pattern;
 	char *local_pattern;
 	int no_empty_referers;
+	int list_dotfiles;
 } httpd_server;
 
 /* A connection. */
@@ -175,7 +176,7 @@ extern httpd_server *httpd_initialize(char *hostname, httpd_sockaddr *sa4P, http
 				      unsigned short port, char *cgi_pattern, int cgi_limit, char *charset,
 				      int max_age, char *cwd, int no_log,
 				      int no_symlink_check, int vhost, int global_passwd, char *url_pattern,
-				      char *local_pattern, int no_empty_referers);
+				      char *local_pattern, int no_empty_referers, int list_dotfiles);
 
 /* Call to unlisten/close socket(s) listening for new connections. */
 extern void httpd_unlisten(httpd_server *hs);

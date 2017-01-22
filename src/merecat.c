@@ -91,6 +91,7 @@ static char *cgi_pattern       = CGI_PATTERN;
 static int   cgi_limit         = CGI_LIMIT;
 static char *url_pattern       = NULL;
 static int   no_empty_referers = 0;
+static int   list_dotfiles     = 0;
 static char *local_pattern     = NULL;
 static char *throttlefile      = NULL;
 static char *hostname          = NULL;
@@ -617,8 +618,9 @@ int main(int argc, char **argv)
 	hs = httpd_initialize(hostname,
 			      gotv4 ? &sa4 : (httpd_sockaddr *)0, gotv6 ? &sa6 : (httpd_sockaddr *)0,
 			      port, cgi_pattern, cgi_limit, charset, max_age, cwd, no_log,
-			      no_symlink_check, do_vhost, do_global_passwd, url_pattern, local_pattern, no_empty_referers);
-	if (hs == (httpd_server *)0)
+			      no_symlink_check, do_vhost, do_global_passwd, url_pattern, local_pattern,
+			      no_empty_referers, list_dotfiles);
+	if (!hs)
 		exit(1);
 
 	/* Set up the occasional timer. */
@@ -816,6 +818,7 @@ static int read_config(char *filename)
 		CFG_STR ("charset", DEFAULT_CHARSET, CFGF_NONE),
 		CFG_INT ("cgi-limit", CGI_LIMIT, CFGF_NONE),
 		CFG_STR ("cgi-pattern", cgi_pattern, CFGF_NONE),
+		CFG_BOOL("list-dotfiles", cfg_false, CFGF_NONE),
 		CFG_STR ("local-pattern", NULL, CFGF_NONE),
 		CFG_STR ("url-pattern", NULL, CFGF_NONE),
 		CFG_INT ("max-age", -1, CFGF_NONE), /* 0: Disabled */
@@ -870,6 +873,7 @@ static int read_config(char *filename)
 	local_pattern = cfg_getstr(cfg, "local-pattern");
 
 	no_empty_referers = cfg_getbool(cfg, "check-referer");
+	list_dotfiles = cfg_getbool(cfg, "list-dotfiles");
 
 	hostname = cfg_getstr(cfg, "hostname");
 	do_vhost = cfg_getbool(cfg, "virtual-host");
