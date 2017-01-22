@@ -179,7 +179,7 @@ static int  read_config(char *filename);
 static void show_stats(ClientData client_data, struct timeval *nowP);
 #endif				/* STATS_TIME */
 static void logstats(struct timeval *nowP);
-static void thttpd_logstats(long secs);
+static void merecat_logstats(long secs);
 
 
 /* SIGTERM and SIGINT say to exit immediately. */
@@ -1706,7 +1706,7 @@ static void logstats(struct timeval *nowP)
 	stats_time = now;
 	syslog(LOG_INFO, "up %ld seconds, stats for %ld seconds:", up_secs, stats_secs);
 
-	thttpd_logstats(stats_secs);
+	merecat_logstats(stats_secs);
 	httpd_logstats(stats_secs);
 	mmc_logstats(stats_secs);
 	fdwatch_logstats(stats_secs);
@@ -1715,7 +1715,7 @@ static void logstats(struct timeval *nowP)
 
 
 /* Generate debugging statistics syslog message. */
-static void thttpd_logstats(long secs)
+static void merecat_logstats(long secs)
 {
 	if (secs > 0)
 		syslog(LOG_INFO,
