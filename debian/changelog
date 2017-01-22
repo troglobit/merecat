@@ -3,6 +3,10 @@ merecat (2.32-1) unstable; urgency=medium
   * New upstream release:
     - Skip .htpasswd (and .htaccess) in dir listings
     - Allow SO_REUSEPORT, useful for load balancing
+    - Fix issue with leading double slash in URL, reported by Steve Kemp
+    - Fix issue with receiving a 403 page instead of 404 (no-symlink-check)
+    - Fix issue with HTML entities in directory listings
+    - Fix merecat.conf: commented out settings should be daemon defaults
     - Cute cat faviocon added
     - Portability fixes
 
