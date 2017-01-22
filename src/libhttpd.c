@@ -123,15 +123,15 @@ extern char *crypt(const char *key, const char *setting);
 static void check_options(void);
 static void free_httpd_server(httpd_server *hs);
 static int initialize_listen_socket(httpd_sockaddr *saP);
-static void add_response(httpd_conn *hc, char *str);
-static void send_mime(httpd_conn *hc, int status, char *title, char *encodings, char *extraheads, const char *type, off_t length,
+static void add_response(httpd_conn *hc, const char *str);
+static void send_mime(httpd_conn *hc, int status, char *title, char *encodings, const char *extraheads, const char *type, off_t length,
 		      time_t mod);
-static void send_response(httpd_conn *hc, int status, char *title, char *extraheads, char *form, char *arg);
+static void send_response(httpd_conn *hc, int status, char *title, const char *extraheads, char *form, char *arg);
 static void send_response_tail(httpd_conn *hc);
 static void defang(char *str, char *dfstr, int dfsize);
 
 #ifdef ERR_DIR
-static int send_err_file(httpd_conn *hc, int status, char *title, char *extraheads, char *filename);
+static int send_err_file(httpd_conn *hc, int status, char *title, const char *extraheads, char *filename);
 #endif
 #ifdef AUTH_FILE
 static void send_authenticate(httpd_conn *hc, char *realm);
@@ -508,7 +508,7 @@ char *httpd_err503form = "The requested URL '%s' is temporarily overloaded.  Ple
 
 
 /* Append a string to the buffer waiting to be sent as response. */
-static void add_response(httpd_conn *hc, char *str)
+static void add_response(httpd_conn *hc, const char *str)
 {
 	size_t len;
 
@@ -591,7 +591,7 @@ void httpd_clear_ndelay(int fd)
 
 
 static void
-send_mime(httpd_conn *hc, int status, char *title, char *encodings, char *extraheads, const char *type, off_t length, time_t mod)
+send_mime(httpd_conn *hc, int status, char *title, char *encodings, const char *extraheads, const char *type, off_t length, time_t mod)
 {
 	time_t now, expires;
 	const char *rfc1123fmt = "%a, %d %b %Y %H:%M:%S GMT";
@@ -725,7 +725,7 @@ void httpd_realloc_str(char **strP, size_t *maxsizeP, size_t size)
 }
 
 
-static void send_response(httpd_conn *hc, int status, char *title, char *extraheads, char *form, char *arg)
+static void send_response(httpd_conn *hc, int status, char *title, const char *extraheads, char *form, char *arg)
 {
 	char defanged_arg[1000], buf[2000];
 
@@ -851,7 +851,7 @@ static void defang(char *str, char *dfstr, int dfsize)
 }
 
 
-void httpd_send_err(httpd_conn *hc, int status, char *title, char *extraheads, char *form, char *arg)
+void httpd_send_err(httpd_conn *hc, int status, char *title, const char *extraheads, char *form, char *arg)
 {
 #ifdef ERR_DIR
 	char filename[1000];
@@ -877,7 +877,7 @@ void httpd_send_err(httpd_conn *hc, int status, char *title, char *extraheads, c
 
 
 #ifdef ERR_DIR
-static int send_err_file(httpd_conn *hc, int status, char *title, char *extraheads, char *filename)
+static int send_err_file(httpd_conn *hc, int status, char *title, const char *extraheads, char *filename)
 {
 	FILE *fp;
 	char buf[1000];

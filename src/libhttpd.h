@@ -248,7 +248,7 @@ extern void httpd_destroy_conn(httpd_conn *hc);
 
 
 /* Send an error message back to the client. */
-extern void httpd_send_err(httpd_conn *hc, int status, char *title, char *extraheads, char *form, char *arg);
+extern void httpd_send_err(httpd_conn *hc, int status, char *title, const char *extraheads, char *form, char *arg);
 
 /* Some error messages. */
 extern char *httpd_err400title;
