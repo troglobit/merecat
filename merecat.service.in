@@ -8,7 +8,7 @@ Requires=network-online.target
 
 [Service]
 Type=simple
-ExecStart=@SBINDIR@/merecat -n -c '**.cgi' -r /var/www
+ExecStart=@SBINDIR@/merecat -I httpd -n -c '**.cgi' -r /var/www
 
 [Install]
 WantedBy=multi-user.target
