@@ -378,7 +378,7 @@ int main(int argc, char **argv)
 	struct passwd *pwd;
 	uid_t uid = 32767;
 	gid_t gid = 32767;
-	char cwd[MAXPATHLEN + 1];
+	char path[MAXPATHLEN + 1];
 	int num_ready;
 	int cnum;
 	connecttab *ct;
@@ -526,9 +526,9 @@ int main(int argc, char **argv)
 #endif				/* USE_USER_DIR */
 
 	/* Get current directory. */
-	(void)getcwd(cwd, sizeof(cwd) - 1);
-	if (cwd[strlen(cwd) - 1] != '/')
-		(void)strcat(cwd, "/");
+	(void)getcwd(path, sizeof(path) - 1);
+	if (path[strlen(path) - 1] != '/')
+		(void)strcat(path, "/");
 
 	if (background) {
 		/* We're not going to use stdin stdout or stderr from here on, so close
@@ -582,14 +582,14 @@ int main(int argc, char **argv)
 
 	/* Chroot if requested. */
 	if (do_chroot) {
-		if (chroot(cwd) < 0) {
+		if (chroot(path) < 0) {
 			syslog(LOG_CRIT, "chroot: %s", strerror(errno));
 			exit(1);
 		}
 
-		(void)strcpy(cwd, "/");
+		(void)strcpy(path, "/");
 		/* Always chdir to / after a chroot. */
-		if (chdir(cwd) < 0) {
+		if (chdir(path) < 0) {
 			syslog(LOG_CRIT, "chroot chdir: %s", strerror(errno));
 			exit(1);
 		}
@@ -625,7 +625,7 @@ int main(int argc, char **argv)
 	 ** so that we can bind to a privileged port.
 	 */
 	hs = httpd_init(hostname, gotv4 ? &sa4 : NULL, gotv6 ? &sa6 : NULL,
-			port, cgi_pattern, cgi_limit, charset, max_age, cwd, no_log,
+			port, cgi_pattern, cgi_limit, charset, max_age, path, no_log,
 			no_symlink_check, do_vhost, do_global_passwd, url_pattern, local_pattern,
 			no_empty_referers, list_dotfiles);
 	if (!hs)
