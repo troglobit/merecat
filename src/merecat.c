@@ -556,19 +556,19 @@ int main(int argc, char **argv)
 		}
 #ifdef HAVE_SETSID
 		(void)setsid();
-#endif				/* HAVE_SETSID */
-#endif				/* HAVE_DAEMON */
+#endif
+#endif /* HAVE_DAEMON */
 	} else {
 		/* Even if we don't daemonize, we still want to disown our parent
 		 ** process.
 		 */
 #ifdef HAVE_SETSID
 		(void)setsid();
-#endif				/* HAVE_SETSID */
+#endif
 	}
 
 	/* Create PID file */
-	pidfile(NULL);
+	pidfile(ident);
 
 	/* Initialize the fdwatch package.  Have to do this before chroot,
 	 ** if /dev/poll is used.
