@@ -57,6 +57,21 @@ same files. Example `/etc/fstab`:
     /srv/ftp  /var/www/ftp.example.com  none  defaults,bind  0  0
 
 
+Optimizing Performance
+----------------------
+
+There are many tricks to optimizing the performance of your web server.
+One of the most important ones is browser caching.  Merecat supports
+both `ETag:` and `Cache-Control:`, however to enable the latter you need
+to define the `max-age` setting in `/etc/merecat.conf`:
+
+    max-age = 3600        # One hour
+
+The value is completely site dependent.  For an embedded system you
+might want to set it to the maximum value, whereas for other scenarios
+you will likely want something else.  By default this is disabled (0).
+
+
 Build Requirements
 ------------------
 
