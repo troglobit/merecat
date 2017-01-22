@@ -73,7 +73,12 @@ you will likely want something else.  By default this is disabled (0).
 
 Another trick is to employ `gzip` compression.  Merecat has built-in
 support for serving HTML, CSS, and other `text/*` files if there is a
-`.gz` version of the same file.
+`.gz` version of the same file.  Here is an example of how to compress
+relevant files:
+
+    $ cd /var/www/
+    $ for file in `find . -name '*.html' -o -name '*.css'`; do \
+          gzip -c $file > $file.gz; done
 
 
 Build Requirements
