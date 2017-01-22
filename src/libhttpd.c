@@ -3508,11 +3508,11 @@ static int is_cgi(httpd_conn *hc)
 
 static int really_start_request(httpd_conn *hc, struct timeval *nowP)
 {
-	static char *indexname;
+	static char *indexname = NULL;
 	static size_t maxindexname = 0;
 	static const char *index_names[] = { INDEX_NAMES };
 #ifdef AUTH_FILE
-	static char *dirname;
+	static char *dirname = NULL;
 	static size_t maxdirname = 0;
 #endif
 	size_t expnlen, indxlen, i;
