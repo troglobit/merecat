@@ -615,7 +615,7 @@ int main(int argc, char **argv)
 	/* Initialize the HTTP layer.  Got to do this before giving up root,
 	 ** so that we can bind to a privileged port.
 	 */
-	hs = httpd_initialize(hostname,
+	hs = httpd_init(hostname,
 			      gotv4 ? &sa4 : (httpd_sockaddr *)0, gotv6 ? &sa6 : (httpd_sockaddr *)0,
 			      port, cgi_pattern, cgi_limit, charset, max_age, cwd, no_log,
 			      no_symlink_check, do_vhost, do_global_passwd, url_pattern, local_pattern,
@@ -1103,7 +1103,7 @@ static void shut_down(void)
 			fdwatch_del_fd(ths->listen4_fd);
 		if (ths->listen6_fd != -1)
 			fdwatch_del_fd(ths->listen6_fd);
-		httpd_terminate(ths);
+		httpd_exit(ths);
 	}
 	mmc_destroy();
 	tmr_destroy();

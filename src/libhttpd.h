@@ -172,17 +172,17 @@ typedef struct {
 ** httpd_server* which includes a socket fd that you can select() on.
 ** Return (httpd_server*) 0 on error.
 */
-extern httpd_server *httpd_initialize(char *hostname, httpd_sockaddr *sa4P, httpd_sockaddr *sa6P,
-				      unsigned short port, char *cgi_pattern, int cgi_limit, char *charset,
-				      int max_age, char *cwd, int no_log,
-				      int no_symlink_check, int vhost, int global_passwd, char *url_pattern,
-				      char *local_pattern, int no_empty_referers, int list_dotfiles);
+extern httpd_server *httpd_init(char *hostname, httpd_sockaddr *sa4P, httpd_sockaddr *sa6P,
+				unsigned short port, char *cgi_pattern, int cgi_limit, char *charset,
+				int max_age, char *cwd, int no_log,
+				int no_symlink_check, int vhost, int global_passwd, char *url_pattern,
+				char *local_pattern, int no_empty_referers, int list_dotfiles);
+
+/* Call to shut down. */
+extern void httpd_exit(httpd_server *hs);
 
 /* Call to unlisten/close socket(s) listening for new connections. */
 extern void httpd_unlisten(httpd_server *hs);
-
-/* Call to shut down. */
-extern void httpd_terminate(httpd_server *hs);
 
 
 /* When a listen fd is ready to read, call this.  It does the accept() and

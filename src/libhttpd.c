@@ -229,11 +229,11 @@ static void free_httpd_server(httpd_server *hs)
 }
 
 
-httpd_server *httpd_initialize(char *hostname, httpd_sockaddr *sa4P, httpd_sockaddr *sa6P,
-			       unsigned short port, char *cgi_pattern, int cgi_limit, char *charset,
-			       int max_age, char *cwd, int no_log,
-			       int no_symlink_check, int vhost, int global_passwd, char *url_pattern,
-			       char *local_pattern, int no_empty_referers, int list_dotfiles)
+httpd_server *httpd_init(char *hostname, httpd_sockaddr *sa4P, httpd_sockaddr *sa6P,
+			 unsigned short port, char *cgi_pattern, int cgi_limit, char *charset,
+			 int max_age, char *cwd, int no_log,
+			 int no_symlink_check, int vhost, int global_passwd, char *url_pattern,
+			 char *local_pattern, int no_empty_referers, int list_dotfiles)
 {
 	httpd_server *hs;
 	static char ghnbuf[256];
@@ -437,7 +437,7 @@ static int initialize_listen_socket(httpd_sockaddr *saP)
 }
 
 
-void httpd_terminate(httpd_server *hs)
+void httpd_exit(httpd_server *hs)
 {
 	httpd_unlisten(hs);
 	free_httpd_server(hs);
