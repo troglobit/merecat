@@ -1,6 +1,7 @@
 merecat (2.32-1) unstable; urgency=medium
 
   * New upstream release:
+    - Added support for HTTP gzip compression, serves .gz files
     - Skip .htpasswd (and .htaccess) in dir listings
     - Allow SO_REUSEPORT, useful for load balancing
     - Fix issue with leading double slash in URL, reported by Steve Kemp
@@ -10,7 +11,7 @@ merecat (2.32-1) unstable; urgency=medium
     - Cute cat faviocon added
     - Portability fixes
 
- -- Joachim Nilsson <troglobit@gmail.com>  Sun, 15 Jan 2017 19:37:12 +0100
+ -- Joachim Nilsson <troglobit@gmail.com>  Sun, 22 Jan 2017 17:08:25 +0100
 
 merecat (2.31-3) unstable; urgency=low
 
