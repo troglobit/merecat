@@ -373,7 +373,7 @@ int main(int argc, char **argv)
 	int c;
 	int log_opts = LOG_PID | LOG_CONS | LOG_NDELAY;
 #ifdef HAVE_LIBCONFUSE
-	char *config = CONFDIR "/merecat.conf";
+	char *config = NULL;
 #endif
 	struct passwd *pwd;
 	uid_t uid = 32767;
@@ -469,6 +469,11 @@ int main(int argc, char **argv)
 	setlogmask(LOG_UPTO(loglevel));
 
 #ifdef HAVE_LIBCONFUSE
+	if (!config) {
+		snprintf(path, sizeof(path), "%s/%s.conf", CONFDIR, ident);
+		config = path;
+	}
+
 	if (read_config(config)) {
 		fprintf(stderr, "%s: Failed reading config file '%s': %s\n", prognm, config, strerror(errno));
 		return 1;
