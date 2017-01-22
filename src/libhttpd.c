@@ -1758,6 +1758,8 @@ int httpd_get_conn(httpd_server *hs, int listen_fd, httpd_conn *hc)
 	hc->keep_alive = 0;
 	hc->should_linger = 0;
 	hc->file_address = NULL;
+	hc->dotgz = 0;
+
 	return GC_OK;
 }
 
@@ -2233,6 +2235,25 @@ int httpd_parse_request(httpd_conn *hc)
 		 */
 		if (hc->keep_alive)
 			hc->should_linger = 1;
+	}
+
+	/* Look for a gzip accept-encoding */
+	if (hc->accepte[0] != '\0') {
+		char *gz;
+
+		gz = strstr(hc->accepte, "gzip");
+		if (gz) {
+			char *c, *q;
+			float qval = 0.0f;
+
+			c = strstr(gz, ",");
+			q = strstr(gz, "q=");
+			if (q)
+				qval = strtof(q + 2, 0);
+
+			if (!q || c < q || ((!c || q < c) && qval > 0.0f))
+				hc->dotgz = 1;
+		}
 	}
 
 	/* Ok, the request has been parsed.  Now we resolve stuff that
@@ -3518,6 +3539,10 @@ static int really_start_request(httpd_conn *hc, struct timeval *nowP)
 	size_t expnlen, indxlen, i;
 	char *cp;
 	char *pi;
+	int serve_dotgz = 0;
+	struct stat st;
+	static char *dotgzfn = NULL;
+	static size_t dotgz_fnlen = 0;
 
 	expnlen = strlen(hc->expnfilename);
 
@@ -3719,18 +3744,43 @@ static int really_start_request(httpd_conn *hc, struct timeval *nowP)
 
 	figure_mime(hc);
 
+	/* construct .gz filename */
+	httpd_realloc_str(&dotgzfn, &dotgz_fnlen, strlen(hc->expnfilename) + 3);
+	snprintf(dotgzfn, dotgz_fnlen, "%s.gz", hc->expnfilename);
+
+	/* is there a .gz file */
+	if (hc->dotgz && !stat(dotgzfn, &st)) {
+		/* Is it world-readable or world-executable? and newer than original */
+		if (st.st_mode & (S_IROTH | S_IXOTH) && st.st_mtime >= hc->sb.st_mtime)
+                       serve_dotgz = 1;
+	}
+
 	if (hc->method == METHOD_HEAD) {
 		send_mime(hc, 200, ok200title, hc->encodings, "", hc->type, hc->sb.st_size, hc->sb.st_mtime);
 	} else if (hc->if_modified_since != (time_t)-1 && hc->if_modified_since >= hc->sb.st_mtime) {
 		send_mime(hc, 304, err304title, hc->encodings, "", hc->type, (off_t) - 1, hc->sb.st_mtime);
 	} else {
+		char *extra = "";
+
+		/* can serve .gz file and there is no previous encodings */
+		if (serve_dotgz && hc->encodings[0] == 0) {
+			extra = "Vary: Accept-Encoding\r\n";
+
+			httpd_realloc_str(&hc->expnfilename, &hc->maxexpnfilename, strlen(dotgzfn) + 1);
+			strncpy(hc->expnfilename, dotgzfn, hc->maxexpnfilename);
+			hc->sb.st_size = st.st_size;
+
+			httpd_realloc_str(&hc->encodings, &hc->maxencodings, 5);
+			strncpy(hc->encodings, "gzip", hc->maxencodings);
+		}
+
 		hc->file_address = mmc_map(hc->expnfilename, &(hc->sb), nowP);
 		if (!hc->file_address) {
 			httpd_send_err(hc, 500, err500title, "", err500form, hc->encodedurl);
 			return -1;
 		}
 
-		send_mime(hc, 200, ok200title, hc->encodings, "", hc->type, hc->sb.st_size, hc->sb.st_mtime);
+		send_mime(hc, 200, ok200title, hc->encodings, extra, hc->type, hc->sb.st_size, hc->sb.st_mtime);
 	}
 
 	return 0;

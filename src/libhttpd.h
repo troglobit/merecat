@@ -145,6 +145,7 @@ typedef struct {
 	struct stat sb;
 	int conn_fd;
 	char *file_address;
+	int dotgz;
 } httpd_conn;
 
 /* Methods. */
