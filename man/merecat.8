@@ -36,6 +36,7 @@
 .Op Fl c Ar CGI
 .Op Fl d Ar PATH
 .Op Fl f Ar FILE
+.Op Fl I Ar IDENT
 .Op Fl l Ar LEVEL
 .Op Fl p Ar PORT
 .Op Fl t Ar FILE
@@ -92,6 +93,12 @@ file, and if that doesn't exist either
 then serving the file without any password.  The config file setting for
 this flag is
 .Cm global-passwd = Ar <true | false> .
+.It Fl I Ar IDENT
+The
+.Xr syslog 3
+identity to use for all log messages.  Useful when running multiple
+servers.  Defaults to use the program name, i.e.
+.Qq Nm .
 .It Fl l Ar LEVEL
 Set log level: none, err, info,
 .Ar notice ,
@@ -551,9 +558,13 @@ should be 755 (rwxr-xr-x) if you want to allow indexing and 711
 .Nm
 does all of its logging via
 .Xr syslog 3 .
-The facility it uses is configurable.  Aside from error messages, there
-are only a few log entry types of interest, all fairly similar to CERN
-Common Log Format:
+All log messages are prepended with the program name, unless the command
+line option
+.Fl I Ar IDENT
+is used.  The facility defaults to
+.Ar LOG_DAEMON .
+Aside from error messages, there are only a few log entry types of
+interest, all fairly similar to CERN Common Log Format:
 .Bd -unfilled -offset left
   Aug  6 15:40:34 acme merecat[583]: 165.113.207.103 - - "GET /file" 200 357
   Aug  6 15:40:43 acme merecat[583]: 165.113.207.103 - - "HEAD /file" 200 0

@@ -76,6 +76,7 @@
 
 /* Instead of non-portable __progname */
 char        *prognm;
+char        *ident;		/* Used for logging */
 
 static int   background        = 1;
 static int   loglevel          = LOG_NOTICE;
@@ -326,6 +327,7 @@ static int usage(int code)
 #endif
 	       "  -g         Use global password file, .htpasswd\n"
 	       "  -h         This help text\n"
+	       "  -I IDENT   Identity to use in log messages, defaults to program name\n"
 	       "  -l LEVEL   Set log level: none, err, info, notice*, debug\n"
 	       "  -n         Run in foreground, do not detach from controlling terminal\n"
 	       "  -p PORT    Port to listen to, default 80\n"
@@ -384,8 +386,8 @@ int main(int argc, char **argv)
 	struct timeval tv;
 	struct sigaction sa;
 
-	prognm = progname(argv[0]);
-	while ((c = getopt(argc, argv, CONF_FILE_OPT "c:d:ghl:np:rsu:vV")) != EOF) {
+	ident = prognm = progname(argv[0]);
+	while ((c = getopt(argc, argv, CONF_FILE_OPT "c:d:ghI:l:np:rsu:vV")) != EOF) {
 		switch (c) {
 #ifdef HAVE_LIBCONFUSE
 		case 'f':
@@ -406,6 +408,10 @@ int main(int argc, char **argv)
 
 		case 'h':
 			return usage(0);
+
+		case 'I':
+			ident = optarg;
+			break;
 
 		case 'l':
 			loglevel = loglvl(optarg);
@@ -456,7 +462,7 @@ int main(int argc, char **argv)
 	if (optind < argc)
 		hostname = strdup(argv[optind++]);
 
-	openlog(prognm, log_opts, LOG_FACILITY);
+	openlog(ident, log_opts, LOG_FACILITY);
 	setlogmask(LOG_UPTO(loglevel));
 
 #ifdef HAVE_LIBCONFUSE
