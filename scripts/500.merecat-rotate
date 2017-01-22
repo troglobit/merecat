@@ -1,17 +1,17 @@
 #!/bin/sh
 #
-# thttpd-rotate - nightly script to rotate thttpd's log files on FreeBSD
+# merecat-rotate - nightly script to rotate merecat's log files on FreeBSD
 #
 # This goes in /etc/periodic/daily.  It rotates the log files and then
-# tells thttpd to re-open its log file.
+# tells merecat to re-open its log file.
 
 cd /usr/local/www/chroot/logs
-rm -f thttpd_log.7
-mv thttpd_log.6 thttpd_log.7
-mv thttpd_log.5 thttpd_log.6
-mv thttpd_log.4 thttpd_log.5
-mv thttpd_log.3 thttpd_log.4
-mv thttpd_log.2 thttpd_log.3
-mv thttpd_log.1 thttpd_log.2
-mv thttpd_log thttpd_log.1
-kill -HUP `cat /var/run/thttpd.pid`
+rm -f merecat_log.7
+mv merecat_log.6 merecat_log.7
+mv merecat_log.5 merecat_log.6
+mv merecat_log.4 merecat_log.5
+mv merecat_log.3 merecat_log.4
+mv merecat_log.2 merecat_log.3
+mv merecat_log.1 merecat_log.2
+mv merecat_log merecat_log.1
+kill -HUP `cat /var/run/merecat.pid`
