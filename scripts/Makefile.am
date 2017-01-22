@@ -1,1 +1,1 @@
-EXTRA_DIST = 500.thttpd-rotate thttpd.sh thttpd_wrapper
+EXTRA_DIST = 500.merecat-rotate merecat.sh merecat_wrapper
