@@ -1661,7 +1661,7 @@ int httpd_get_conn(httpd_server *hs, int listen_fd, httpd_conn *hc)
 
 	if (!hc->initialized) {
 		hc->read_size = 0;
-		httpd_realloc_str(&hc->read_buf, &hc->read_size, 500);
+		httpd_realloc_str(&hc->read_buf, &hc->read_size, 16384);
 		hc->maxdecodedurl =
 		    hc->maxorigfilename = hc->maxexpnfilename = hc->maxencodings =
 		    hc->maxpathinfo = hc->maxquery = hc->maxaccept =
