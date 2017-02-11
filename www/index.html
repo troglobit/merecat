@@ -130,8 +130,8 @@ Note: '-d DIR' is not needed in virtual hosting mode, see
   <dt>cgi-limit = NUM</dt>
   <dd>Maximum number of allowed simultaneous CGI programs.  Default 1.</dd>
   <dt>cgi-pattern = "**.cgi|/cgi-bin/*"</dt>
-  <dd>Specifies a wildcard pattern for CGI programs, for instance
-	"**.cgi" or "/cgi-bin/*", the default is to have CGI disbled.</dd>
+  <dd>Wildcard pattern for CGI programs.  The default is to allow
+    executables ending with .cgi to support index.cgi pages.</dd>
   <dt>local-pattern = PATTERN</dt>
   <dd>Used with <tt>check-referer</tt>, see above.</dd>
   <dt>url-pattern = PATTERN</dt>
