@@ -2087,7 +2087,6 @@ int httpd_parse_request(httpd_conn *hc)
 			if (buf[0] == '\0')
 				break;
 
-			syslog(LOG_DEBUG, "HDR %s", buf);
 			if (strncasecmp(buf, "Referer:", 8) == 0) {
 				cp = &buf[8];
 				cp += strspn(cp, " \t");
@@ -2232,9 +2231,11 @@ int httpd_parse_request(httpd_conn *hc)
 				 strncasecmp(buf, "UA-Pixels:", 10)        == 0 ||
 				 strncasecmp(buf, "User:", 5)              == 0 ||
 				 strncasecmp(buf, "Via:", 4)               == 0 ||
-				 strncasecmp(buf, "X-", 2)                 == 0) ; /* ignore */
-			else
+				 strncasecmp(buf, "X-", 2)                 == 0) {
+				; /* ignore */
+			} else {
 				syslog(LOG_DEBUG, "unknown request header: %s", buf);
+			}
 #endif /* LOG_UNKNOWN_HEADERS */
 		}
 	}
