@@ -1508,8 +1508,6 @@ static char *expand_symlinks(char *path, char **restP, int no_symlink_check, int
 	restlen = strlen(path);
 	httpd_realloc_str(&rest, &maxrest, restlen);
 	(void)strcpy(rest, path);
-	if (restlen && rest[restlen - 1] == '/')
-		rest[--restlen] = '\0';	/* trim trailing slash */
 	if (!tildemapped)
 		/* Remove any leading slashes. */
 		while (rest[0] == '/') {
