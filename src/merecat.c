@@ -341,7 +341,11 @@ static int usage(int code)
 	       "  -v         Enable virtual hosting with WEBROOT as base\n"
 	       "  -V         Show Merecat httpd version\n"
 	       "\n", prognm);
-	printf("The optional 'WEBROOT' defaults to the current directory and 'HOSTNAME' is only\n"
+	printf("The default CGI pattern is \"**.cgi\", meaning any executable ending in .cgi.\n"
+	       "Note: the command line option, or the config file, overrides this.  It does\n"
+	       "not extend it.  The built-in default is to allow use of index.cgi pages.\n"
+	       "\n"
+	       "The optional 'WEBROOT' defaults to the current directory and 'HOSTNAME' is only\n"
 	       "for virtual hosting, to run one httpd per hostname.  The '-d DIR' is not needed\n"
 	       "in virtual hosting mode, see merecat(8) for more information on virtual hosting\n"
 	       "\nBug report address: %-40s\n\n", PACKAGE_BUGREPORT);
