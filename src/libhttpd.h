@@ -247,6 +247,8 @@ extern void httpd_close_conn(httpd_conn *hc, struct timeval *nowP);
 */
 extern void httpd_destroy_conn(httpd_conn *hc);
 
+/* Client IP addresses can be overridden by a proxy using X-Forwarded-For */
+extern char *httpd_client(httpd_conn *hc);
 
 /* Send an error message back to the client. */
 extern void httpd_send_err(httpd_conn *hc, int status, char *title, const char *extraheads, char *form, char *arg);
