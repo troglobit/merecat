@@ -70,9 +70,9 @@
 #define CGI_PATTERN "/*/cgi-bin/*"
 #endif /* 0 */
 
-/* Fallback, any program ending with a .cgi */
+/* Fallback, any program ending with a .cgi or any program in /cgi-bin/ */
 #ifndef CGI_PATTERN
-#define CGI_PATTERN "**.cgi"
+#define CGI_PATTERN "**.cgi|/cgi-bin/*"
 #endif
 
 

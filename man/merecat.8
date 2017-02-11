@@ -61,11 +61,9 @@ are as follows:
 .Bl -tag -width Ds
 .It Fl c Ar CGI
 Specifies a wildcard pattern for CGI programs, the built-in default is
-.Qq Ar **.cgi .
-A common default used by other web servers is
-.Qq Ar /cgi-bin/* .
-The config file setting is
-.Cm cgi-pattern = Qq .
+.Qq Ar **.cgi|/cgi-bin/* .
+The config file setting for this option is
+.Cm cgi-pattern = PATTERN Qq .
 The user can override the default using the command line, or the config
 file, in that order.  For more details, see below.
 .It Fl d Ar PATH
@@ -180,7 +178,9 @@ Specifies a wildcard pattern for CGI programs, for instance
 or
 .Qq /cgi-bin/* ,
 the default is to allow any program ending in
-.Cm .cgi .
+.Cm .cgi
+and any program in
+.Cm /cgi-bin/ .
 See below CGI section for more on this.
 .It Cm charset = Qq Ar UTF-8
 Specifies the character set to use with text MIME types.  If the default
