@@ -21,6 +21,9 @@ AC_CHECK_LIB(resolv, hstrerror)
 AC_ARG_ENABLE(public-html,
         AS_HELP_STRING([--enable-public-html], [Enable ~user/public_html in non-chrooted setups]))
 
+AC_ARG_ENABLE(msie-padding,
+        AS_HELP_STRING([--enable-msie-padding], [Add padding to error messages for Internet Explorer]))
+
 AC_ARG_WITH([config],
         AS_HELP_STRING([--without-config], [Disable /etc/merecat.conf support using libConfuse]),
 	[], [with_config=yes])
@@ -53,6 +56,9 @@ AC_CHECK_FUNCS([alarm atoll clock_gettime daemon dup2 gai_strerror getcwd getadd
 
 AS_IF([test "x$enable_public_html" = "xyes"], [
         AC_DEFINE_UNQUOTED(TILDE_MAP_2, "public_html", [Enables ~user/public_html])])
+
+AS_IF([test "x$enable_msie_padding" = "xyes"], [
+        AC_DEFINE(MSIE_PADDING, [1], [Enable padding of error messages for IE])])
 
 AC_ARG_VAR(WEBDIR, [Document root of your web server [LOCALSTATEDIR/www]])
 AS_IF([test "x${WEBDIR}" = "x"], [

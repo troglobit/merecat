@@ -112,6 +112,27 @@ To install `httpd` into `/usr/sbin/`, default index and icons into
     sudo make install
 
 
+Features
+--------
+
+Merecat consists of a front-end, `merecat.c`, and a standalone HTTP
+library, `libhttpd.c`, which can be tweaked in various ways and used
+for embedding a web server in another applications if needed.
+
+The most common options are available from the `merecat` command line
+and the `merecat.conf` configuration file.  Other, less common options,
+can be enabled using the `configure` script:
+
+    --enable-public-html   Allow $HOME/public_html as ~USERNAME/
+    --enable-msie-padding  Enforce padding of httdp error messages
+                           sent to Internet Explorer, otherwise it will
+                           detect too short msg and display its own.
+
+The source file `merecat.h` has even more features that can be tweaked,
+some of those are mentioned in the man page, but the header file has
+very useful comments as well.
+
+
 Origin & References
 -------------------
 

@@ -748,6 +748,7 @@ static void send_response(httpd_conn *hc, int status, char *title, const char *e
 	defang(arg, defanged_arg, sizeof(defanged_arg));
 	my_snprintf(buf, sizeof(buf), form, defanged_arg);
 	add_response(hc, buf);
+#ifdef MSIE_PADDING
 	if (match("**MSIE**", hc->useragent)) {
 		int n;
 
@@ -756,6 +757,7 @@ static void send_response(httpd_conn *hc, int status, char *title, const char *e
 			add_response(hc, "Padding so that MSIE deigns to show this error instead of its own canned one.\n");
 		add_response(hc, "-->\n");
 	}
+#endif
 	add_response(hc, "</p>");
 	send_response_tail(hc);
 }
