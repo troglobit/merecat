@@ -323,8 +323,8 @@ static int usage(int code)
 	printf("\n"
 	       "Usage: %s [OPTIONS] [WEBROOT] [HOSTNAME]\n"
 	       "\n"
-	       "  -c CGI     CGI pattern to allow, e.g. \"**\", \"*.cgi\", \"/cgi-bin/*\", the\n"
-	       "             built-in default is: \"" CGI_PATTERN "\"\n"
+	       "  -c CGI     CGI pattern to allow, e.g. \"**\", \"**.cgi\", \"/cgi-bin/*\",\n"
+	       "             the built-in default is: \"" CGI_PATTERN "\"\n"
 	       "  -d DIR     Optional DIR to change into after chrooting to WEBROOT\n"
 #ifdef HAVE_LIBCONFUSE
 	       "  -f FILE    Configuration file name, default: " CONFDIR "/merecat.conf\n"
