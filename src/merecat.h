@@ -56,12 +56,13 @@
 ** then CGI programs cannot be run at all.  If you want to disable CGI
 ** as a security measure that's how you do it, just don't define any
 ** pattern here and don't run with the -c flag.
+**
+** Some sample patterns follows:
 */
 #if 0
-/* Some sample patterns.  Allow programs only in one central directory: */
+/* Allow programs only in one central directory: */
 #define CGI_PATTERN "/cgi-bin/*"
-/* Allow programs in a central directory, or anywhere in a trusted
-** user's tree: */
+/* Allow programs in a central directory, or anywhere in a trusted user's tree: */
 #define CGI_PATTERN "/cgi-bin/*|/jef/**"
 /* Allow any program ending with a .cgi: */
 #define CGI_PATTERN "**.cgi"
@@ -69,9 +70,9 @@
 #define CGI_PATTERN "/*/cgi-bin/*"
 #endif /* 0 */
 
-/* Fallback */
+/* Fallback, any program ending with a .cgi */
 #ifndef CGI_PATTERN
-#define CGI_PATTERN NULL
+#define CGI_PATTERN "**.cgi"
 #endif
 
 

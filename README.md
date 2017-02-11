@@ -47,9 +47,14 @@ in the web server root:
        |-- ftp.example.com/
        `-- www.example.com/
 
-Then set `virtual-host=true` in `/etc/merecat.conf`.  Now the web server
-root, `/var/www/`, no longer serves files, only virtual host directories
-do, execpt for the shared files in `icons/`, `cgi-bin/`, and `errors/`.
+Edit `/etc/merecat.conf`:
+
+    virtual-host = true
+    cgi-pattern = /cgi-bin/*|**.cgi
+
+Now the web server root, `/var/www/`, no longer serves files, only
+virtual host directories do, execpt for the shared files in `icons/`,
+`cgi-bin/`, and `errors/`.
 
 On Linux bind mounts can be used to set up FTP and web access to the
 same files. Example `/etc/fstab`:

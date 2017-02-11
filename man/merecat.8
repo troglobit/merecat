@@ -60,13 +60,14 @@ This program follows the usual UNIX command line syntax.  The options
 are as follows:
 .Bl -tag -width Ds
 .It Fl c Ar CGI
-Specifies a wildcard pattern for CGI programs, for instance
-.Qq Ar **.cgi
-or
+Specifies a wildcard pattern for CGI programs, the built-in default is
+.Qq Ar **.cgi .
+A common default used by other web servers is
 .Qq Ar /cgi-bin/* .
 The config file setting is
 .Cm cgi-pattern = Qq .
-See below for details.
+The user can override the default using the command line, or the config
+file, in that order.  For more details, see below.
 .It Fl d Ar PATH
 Specifies a directory to chdir() to after chrooting.  If you are not
 chrooting use the
@@ -178,8 +179,9 @@ Specifies a wildcard pattern for CGI programs, for instance
 .Qq **.cgi
 or
 .Qq /cgi-bin/* ,
-the default is to have CGI disbled.  See below CGI section
-for more on this.
+the default is to allow any program ending in
+.Cm .cgi .
+See below CGI section for more on this.
 .It Cm charset = Qq Ar UTF-8
 Specifies the character set to use with text MIME types.  If the default
 unicode charset causes trouble, try "iso-8859-1".
@@ -279,21 +281,25 @@ of -l, and there may be other differences.
 Merecat httpd supports the CGI 1.1 spec.
 .Pp
 In order for a CGI program to be allowed to run, its name must match the
-pattern specified either at compile time or in the config file.  This is
-a simple shell-style filename pattern.  Use * to match any string not
-including a slash, or ** to match any string including slashes, or ?  to
-match any single character.  Multiple patterns separated by | can also
-be used.  The patterns get checked against the filename part of the
-incoming URL.  Remember to quote any wildcard characters so that the
-shell doesn't mess with them.
+pattern specified either at compile time, on the command line, or in the
+config file.  This is a simple shell-style filename pattern.  Use * to
+match any string not including a slash, or ** to match any string
+including slashes, or ?  to match any single character.  Multiple
+patterns separated by | can also be used.  The patterns get checked
+against the filename part of the incoming URL.  Remember to quote any
+wildcard characters so that the shell doesn't mess with them.
 .Pp
 Restricting CGI programs to a single directory lets the site admin
 review them for security holes, and is strongly recommended.  If there
 are individual users that you trust, you can enable their directories
 too using the pipe syntax, e.g. "|/jef/**".
 .Pp
-To disable CGI as a security measure, use the config file and set the
-.Cm cgi-pattern = Qq .
+To disable CGI as a security measure, either disable the default
+.Cm CGI_PATTERN
+in
+.Pa merecat.h ,
+or set the configuration file option to the empty string, like this:
+.Cm cgi-pattern = Qq 
 .Pp
 Note: the current working directory when a CGI program gets run is the
 directory that the CGI program lives in.  This isn't in the CGI 1.1
