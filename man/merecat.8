@@ -60,22 +60,26 @@ This program follows the usual UNIX command line syntax.  The options
 are as follows:
 .Bl -tag -width Ds
 .It Fl c Ar CGI
-Specifies a wildcard pattern for CGI programs, the built-in default is
+Wildcard pattern for CGI programs.  This pattern can be set using the
+command line or the config file, any pattern found in the config file
+wins.  The default is
 .Qq Ar **.cgi|/cgi-bin/* .
-The config file setting for this option is
-.Cm cgi-pattern = PATTERN Qq .
-The user can override the default using the command line, or the config
-file, in that order.  For more details, see below.
+.Pp
+For more details, see below.
 .It Fl d Ar PATH
-Specifies a directory to chdir() to after chrooting.  If you are not
-chrooting use the
+Directory to chdir() to after chrooting.  If you are not chrooting use
+the
 .Ar WEBDIR
 to do a single chdir().  If you are chrooting, this lets you put the web
 files in a subdirectory of the chroot tree, instead of in the top level
 mixed in with the chroot files.  The config file setting for this flag is
 .Cm data-directory = Ar DIR .
 .It Fl f Ar FILE
-Specifies a config file to read.
+The config file to read.  By default
+.Nm
+looks for
+.Pa /etc/merecat.conf ,
+unless the software has been configured to use a different prefix.
 .It Fl g
 Use a global passwd file.  This means that every file in the entire
 document tree is protected by the single
@@ -108,8 +112,8 @@ Runs
 in the foreground like a regular program.  Required when when running in
 a process monitor like Finit or systemd.
 .It Fl p Ar PORT
-Specifies an alternate port number to listen on.  The default is 80.
-The config file setting for this flag is
+Alternate TCP port number to listen on.  The default is 80.  The config
+file setting for this flag is
 .Cm port = Ar PORT .
 .It Fl r
 Do a chroot() at initialization time, restricting file access to the
@@ -126,10 +130,11 @@ save those CPU cycles is to use chroot.  The config file setting for this
 is
 .Cm check-symlinks = Ar <true | false> .
 .It Fl t Ar FILE
-Specifies a file of throttle settings.  See below for details.
+Enable throttling using this file with throttle settings.  See below for
+details.
 .It Fl u Ar USERNAME
-Specifies what user to switch to after initialization when started as
-root.  The default is
+User to drop privilges to to after initialization when started as root.
+The default is
 .Ar nobody ,
 on some systems
 .Ar www-data
@@ -173,7 +178,7 @@ separated by whitespace.  The settings are listed below:
 .It Cm cgi-limit = Ar NUM
 Maximum number of allowed simultaneous CGI programs.  Default 1.
 .It Cm cgi-pattern = Qq Ar **.cgi|/cgi-bin/*
-Specifies a wildcard pattern for CGI programs, for instance
+Wildcard pattern for CGI programs, for instance
 .Qq **.cgi
 or
 .Qq /cgi-bin/* ,
@@ -183,8 +188,8 @@ and any program in
 .Cm /cgi-bin/ .
 See below CGI section for more on this.
 .It Cm charset = Qq Ar UTF-8
-Specifies the character set to use with text MIME types.  If the default
-unicode charset causes trouble, try "iso-8859-1".
+Character set to use with text MIME types.  If the default unicode
+charset causes trouble, try "iso-8859-1".
 .It Cm check-referer = Ar <true | false>
 Enable check for external sites referencing material on your web server.
 For more information on referrers, see below. Disabled by default.
@@ -220,7 +225,7 @@ Used with
 .Cm check-referer ,
 see below for more details.
 .It Cm max-age = Ar SEC
-Specifies the number of seconds to be used in a
+Max number of seconds to be used in a
 .Qq Ar Cache-Control: max-age
 header to be returned with all responses.  An equivalent
 .Qq Ar Expires
