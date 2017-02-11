@@ -67,7 +67,8 @@ typedef union {
 #ifdef USE_IPV6
 	struct sockaddr_in6 sa_in6;
 	struct sockaddr_storage sa_stor;
-#endif				/* USE_IPV6 */
+#endif
+	char real_ip[200];
 } httpd_sockaddr;
 
 /* A server. */

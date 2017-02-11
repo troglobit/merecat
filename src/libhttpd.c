@@ -1111,7 +1111,7 @@ static int auth_check2(httpd_conn *hc, char *dirname)
 	fp = fopen(authpath, "r");
 	if (!fp) {
 		/* The file exists but we can't open it?  Disallow access. */
-		syslog(LOG_ERR, "%s auth file %s could not be opened: %s", httpd_ntoa(&hc->client_addr), authpath, strerror(errno));
+		syslog(LOG_ERR, "%s auth file %s could not be opened: %s", hc->client_addr.real_ip, authpath, strerror(errno));
 		httpd_send_err(hc, 403, err403title, "",
 			       ERROR_FORM(err403form,
 					  "The requested URL '%s' is protected by an authentication file, but the authentication file cannot be opened.\n"),
@@ -1660,6 +1660,7 @@ int httpd_get_conn(httpd_server *hs, int listen_fd, httpd_conn *hc)
 {
 	httpd_sockaddr sa;
 	socklen_t sz;
+	char *real_ip;
 
 	if (!hc->initialized) {
 		hc->read_size = 0;
@@ -1712,6 +1713,15 @@ int httpd_get_conn(httpd_server *hs, int listen_fd, httpd_conn *hc)
 	hc->hs = hs;
 	(void)memset(&hc->client_addr, 0, sizeof(hc->client_addr));
 	(void)memmove(&hc->client_addr, &sa, sockaddr_len(&sa));
+
+	/*
+	 * Slightly ugly workaround to handle X-Forwarded-For better for IPv6
+	 * Idea from https://blog.steve.fi/IPv6_and_thttpd.html
+	 */
+	real_ip = httpd_ntoa(&hc->client_addr);
+	memset(hc->client_addr.real_ip, 0, sizeof(hc->client_addr.real_ip));
+	strncpy(hc->client_addr.real_ip, real_ip, sizeof(hc->client_addr.real_ip));
+
 	hc->read_idx = 0;
 	hc->checked_idx = 0;
 	hc->checked_state = CHST_FIRSTWORD;
@@ -2077,6 +2087,7 @@ int httpd_parse_request(httpd_conn *hc)
 			if (buf[0] == '\0')
 				break;
 
+			syslog(LOG_DEBUG, "HDR %s", buf);
 			if (strncasecmp(buf, "Referer:", 8) == 0) {
 				cp = &buf[8];
 				cp += strspn(cp, " \t");
@@ -2098,7 +2109,7 @@ int httpd_parse_request(httpd_conn *hc)
 				cp += strspn(cp, " \t");
 				if (hc->accept[0] != '\0') {
 					if (strlen(hc->accept) > 5000) {
-						syslog(LOG_ERR, "%s way too much Accept: data", httpd_ntoa(&hc->client_addr));
+						syslog(LOG_ERR, "%s way too much Accept: data", hc->client_addr.real_ip);
 						continue;
 					}
 					httpd_realloc_str(&hc->accept, &hc->maxaccept, strlen(hc->accept) + 2 + strlen(cp));
@@ -2111,8 +2122,7 @@ int httpd_parse_request(httpd_conn *hc)
 				cp += strspn(cp, " \t");
 				if (hc->accepte[0] != '\0') {
 					if (strlen(hc->accepte) > 5000) {
-						syslog(LOG_ERR, "%s way too much Accept-Encoding: data",
-						       httpd_ntoa(&hc->client_addr));
+						syslog(LOG_ERR, "%s way too much Accept-Encoding: data", hc->client_addr.real_ip);
 						continue;
 					}
 					httpd_realloc_str(&hc->accepte, &hc->maxaccepte, strlen(hc->accepte) + 2 + strlen(cp));
@@ -2177,10 +2187,17 @@ int httpd_parse_request(httpd_conn *hc)
 				if (strcasecmp(cp, "keep-alive") == 0)
 					hc->keep_alive = 1;
 			} else if (strncasecmp(buf, "X-Forwarded-For:", 16) == 0) {
+				int i;
+
 				/* Syntax: X-Forwarded-For: client[, proxy1, proxy2, ...] */
 				cp = &buf[16];
 				cp += strspn(cp, " \t");
-				inet_aton(cp, &(hc->client_addr.sa_in.sin_addr));
+				for (i = 0; cp[i]; i++) {
+					hc->client_addr.real_ip[i] = cp[i];
+					if (isblank(cp[i]))
+						break;
+				}
+				hc->client_addr.real_ip[i] = 0;
 			}
 			/*
 			 * Possibly add support for X-Real-IP: here?
@@ -2345,8 +2362,7 @@ int httpd_parse_request(httpd_conn *hc)
 			httpd_send_err(hc, 404, err404title, "", err404form, hc->encodedurl);
 			return -1;
 		} else {
-			syslog(LOG_NOTICE, "%s URL \"%s\" goes outside the web tree",
-			       httpd_ntoa(&hc->client_addr), hc->encodedurl);
+			syslog(LOG_NOTICE, "%s URL \"%s\" goes outside the web tree", hc->client_addr.real_ip, hc->encodedurl);
 			httpd_send_err(hc, 403, err403title, "",
 				       ERROR_FORM(err403form,
 						  "The requested URL '%s' resolves to a file outside the permitted web server directory tree.\n"),
@@ -3002,7 +3018,8 @@ static char **make_envp(httpd_conn *hc)
 	envp[envn++] = build_env("SCRIPT_NAME=/%s", strcmp(hc->origfilename, ".") == 0 ? "" : hc->origfilename);
 	if (hc->query[0] != '\0')
 		envp[envn++] = build_env("QUERY_STRING=%s", hc->query);
-	envp[envn++] = build_env("REMOTE_ADDR=%s", httpd_ntoa(&hc->client_addr));
+	envp[envn++] = build_env("REMOTE_ADDR=%s", hc->client_addr.real_ip);
+
 	if (hc->referer[0] != '\0')
 		envp[envn++] = build_env("HTTP_REFERER=%s", hc->referer);
 	if (hc->useragent[0] != '\0')
@@ -3598,8 +3615,7 @@ static int really_start_request(httpd_conn *hc, struct timeval *nowP)
 	 ** readable by the HTTP server and therefore the *whole* world.
 	 */
 	if (!(hc->sb.st_mode & (S_IROTH | S_IXOTH))) {
-		syslog(LOG_INFO, "%s URL \"%s\" resolves to a non world-readable file",
-		       httpd_ntoa(&hc->client_addr), hc->encodedurl);
+		syslog(LOG_INFO, "%s URL \"%s\" resolves to a non world-readable file", hc->client_addr.real_ip, hc->encodedurl);
 		httpd_send_err(hc, 403, err403title, "",
 			       ERROR_FORM(err403form, "The requested URL '%s' resolves to a file that is not world-readable.\n"),
 			       hc->encodedurl);
@@ -3642,9 +3658,8 @@ static int really_start_request(httpd_conn *hc, struct timeval *nowP)
 #ifdef GENERATE_INDEXES
 		/* Directories must be readable for indexing. */
 		if (!(hc->sb.st_mode & S_IROTH)) {
-			syslog(LOG_INFO,
-			       "%s URL \"%s\" tried to index a directory with indexing disabled",
-			       httpd_ntoa(&hc->client_addr), hc->encodedurl);
+			syslog(LOG_INFO, "%s URL \"%s\" tried to index a directory with indexing disabled",
+			       hc->client_addr.real_ip, hc->encodedurl);
 			httpd_send_err(hc, 403, err403title, "",
 				       ERROR_FORM(err403form,
 						  "The requested URL '%s' resolves to a directory that has indexing disabled.\n"),
@@ -3662,7 +3677,7 @@ static int really_start_request(httpd_conn *hc, struct timeval *nowP)
 		/* Ok, generate an index. */
 		return ls(hc);
 #else /* GENERATE_INDEXES */
-		syslog(LOG_INFO, "%s URL \"%s\" tried to index a directory", httpd_ntoa(&hc->client_addr), hc->encodedurl);
+		syslog(LOG_INFO, "%s URL \"%s\" tried to index a directory", hc->client_addr.real_ip, hc->encodedurl);
 		httpd_send_err(hc, 403, err403title, "",
 			       ERROR_FORM(err403form,
 					  "The requested URL '%s' is a directory, and directory indexing is disabled on this server.\n"),
@@ -3687,9 +3702,8 @@ static int really_start_request(httpd_conn *hc, struct timeval *nowP)
 
 		/* Now, is the index version world-readable or world-executable? */
 		if (!(hc->sb.st_mode & (S_IROTH | S_IXOTH))) {
-			syslog(LOG_INFO,
-			       "%s URL \"%s\" resolves to a non-world-readable index file",
-			       httpd_ntoa(&hc->client_addr), hc->encodedurl);
+			syslog(LOG_INFO, "%s URL \"%s\" resolves to a non-world-readable index file",
+			       hc->client_addr.real_ip, hc->encodedurl);
 			httpd_send_err(hc, 403, err403title, "",
 				       ERROR_FORM(err403form,
 						  "The requested URL '%s' resolves to an index file that is not world-readable.\n"),
@@ -3714,8 +3728,7 @@ static int really_start_request(httpd_conn *hc, struct timeval *nowP)
 	/* Check if the filename is the AUTH_FILE itself - that's verboten. */
 	if (expnlen == sizeof(AUTH_FILE) - 1 || expnlen == sizeof(AUTH_IGNORE) - 1) {
 		if (!strcmp(hc->expnfilename, AUTH_FILE) || !strcmp(hc->expnfilename, AUTH_IGNORE)) {
-			syslog(LOG_NOTICE,
-			       "%s URL \"%s\" tried to retrieve an auth file", httpd_ntoa(&hc->client_addr), hc->encodedurl);
+			syslog(LOG_NOTICE, "%s URL \"%s\" tried to retrieve an auth file", hc->client_addr.real_ip, hc->encodedurl);
 			httpd_send_err(hc, 403, err403title, "",
 				       ERROR_FORM(err403form,
 						  "The requested URL '%s' is an authorization file, retrieving it is not permitted.\n"),
@@ -3726,7 +3739,7 @@ static int really_start_request(httpd_conn *hc, struct timeval *nowP)
 		   strcmp(&(hc->expnfilename[expnlen - sizeof(AUTH_FILE) + 1]), AUTH_FILE) == 0 &&
 		   hc->expnfilename[expnlen - sizeof(AUTH_FILE)] == '/') {
 		syslog(LOG_NOTICE,
-		       "%s URL \"%s\" tried to retrieve an auth file", httpd_ntoa(&hc->client_addr), hc->encodedurl);
+		       "%s URL \"%s\" tried to retrieve an auth file", hc->client_addr.real_ip, hc->encodedurl);
 		httpd_send_err(hc, 403, err403title, "",
 			       ERROR_FORM(err403form,
 					  "The requested URL '%s' is an authorization file, retrieving it is not permitted.\n"),
@@ -3744,7 +3757,7 @@ static int really_start_request(httpd_conn *hc, struct timeval *nowP)
 		if (hc->sb.st_mode & S_IXOTH)
 			return cgi(hc);
 
-		syslog(LOG_DEBUG, "%s URL \"%s\" is a CGI but not executable, rejecting.", httpd_ntoa(&hc->client_addr), hc->encodedurl);
+		syslog(LOG_DEBUG, "%s URL \"%s\" is a CGI but not executable, rejecting.", hc->client_addr.real_ip, hc->encodedurl);
 		httpd_send_err(hc, 403, err403title, "",
 			       ERROR_FORM(err403form,
 					  "The requested URL '%s' resolves to a file which matches a CGI but is not executable; retrieving it is forbidden.\n"),
@@ -3757,7 +3770,7 @@ static int really_start_request(httpd_conn *hc, struct timeval *nowP)
 	 ** is prohibited.
 	 */
 	if (hc->sb.st_mode & S_IXOTH) {
-		syslog(LOG_NOTICE, "%s URL \"%s\" is executable but isn't CGI", httpd_ntoa(&hc->client_addr), hc->encodedurl);
+		syslog(LOG_NOTICE, "%s URL \"%s\" is executable but isn't CGI", hc->client_addr.real_ip, hc->encodedurl);
 		httpd_send_err(hc, 403, err403title, "",
 			       ERROR_FORM(err403form,
 					  "The requested URL '%s' resolves to a file which is marked executable but is not a CGI file; retrieving it is forbidden.\n"),
@@ -3765,7 +3778,7 @@ static int really_start_request(httpd_conn *hc, struct timeval *nowP)
 		return -1;
 	}
 	if (hc->pathinfo[0] != '\0') {
-		syslog(LOG_INFO, "%s URL \"%s\" has pathinfo but isn't CGI", httpd_ntoa(&hc->client_addr), hc->encodedurl);
+		syslog(LOG_INFO, "%s URL \"%s\" has pathinfo but isn't CGI", hc->client_addr.real_ip, hc->encodedurl);
 		httpd_send_err(hc, 403, err403title, "",
 			       ERROR_FORM(err403form,
 					  "The requested URL '%s' resolves to a file plus CGI-style pathinfo, but the file is not a valid CGI file.\n"),
@@ -3850,7 +3863,7 @@ static void make_log_entry(httpd_conn *hc, struct timeval *nowP)
 		(void)strcpy(bytes, "-");
 
 	syslog(LOG_INFO, "%s - %s \"%s %.200s %s\" %d %s \"%.200s\" \"%.200s\"",
-	       httpd_ntoa(&hc->client_addr), ru, httpd_method_str(hc->method), url, hc->protocol,
+	       hc->client_addr.real_ip, ru, httpd_method_str(hc->method), url, hc->protocol,
 	       hc->status, bytes, hc->referer, hc->useragent);
 }
 
@@ -3867,7 +3880,7 @@ static int check_referer(httpd_conn *hc)
 	r = really_check_referer(hc);
 	if (!r) {
 		syslog(LOG_INFO, "%s non-local referer \"%s%s\" \"%s\"",
-		       httpd_ntoa(&hc->client_addr), get_hostname(hc), hc->encodedurl, hc->referer);
+		       hc->client_addr.real_ip, get_hostname(hc), hc->encodedurl, hc->referer);
 		httpd_send_err(hc, 403, err403title, "",
 			       ERROR_FORM(err403form, "You must supply a local referer to get URL '%s' from this server.\n"),
 			       hc->encodedurl);
@@ -3955,9 +3968,10 @@ char *httpd_ntoa(httpd_sockaddr *saP)
 	if (getnameinfo(&saP->sa, sockaddr_len(saP), str, sizeof(str), 0, 0, NI_NUMERICHOST) != 0) {
 		str[0] = '?';
 		str[1] = '\0';
-	} else if (IN6_IS_ADDR_V4MAPPED(&saP->sa_in6.sin6_addr) && strncmp(str, "::ffff:", 7) == 0)
+	} else if (IN6_IS_ADDR_V4MAPPED(&saP->sa_in6.sin6_addr) && strncmp(str, "::ffff:", 7) == 0) {
 		/* Elide IPv6ish prefix for IPv4 addresses. */
 		(void)memmove(str, &str[7], strlen(str) - 6);
+	}
 
 	return str;
 #else
