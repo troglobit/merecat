@@ -2089,9 +2089,6 @@ int httpd_parse_request(httpd_conn *hc)
 				cp = &buf[5];
 				cp += strspn(cp, " \t");
 				hc->hdrhost = cp;
-				cp = strchr(hc->hdrhost, ':');
-				if (cp)
-					*cp = '\0';
 				if (strchr(hc->hdrhost, '/') || hc->hdrhost[0] == '.') {
 					httpd_send_err(hc, 400, httpd_err400title, "", httpd_err400form, "7");
 					return -1;
