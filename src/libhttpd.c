@@ -2176,11 +2176,16 @@ int httpd_parse_request(httpd_conn *hc)
 				cp += strspn(cp, " \t");
 				if (strcasecmp(cp, "keep-alive") == 0)
 					hc->keep_alive = 1;
-			} else if (strncasecmp(buf, "X-Forwarded-For:", 16) == 0) { /* Use real IP if available  */
+			} else if (strncasecmp(buf, "X-Forwarded-For:", 16) == 0) {
+				/* Syntax: X-Forwarded-For: client[, proxy1, proxy2, ...] */
 				cp = &buf[16];
 				cp += strspn(cp, " \t");
 				inet_aton(cp, &(hc->client_addr.sa_in.sin_addr));
 			}
+			/*
+			 * Possibly add support for X-Real-IP: here?
+			 * http://distinctplace.com/infrastructure/2014/04/23/story-behind-x-forwarded-for-and-x-real-ip-headers/
+			 */
 #ifdef LOG_UNKNOWN_HEADERS
 			else if (strncasecmp(buf, "Accept-Charset:", 15)   == 0 ||
 				 strncasecmp(buf, "Accept-Language:", 16)  == 0 ||
