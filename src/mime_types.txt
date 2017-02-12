@@ -3,6 +3,7 @@
 # A list of file extensions followed by the corresponding MIME type.
 # Extensions not found in the table are returned as text/plain.
 
+7z	application/x-7z-compressed
 a	application/octet-stream
 aab	application/x-authorware-bin
 aam	application/x-authorware-map
@@ -11,6 +12,8 @@ ai	application/postscript
 aif	audio/x-aiff
 aifc	audio/x-aiff
 aiff	audio/x-aiff
+arc	application/octet-stream
+arj	application/octet-stream
 asc	text/plain; charset=%s
 asf	video/x-ms-asf
 asx	video/x-ms-asf
@@ -19,16 +22,20 @@ avi	video/x-msvideo
 bcpio	application/x-bcpio
 bin	application/octet-stream
 bmp	image/bmp
+bz2	application/octet-stream
 cdf	application/x-netcdf
 class	application/x-java-vm
 cpio	application/x-cpio
 cpt	application/mac-compactpro
 crl	application/x-pkcs7-crl
+cer	application/x-x509-ca-cert
 crt	application/x-x509-ca-cert
 csh	application/x-csh
 css	text/css; charset=%s
 dcr	application/x-director
+der	application/x-x509-ca-cert
 dir	application/x-director
+disco	text/xml
 djv	image/vnd.djvu
 djvu	image/vnd.djvu
 dll	application/octet-stream
@@ -55,6 +62,7 @@ hqx	application/mac-binhex40
 htm	text/html; charset=%s
 html	text/html; charset=%s
 ice	x-conference/x-cooltalk
+ico	image/x-icon
 ief	image/ief
 iges	model/iges
 igs	model/iges
@@ -122,6 +130,7 @@ rpm	audio/x-pn-realaudio-plugin
 rss	application/rss+xml
 rtf	text/rtf; charset=%s
 rtx	text/richtext; charset=%s
+sfx	application/octet-stream
 sgm	text/sgml; charset=%s
 sgml	text/sgml; charset=%s
 sh	application/x-sh
@@ -145,6 +154,7 @@ stw	application/vnd.sun.xml.writer.template
 sv4cpio	application/x-sv4cpio
 sv4crc	application/x-sv4crc
 svg	image/svg+xml
+svgx	image/svg+xml
 svgz	image/svg+xml
 swf	application/x-shockwave-flash
 sxc	application/vnd.sun.xml.calc
@@ -155,6 +165,9 @@ sxm	application/vnd.sun.xml.math
 sxw	application/vnd.sun.xml.writer
 t	application/x-troff
 tar	application/x-tar
+taz	application/octet-stream
+tgz	application/octet-stream
+tbz2	application/octet-stream
 tcl	application/x-tcl
 tex	application/x-tex
 texi	application/x-texinfo
@@ -191,8 +204,13 @@ xht	application/xhtml+xml; charset=%s
 xhtml	application/xhtml+xml; charset=%s
 xls	application/vnd.ms-excel
 xml	text/xml; charset=%s
+xpi	application/x-xpinstall
 xpm	image/x-xpixmap
+xsd	text/xml; charset=%s
 xsl	text/xml; charset=%s
+xslt	text/xml; charset=%s
+xul	application/vnd.mozilla.xul+xml
 xwd	image/x-xwindowdump
 xyz	chemical/x-xyz
 zip	application/zip
+zoo	application/octet-stream
