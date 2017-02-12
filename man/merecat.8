@@ -81,20 +81,33 @@ looks for
 .Pa /etc/merecat.conf ,
 unless the software has been configured to use a different prefix.
 .It Fl g
-Use a global passwd file.  This means that every file in the entire
-document tree is protected by the single
+Use global
 .Pa .htpasswd
+and
+.Pa .htaccess
+files.  This means that every file in the entire document tree is
+protected by a single
+.Pa .htpasswd
+or
+.Pa .htaccess
 file at the top of the tree.  Otherwise the semantics of the
 .Pa .htpasswd
-file are the same.  If this option is set but there is no
+and
+.Pa .htaccess
+files are the same.  If this option is set but there is no
 .Pa .htpasswd
-file in the top-level directory, then
+or
+.Pa .htaccess
+files in the top-level directory, then
 .Nm
-proceeds as if the option was not set \(em first looking for a local
+proceeds as if the option was not set \(em first looking for local
 .Pa .htpasswd
-file, and if that doesn't exist either
-then serving the file without any password.  The config file setting for
-this flag is
+and
+.Pa .htaccess
+files, and if they do not exist either then serving the requested file
+without any password or access restriction.
+.Pp
+The config file setting for this flag is
 .Cm global-passwd = Ar <true | false> .
 .It Fl I Ar IDENT
 The
@@ -326,6 +339,44 @@ modify .htpasswd files.
 Relevant
 .Pa merecat.h define:
 .Cm AUTH_FILE
+.Sh "ACCESS RESTRICTION"
+Access restriction is available as an option at compile time.  If
+enabled, it uses an access file in the directory to be protected,
+called
+.Pa .htaccess
+by default.  This file consists of a rule and a host address or a
+network range per line.  Valid rules are:
+.Bl -tag -width Ds
+.It Cm allow from
+The following host address or network range is allowed to access the requested
+directory and its files.
+.It Cm deny from
+The following host address or network range is not allowed to access the
+requested directory and its files.
+.El
+.Pp
+Note: The protection does not carry over to subdirectories.
+.Pp
+There are three ways to specify a valid host address or network range:
+.Bl -tag -width Ds
+.It Cm IPv4 host address ,
+e.g. 10.2.3.4
+.It Cm IPv4 network with subnet mask ,
+e.g. 10.0.0.0/255.255.0.0
+.It Cm IPv4 network using CIDR notation ,
+e.g. 10.0.0.0/16
+.El
+.Pp
+Note that rules are processed in the same order as they are listed in the
+access file and that the first rule which matches the client's address is
+applied (there is no order clause).
+.Pp
+So if there is no allow from 0.0.0.0/0 at the end of the file the default
+action is to deny access.
+.Pp
+Relevant
+.Pa merecat.h define:
+.Cm ACCESS_FILE
 .Sh "THROTTLING"
 .Pp
 The throttle file lets you set maximum byte rates on URLs or URL groups.

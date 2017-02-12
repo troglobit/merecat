@@ -151,11 +151,16 @@
 */
 #define AUTH_FILE ".htpasswd"
 
-/*
-** This file is ignored by merecat but may exist on systems where
-** another webserver has been used before.
+/* CONFIGURE: The file to use for restricting access on an ip basis. If
+** this is defined then merecat checks for this file in the local
+** directory before every fetch. If the file exists then merecat checks
+** whether the client's ip address is allowed to fetch this file, otherwise
+** the fetch is denied.
+**
+** If you undefine this then merecat will not implement access checks
+** at all and will not check for access files, which saves a bit of CPU time.
 */
-#define AUTH_IGNORE ".htaccess"
+#define ACCESS_FILE ".htaccess"
 
 /* CONFIGURE: The default character set name to use with text MIME types.
 ** This gets substituted into the MIME types where they have a "%s".
