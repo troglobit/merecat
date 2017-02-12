@@ -1,4 +1,4 @@
-SUBDIRS                   = src man scripts www
+SUBDIRS                   = src man scripts tests www
 dist_sysconf_DATA         = merecat.conf
 doc_DATA                  = README.md LICENSE
 EXTRA_DIST                = README.md README.thttpd LICENSE

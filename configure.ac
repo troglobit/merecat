@@ -2,6 +2,7 @@ AC_PREREQ([2.68])
 AC_INIT([Merecat httpd], [2.32-beta1], [https://github.com/troglobit/merecat/issues], [merecat])
 AC_CONFIG_SRCDIR([src/libhttpd.c])
 AC_CONFIG_HEADERS([config.h])
+# Add this to automake init if parallel harness rules fails: serial-tests
 AM_INIT_AUTOMAKE([1.11 foreign no-dist-gzip dist-xz])
 
 # Checks for programs.
@@ -97,6 +98,7 @@ AC_CONFIG_FILES([Makefile
                  src/Makefile
                  man/Makefile
                  scripts/Makefile
+                 tests/Makefile
                  www/Makefile
                  www/cgi-bin/Makefile
                  www/icons/Makefile]
