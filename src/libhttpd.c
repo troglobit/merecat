@@ -972,7 +972,8 @@ static int access_check2 (httpd_conn* hc, char* dirname)
 	fp = fopen(accesspath, "r");
 	if (!fp) {
 		/* The file exists but we can't open it? Disallow access. */
-		syslog(LOG_ERR, "%.80s access file %.80s could not be opened - %m", httpd_client(hc), accesspath);
+		syslog(LOG_ERR, "%.80s access file %.80s could not be opened: %s",
+		       httpd_client(hc), accesspath, strerror(errno));
 
 		httpd_send_err(hc, 403, err403title, "",
 			       ERROR_FORM(err403form,
