@@ -424,7 +424,7 @@ static int initialize_listen_socket(httpd_sockaddr *saP)
 	/* Use accept filtering, if available. */
 #ifdef SO_ACCEPTFILTER
 	{
-#if ( __FreeBSD_version >= 411000 )
+#if (__FreeBSD_version >= 411000)
 #define ACCEPT_FILTER_NAME "httpready"
 #else
 #define ACCEPT_FILTER_NAME "dataready"
@@ -3589,7 +3589,7 @@ static void cgi_child(httpd_conn *hc)
 	 ** probably already has that file open via stdin stdout and/or stderr,
 	 ** this is not a problem.
 	 */
-	/* (void) fcntl( hc->conn_fd, F_SETFD, 1 ); */
+	/* fcntl(hc->conn_fd, F_SETFD, 1); */
 
 #ifdef CGI_NICE
 	/* Set priority. */
@@ -3832,6 +3832,7 @@ static int really_start_request(httpd_conn *hc, struct timeval *nowP)
 		if (auth_check(hc, hc->expnfilename) == -1)
 			return -1;
 #endif
+
 		/* Referer check. */
 		if (!check_referer(hc))
 			return -1;
