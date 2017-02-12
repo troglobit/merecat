@@ -2270,8 +2270,9 @@ int httpd_parse_request(httpd_conn *hc)
 					}
 					httpd_realloc_str(&hc->accepte, &hc->maxaccepte, strlen(hc->accepte) + 2 + strlen(cp));
 					(void)strcat(hc->accepte, ", ");
-				} else
+				} else {
 					httpd_realloc_str(&hc->accepte, &hc->maxaccepte, strlen(cp));
+				}
 				(void)strcpy(hc->accepte, cp);
 			} else if (strncasecmp(buf, "Accept-Language:", 16) == 0) {
 				cp = &buf[16];
@@ -3705,7 +3706,7 @@ static int is_cgi(httpd_conn *hc)
 static char *has_gzip(httpd_conn *hc)
 {
 	int serve_dotgz = 0;
-	char *header = "";
+	static char *header = "";
 	struct stat st;
 	static char *dotgzfn = NULL;
 	static size_t dotgz_fnlen = 0;
@@ -3734,6 +3735,8 @@ static char *has_gzip(httpd_conn *hc)
 
 		httpd_realloc_str(&hc->encodings, &hc->maxencodings, 5);
 		strncpy(hc->encodings, "gzip", hc->maxencodings);
+	} else {
+		header = "";
 	}
 
 done:
