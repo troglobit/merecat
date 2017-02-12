@@ -2,6 +2,10 @@
 *.o
 .config
 .unpacked
+GPATH
+GRTAGS
+GSYMS
+GTAGS
 aclocal.m4
 autom4te.cache
 compile
@@ -12,8 +16,10 @@ config.status
 configure
 depcomp
 install-sh
+merecat.service
 missing
 stamp-h1
+test-driver
 Makefile
 Makefile.in
 src/.deps
@@ -23,4 +29,3 @@ src/merecat
 www/cgi-bin/.deps
 www/cgi-bin/redirect
 www/cgi-bin/ssi
-/merecat.service
