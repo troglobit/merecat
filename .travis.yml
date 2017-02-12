@@ -22,6 +22,7 @@ script:
   - ./configure --prefix=/tmp
   - make V=1
   - make install-strip
+  - make check
   - tree /tmp
   - ldd /tmp/sbin/merecat
   - /tmp/sbin/merecat -h
