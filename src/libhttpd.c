@@ -972,8 +972,7 @@ static int access_check2 (httpd_conn* hc, char* dirname)
 	fp = fopen(accesspath, "r");
 	if (!fp) {
 		/* The file exists but we can't open it? Disallow access. */
-		syslog(LOG_ERR, "%.80s access file %.80s could not be opened - %m",
-		       httpd_ntoa(&hc->client_addr), accesspath);
+		syslog(LOG_ERR, "%.80s access file %.80s could not be opened - %m", httpd_client(hc), accesspath);
 
 		httpd_send_err(hc, 403, err403title, "",
 			       ERROR_FORM(err403form,
@@ -1020,7 +1019,10 @@ static int access_check2 (httpd_conn* hc, char* dirname)
 		if (!inet_aton(addr, &ipv4_addr))
 			return err_accessfile(hc, accesspath, line, fp);
 
-		/* Does client addr match this rule? */
+		/*
+		 * Does client addr match this rule?
+		 * TODO: Generalize and add IPv6 support
+		 */
 		if ((hc->client_addr.sa_in.sin_addr.s_addr & ipv4_mask.s_addr) ==
 		    (ipv4_addr.s_addr & ipv4_mask.s_addr)) {
 			/* Yes. */
@@ -3889,8 +3891,7 @@ static int really_start_request(httpd_conn *hc, struct timeval *nowP)
 	/* Check if the filename is the ACCESS_FILE itself - that's verboten. */
 	if (expnlen == sizeof(ACCESS_FILE) - 1) {
 		if (strcmp(hc->expnfilename, ACCESS_FILE) == 0) {
-			syslog(LOG_NOTICE, "%.80s URL \"%.80s\" tried to retrieve an access file",
-			       httpd_ntoa(&hc->client_addr), hc->encodedurl);
+			syslog(LOG_NOTICE, "%.80s URL \"%.80s\" tried to retrieve an access file", httpd_client(hc), hc->encodedurl);
 			httpd_send_err(hc, 403, err403title, "",
 				       ERROR_FORM(err403form,
 						  "The requested URL '%.80s' is an access file, retrieving it is not permitted.\n"),
@@ -3900,8 +3901,7 @@ static int really_start_request(httpd_conn *hc, struct timeval *nowP)
 	} else if (expnlen >= sizeof(ACCESS_FILE) &&
 		  strcmp(&(hc->expnfilename[expnlen - sizeof(ACCESS_FILE) + 1]), ACCESS_FILE) == 0 &&
 		  hc->expnfilename[expnlen - sizeof(ACCESS_FILE)] == '/') {
-		syslog(LOG_NOTICE, "%.80s URL \"%.80s\" tried to retrieve an access file",
-		       httpd_ntoa(&hc->client_addr), hc->encodedurl);
+		syslog(LOG_NOTICE, "%.80s URL \"%.80s\" tried to retrieve an access file", httpd_client(hc), hc->encodedurl);
 		httpd_send_err(hc, 403, err403title, "",
 			       ERROR_FORM(err403form, "The requested URL '%.80s' is an access file, retrieving it is not permitted.\n"),
 			       hc->encodedurl);
