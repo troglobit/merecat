@@ -1059,7 +1059,7 @@ static int auth_check2(httpd_conn *hc, char *dirname)
 	(void)my_snprintf(authpath, maxauthpath, "%s/%s", dirname, AUTH_FILE);
 
 	/* Does this directory have an auth file? */
-	if (stat(authpath, &sb) < 0)
+	if (lstat(authpath, &sb) < 0)
 		/* Nope, let the request go through. */
 		return 0;
 
