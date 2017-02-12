@@ -2231,7 +2231,6 @@ int httpd_parse_request(httpd_conn *hc)
 			if (buf[0] == '\0')
 				break;
 
-			syslog(LOG_DEBUG, "HDR: %s", buf);
 			if (strncasecmp(buf, "Referer:", 8) == 0) {
 				cp = &buf[8];
 				cp += strspn(cp, " \t");
@@ -2420,8 +2419,6 @@ int httpd_parse_request(httpd_conn *hc)
 			if (!q || c < q || ((!c || q < c) && qval > 0.0f))
 				hc->dotgz = 1;
 		}
-
-		syslog(LOG_DEBUG, "Checking accepte: %s --> dotgz: %d", hc->accepte, hc->dotgz);
 	}
 
 	/* Ok, the request has been parsed.  Now we resolve stuff that
@@ -3728,9 +3725,6 @@ static char *has_gzip(httpd_conn *hc)
                        serve_dotgz = 1;
 	}
 
-	syslog(LOG_DEBUG, "Client wants gzip, can we serve %s --> %s",
-	       dotgzfn, serve_dotgz ? "YES" : "NO");
-
 	/* can serve .gz file and there is no previous encodings */
 	if (serve_dotgz && hc->encodings[0] == 0) {
 		header = "Vary: Accept-Encoding\r\n";
@@ -3998,7 +3992,6 @@ static int really_start_request(httpd_conn *hc, struct timeval *nowP)
 
 	figure_mime(hc);
 
-	syslog(LOG_DEBUG, "Sending mime encodings: %s", hc->encodings);
 	if (hc->method == METHOD_HEAD) {
 		char *extra = has_gzip(hc);
 
