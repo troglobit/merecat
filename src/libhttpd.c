@@ -3017,6 +3017,18 @@ static char **make_envp(httpd_conn *hc)
 		}
 	}
 	envp[envn++] = build_env("SCRIPT_NAME=/%s", strcmp(hc->origfilename, ".") == 0 ? "" : hc->origfilename);
+
+	/*
+	 * php-cgi needs SCRIPT_FILENAME environement variable to be
+	 * defined to detect it was invoqued as CGI script.  Patch by
+	 * Fanfan <francois@cerbelle.net>
+	 */
+	if (hc->expnfilename[0] == '/')
+		my_snprintf(buf, sizeof(buf), "%s", strcmp(hc->expnfilename, ".") == 0 ? "" : hc->expnfilename);
+	else
+		my_snprintf(buf, sizeof(buf), "%s%s", hc->hs->cwd, strcmp(hc->expnfilename, ".") == 0 ? "" : hc->expnfilename);
+	envp[envn++] = build_env("SCRIPT_FILENAME=%s", buf);
+
 	if (hc->query[0] != '\0')
 		envp[envn++] = build_env("QUERY_STRING=%s", hc->query);
 	envp[envn++] = build_env("REMOTE_ADDR=%s", httpd_client(hc));
