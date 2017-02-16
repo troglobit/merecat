@@ -107,6 +107,8 @@ nc	application/x-netcdf
 o	application/octet-stream
 oda	application/oda
 ogg	application/ogg
+ogv	video/ogg
+ogx	application/ogg
 pac	application/x-ns-proxy-autoconfig
 pbm	image/x-portable-bitmap
 pdb	chemical/x-pdb

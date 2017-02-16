@@ -102,6 +102,8 @@
 { "o", 0, "application/octet-stream", 0 },
 { "oda", 0, "application/oda", 0 },
 { "ogg", 0, "application/ogg", 0 },
+{ "ogv", 0, "video/ogg", 0 },
+{ "ogx", 0, "application/ogg", 0 },
 { "pac", 0, "application/x-ns-proxy-autoconfig", 0 },
 { "pbm", 0, "image/x-portable-bitmap", 0 },
 { "pdb", 0, "chemical/x-pdb", 0 },
