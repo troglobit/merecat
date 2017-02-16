@@ -1654,13 +1654,14 @@ static char *expand_symlinks(char *path, char **restP, int no_symlink_check, int
 	restlen = strlen(path);
 	httpd_realloc_str(&rest, &maxrest, restlen);
 	(void)strcpy(rest, path);
-	if (!tildemapped)
+	if (!tildemapped) {
 		/* Remove any leading slashes. */
-		while (rest[0] == '/') {
+		while (restlen && rest[0] == '/') {
 			/*One more for '\0', one less for the eaten first */
 			(void)memmove(rest, &(rest[1]), strlen(rest));
 			--restlen;
 		}
+	}
 	r = rest;
 	nlinks = 0;
 
