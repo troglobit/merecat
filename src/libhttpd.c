@@ -1188,7 +1188,7 @@ static int auth_check2(httpd_conn *hc, char *dirname)
 	static char *authpath;
 	static size_t maxauthpath = 0;
 	struct stat sb;
-	char authinfo[500];
+	char authinfo[550];
 	char *authpass;
 	char *colon;
 	int l;
