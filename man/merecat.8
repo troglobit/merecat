@@ -328,16 +328,30 @@ Relevant
 defines:
 .Cm CGI_PATTERN, CGI_TIMELIMIT, CGI_NICE, CGI_PATH, CGI_LD_LIBRARY_PATH, CGIBINDIR .
 .Sh "BASIC AUTHENTICATION"
-Basic Authentication is available as an option at compile time.  If
-enabled, it uses a password file in the directory to be protected,
-called .htpasswd by default.  This file is formatted as the familiar
-colon-separated username/encrypted-password pair, records delimited by
-newlines.  The protection does not carry over to subdirectories.  The
-utility program htpasswd(1) is included to help create and
-modify .htpasswd files.
+Basic Authentication is enabled by default in
+.Nm ,
+but can also be disabled at compile time.  When enabled, it uses a
+password file in the directory to be protected, called
+.Pa .htpasswd
+by default.  This file is formatted as the familiar colon-separated
+username/encrypted-password pair, records delimited by newlines.  The
+utility program
+.Xr htpasswd 1
+is included to help create and modify
+.Pa .htpasswd
+files.
+.Pp
+.Nm
+can use a global
+.Pa .htpasswd
+file if started with the
+.Fl g
+switch, or you can rely on a per directory file which also protects
+sub-directories.
 .Pp
 Relevant
-.Pa merecat.h define:
+.Pa merecat.h
+define:
 .Cm AUTH_FILE
 .Sh "ACCESS RESTRICTION"
 Access restriction is available as an option at compile time.  If
@@ -355,8 +369,6 @@ The following host address or network range is not allowed to access the
 requested directory and its files.
 .El
 .Pp
-Note: The protection does not carry over to subdirectories.
-.Pp
 There are three ways to specify a valid host address or network range:
 .Bl -tag -width Ds
 .It Cm IPv4 host address ,
@@ -367,6 +379,14 @@ e.g. 10.0.0.0/255.255.0.0
 e.g. 10.0.0.0/16
 .El
 .Pp
+.Nm
+can use a global
+.Pa .htaccess
+file if started with the
+.Fl g
+switch, or you can rely on a per directory file which also protects
+sub-directories.
+.Pp
 Note that rules are processed in the same order as they are listed in the
 access file and that the first rule which matches the client's address is
 applied (there is no order clause).
@@ -375,7 +395,8 @@ So if there is no allow from 0.0.0.0/0 at the end of the file the default
 action is to deny access.
 .Pp
 Relevant
-.Pa merecat.h define:
+.Pa merecat.h
+define:
 .Cm ACCESS_FILE
 .Sh "THROTTLING"
 .Pp
