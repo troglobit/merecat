@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/sh -e
 
 cd ../www
 ../src/merecat -p 8080 -l none
