@@ -1242,6 +1242,7 @@ static void handle_read(connecttab *c, struct timeval *tvP)
 		finish_connection(c, tvP);
 		return;
 	}
+
 	if (sz < 0) {
 		/* Ignore EINTR and EAGAIN.  Also ignore EWOULDBLOCK.  At first glance
 		 ** you would think that connections returned by fdwatch as readable
@@ -1250,10 +1251,12 @@ static void handle_read(connecttab *c, struct timeval *tvP)
 		 */
 		if (errno == EINTR || errno == EAGAIN || errno == EWOULDBLOCK)
 			return;
+
 		httpd_send_err(hc, 400, httpd_err400title, "", httpd_err400form, "");
 		finish_connection(c, tvP);
 		return;
 	}
+
 	hc->read_idx += sz;
 	c->active_at = tvP->tv_sec;
 
@@ -1261,6 +1264,7 @@ static void handle_read(connecttab *c, struct timeval *tvP)
 	switch (httpd_got_request(hc)) {
 	case GR_NO_REQUEST:
 		return;
+
 	case GR_BAD_REQUEST:
 		httpd_send_err(hc, 400, httpd_err400title, "", httpd_err400form, "");
 		finish_connection(c, tvP);
@@ -1291,10 +1295,11 @@ static void handle_read(connecttab *c, struct timeval *tvP)
 	if (hc->got_range) {
 		c->next_byte_index = hc->first_byte_index;
 		c->end_byte_index = hc->last_byte_index + 1;
-	} else if (hc->bytes_to_send < 0)
+	} else if (hc->bytes_to_send < 0) {
 		c->end_byte_index = 0;
-	else
+	} else {
 		c->end_byte_index = hc->bytes_to_send;
+	}
 
 	/* Check if it's already handled. */
 	if (!hc->file_address) {
@@ -1304,8 +1309,8 @@ static void handle_read(connecttab *c, struct timeval *tvP)
 		for (tind = 0; tind < c->numtnums; ++tind)
 			throttles[c->tnums[tind]].bytes_since_avg += hc->bytes_sent;
 		c->next_byte_index = hc->bytes_sent;
-		finish_connection(c, tvP);
 
+		finish_connection(c, tvP);
 		return;
 	}
 
@@ -1379,6 +1384,7 @@ static void handle_send(connecttab *c, struct timeval *tvP)
 
 		if (c->wakeup_timer)
 			syslog(LOG_ERR, "replacing non-null wakeup_timer!");
+
 		c->wakeup_timer = tmr_create(tvP, wakeup_connection, client_data, c->wouldblock_delay, 0);
 		if (!c->wakeup_timer) {
 			syslog(LOG_CRIT, "tmr_create(wakeup_connection) failed");

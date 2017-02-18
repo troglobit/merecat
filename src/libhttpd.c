@@ -558,6 +558,7 @@ void httpd_write_response(httpd_conn *hc)
 	/* If we are in a sub-process, turn off no-delay mode. */
 	if (sub_process)
 		httpd_clear_ndelay(hc->conn_fd);
+
 	/* Send the response, if necessary. */
 	if (hc->responselen > 0) {
 		httpd_write_fully(hc->conn_fd, hc->response, hc->responselen);
@@ -3460,6 +3461,7 @@ static void cgi_interpose_output(httpd_conn *hc, int rfd)
 		title = "Something";
 		break;
 	}
+
 	my_snprintf(buf, sizeof(buf), "HTTP/1.0 %d %s\r\n", status, title);
 	httpd_write_fully(hc->conn_fd, buf, strlen(buf));
 
@@ -3473,11 +3475,14 @@ static void cgi_interpose_output(httpd_conn *hc, int rfd)
 			sleep(1);
 			continue;
 		}
+
 		if (r <= 0)
 			break;
+
 		if (httpd_write_fully(hc->conn_fd, buf, r) != (size_t)r)
 			break;
 	}
+
 	shutdown(hc->conn_fd, SHUT_WR);
 }
 
