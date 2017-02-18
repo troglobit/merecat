@@ -52,4 +52,4 @@ extern void mmc_destroy(void);
 /* Generate debugging statistics syslog message. */
 extern void mmc_logstats(long secs);
 
-#endif				/* _MMC_H_ */
+#endif /* _MMC_H_ */

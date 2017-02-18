@@ -29,16 +29,24 @@
 
 #include <sys/types.h>
 #include <sys/stat.h>
-#include <sys/time.h>
 #include <stdlib.h>
 #include <unistd.h>
 #include <stdio.h>
 #include <string.h>
-#include <time.h>
 #include <fcntl.h>
 #include <syslog.h>
 #include <errno.h>
-
+#ifdef TIME_WITH_SYS_TIME
+# include <sys/time.h>
+# include <time.h>
+#else
+# ifdef HAVE_SYS_TIME_H
+#  include <sys/time.h>
+# else
+#  include <time.h>
+# endif
+#endif
+ 
 #ifdef HAVE_MMAP
 #include <sys/mman.h>
 #endif				/* HAVE_MMAP */
