@@ -141,7 +141,8 @@ typedef struct {
 	int got_range;
 	int tildemapped;	/* this connection got tilde-mapped */
 	off_t first_byte_index, last_byte_index;
-	int keep_alive;
+	int keep_alive;		/* Client signaled */
+	int do_keep_alive;	/* Our intention, which may change */
 	int should_linger;
 	struct stat sb;
 	int conn_fd;
@@ -186,6 +187,9 @@ extern void httpd_exit(httpd_server *hs);
 /* Call to unlisten/close socket(s) listening for new connections. */
 extern void httpd_unlisten(httpd_server *hs);
 
+/* Used to reinitialize the connection for pipelined keep-alive requets */
+extern void httpd_init_conn_mem(httpd_conn *hc);
+extern void httpd_init_conn_content(httpd_conn *hc);
 
 /* When a listen fd is ready to read, call this.  It does the accept() and
 ** returns an httpd_conn* which includes the fd to read the request from and

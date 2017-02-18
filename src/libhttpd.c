@@ -665,6 +665,8 @@ send_mime(httpd_conn *hc, int status, char *title, char *encodings, const char *
 		} else if (length >= 0) {
 			my_snprintf(buf, sizeof(buf), "Content-Length: %lld\r\n", (int64_t)length);
 			add_response(hc, buf);
+		} else {
+			hc->do_keep_alive = 0;
 		}
 
 		my_snprintf(buf, sizeof(buf), "Content-Type: %s\r\n", fixed_type);
@@ -692,7 +694,10 @@ send_mime(httpd_conn *hc, int status, char *title, char *encodings, const char *
 			add_response(hc, buf);
 		}
 
-		my_snprintf(buf, sizeof(buf), "Connection: close\r\n");
+		if (hc->do_keep_alive)
+			my_snprintf(buf, sizeof(buf), "Connection: keep-alive\r\n");
+		else
+			my_snprintf(buf, sizeof(buf), "Connection: close\r\n");
 		add_response(hc, buf);
 
 		if (extraheads[0] != '\0')
@@ -1801,72 +1806,41 @@ static char *expand_symlinks(char *path, char **restP, int no_symlink_check, int
 }
 
 
-int httpd_get_conn(httpd_server *hs, int listen_fd, httpd_conn *hc)
+void httpd_init_conn_mem(httpd_conn *hc)
 {
-	httpd_sockaddr sa;
-	socklen_t sz;
-	char *real_ip;
+	if (hc->initialized)
+		return;
 
-	if (!hc->initialized) {
-		hc->read_size = 0;
-		httpd_realloc_str(&hc->read_buf, &hc->read_size, 16384);
-		hc->maxdecodedurl =
-		    hc->maxorigfilename = hc->maxexpnfilename = hc->maxencodings =
-		    hc->maxpathinfo = hc->maxquery = hc->maxaccept =
-		    hc->maxaccepte = hc->maxreqhost = hc->maxhostdir = hc->maxremoteuser = hc->maxresponse = 0;
+	hc->read_size = 0;
+	httpd_realloc_str(&hc->read_buf, &hc->read_size, 16384);
+	hc->maxdecodedurl =
+		hc->maxorigfilename = hc->maxexpnfilename = hc->maxencodings =
+		hc->maxpathinfo = hc->maxquery = hc->maxaccept =
+		hc->maxaccepte = hc->maxreqhost = hc->maxhostdir = hc->maxremoteuser = hc->maxresponse = 0;
 #ifdef TILDE_MAP_2
-		hc->maxaltdir = 0;
+	hc->maxaltdir = 0;
 #endif
-		httpd_realloc_str(&hc->decodedurl, &hc->maxdecodedurl, 1);
-		httpd_realloc_str(&hc->origfilename, &hc->maxorigfilename, 1);
-		httpd_realloc_str(&hc->expnfilename, &hc->maxexpnfilename, 0);
-		httpd_realloc_str(&hc->encodings, &hc->maxencodings, 0);
-		httpd_realloc_str(&hc->pathinfo, &hc->maxpathinfo, 0);
-		httpd_realloc_str(&hc->query, &hc->maxquery, 0);
-		httpd_realloc_str(&hc->accept, &hc->maxaccept, 0);
-		httpd_realloc_str(&hc->accepte, &hc->maxaccepte, 0);
-		httpd_realloc_str(&hc->reqhost, &hc->maxreqhost, 0);
-		httpd_realloc_str(&hc->hostdir, &hc->maxhostdir, 0);
-		httpd_realloc_str(&hc->remoteuser, &hc->maxremoteuser, 0);
-		httpd_realloc_str(&hc->response, &hc->maxresponse, 0);
+	httpd_realloc_str(&hc->decodedurl, &hc->maxdecodedurl, 1);
+	httpd_realloc_str(&hc->origfilename, &hc->maxorigfilename, 1);
+	httpd_realloc_str(&hc->expnfilename, &hc->maxexpnfilename, 0);
+	httpd_realloc_str(&hc->encodings, &hc->maxencodings, 0);
+	httpd_realloc_str(&hc->pathinfo, &hc->maxpathinfo, 0);
+	httpd_realloc_str(&hc->query, &hc->maxquery, 0);
+	httpd_realloc_str(&hc->accept, &hc->maxaccept, 0);
+	httpd_realloc_str(&hc->accepte, &hc->maxaccepte, 0);
+	httpd_realloc_str(&hc->reqhost, &hc->maxreqhost, 0);
+	httpd_realloc_str(&hc->hostdir, &hc->maxhostdir, 0);
+	httpd_realloc_str(&hc->remoteuser, &hc->maxremoteuser, 0);
+	httpd_realloc_str(&hc->response, &hc->maxresponse, 0);
 #ifdef TILDE_MAP_2
-		httpd_realloc_str(&hc->altdir, &hc->maxaltdir, 0);
+	httpd_realloc_str(&hc->altdir, &hc->maxaltdir, 0);
 #endif
-		hc->initialized = 1;
-	}
+	hc->initialized = 1;
+}
 
-	/* Accept the new connection. */
-	sz = sizeof(sa);
-	hc->conn_fd = accept(listen_fd, &sa.sa, &sz);
-	if (hc->conn_fd < 0) {
-		if (errno == EWOULDBLOCK)
-			return GC_NO_MORE;
 
-		syslog(LOG_ERR, "accept: %s", strerror(errno));
-		return GC_FAIL;
-	}
-
-	if (!sockaddr_check(&sa)) {
-		syslog(LOG_ERR, "unknown sockaddr family");
-		close(hc->conn_fd);
-		hc->conn_fd = -1;
-
-		return GC_FAIL;
-	}
-
-	(void)fcntl(hc->conn_fd, F_SETFD, 1);
-	hc->hs = hs;
-	(void)memset(&hc->client_addr, 0, sizeof(hc->client_addr));
-	(void)memmove(&hc->client_addr, &sa, sockaddr_len(&sa));
-
-	/*
-	 * Slightly ugly workaround to handle X-Forwarded-For better for IPv6
-	 * Idea from https://blog.steve.fi/IPv6_and_thttpd.html
-	 */
-	real_ip = httpd_ntoa(&hc->client_addr);
-	memset(hc->client_addr.real_ip, 0, sizeof(hc->client_addr.real_ip));
-	strncpy(hc->client_addr.real_ip, real_ip, sizeof(hc->client_addr.real_ip));
-
+void httpd_init_conn_content(httpd_conn *hc)
+{
 	hc->read_idx = 0;
 	hc->checked_idx = 0;
 	hc->checked_state = CHST_FIRSTWORD;
@@ -1914,6 +1888,50 @@ int httpd_get_conn(httpd_server *hs, int listen_fd, httpd_conn *hc)
 	hc->should_linger = 0;
 	hc->file_address = NULL;
 	hc->dotgz = 0;
+}
+
+
+int httpd_get_conn(httpd_server *hs, int listen_fd, httpd_conn *hc)
+{
+	httpd_sockaddr sa;
+	socklen_t sz;
+	char *real_ip;
+
+	httpd_init_conn_mem(hc);
+
+	/* Accept the new connection. */
+	sz = sizeof(sa);
+	hc->conn_fd = accept(listen_fd, &sa.sa, &sz);
+	if (hc->conn_fd < 0) {
+		if (errno == EWOULDBLOCK)
+			return GC_NO_MORE;
+
+		syslog(LOG_ERR, "accept: %s", strerror(errno));
+		return GC_FAIL;
+	}
+
+	if (!sockaddr_check(&sa)) {
+		syslog(LOG_ERR, "unknown sockaddr family");
+		close(hc->conn_fd);
+		hc->conn_fd = -1;
+
+		return GC_FAIL;
+	}
+
+	(void)fcntl(hc->conn_fd, F_SETFD, 1);
+	hc->hs = hs;
+	(void)memset(&hc->client_addr, 0, sizeof(hc->client_addr));
+	(void)memmove(&hc->client_addr, &sa, sockaddr_len(&sa));
+
+	/*
+	 * Slightly ugly workaround to handle X-Forwarded-For better for IPv6
+	 * Idea from https://blog.steve.fi/IPv6_and_thttpd.html
+	 */
+	real_ip = httpd_ntoa(&hc->client_addr);
+	memset(hc->client_addr.real_ip, 0, sizeof(hc->client_addr.real_ip));
+	strncpy(hc->client_addr.real_ip, real_ip, sizeof(hc->client_addr.real_ip));
+
+	httpd_init_conn_content(hc);
 
 	return GC_OK;
 }
@@ -2329,8 +2347,10 @@ int httpd_parse_request(httpd_conn *hc)
 			} else if (strncasecmp(buf, "Connection:", 11) == 0) {
 				cp = &buf[11];
 				cp += strspn(cp, " \t");
-				if (strcasecmp(cp, "keep-alive") == 0)
-					hc->keep_alive = 1;
+				if (strcasecmp(cp, "keep-alive") == 0) {
+					hc->keep_alive = 1;    /* Client signaling */
+					hc->do_keep_alive = 1; /* Our intention, which might change later */
+				}
 			} else if (strncasecmp(buf, "X-Forwarded-For:", 16) == 0) {
 				int i;
 
@@ -2421,6 +2441,15 @@ int httpd_parse_request(httpd_conn *hc)
 				hc->dotgz = 1;
 		}
 	}
+
+	/*
+	**  Disable keep alive support for bad browsers,
+	**    list taken from Apache 1.3.19
+	*/
+	if (hc->do_keep_alive &&
+	     (strstr(hc->useragent, "Mozilla/2")  ||
+	      strstr(hc->useragent, "MSIE 4.0b2;")))
+		hc->do_keep_alive = 0;
 
 	/* Ok, the request has been parsed.  Now we resolve stuff that
 	 ** may require the entire request.
@@ -3636,6 +3665,11 @@ static int cgi(httpd_conn *hc)
 {
 	int r;
 	ClientData client_data;
+
+	/*
+	** We are not going to leave the socket open after a CGI ... too difficult
+	*/
+	hc->do_keep_alive = 0;
 
 	if (hc->method == METHOD_GET || hc->method == METHOD_POST) {
 		if (hc->hs->cgi_limit != 0 && hc->hs->cgi_count >= hc->hs->cgi_limit) {

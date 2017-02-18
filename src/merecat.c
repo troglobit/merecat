@@ -1468,17 +1468,26 @@ static void handle_send(connecttab *c, struct timeval *tvP)
 
 static void handle_linger(connecttab *c, struct timeval *tvP)
 {
-	char buf[4096];
-	int r;
+	httpd_conn *hc = c->hc;
 
-	/* In lingering-close mode we just read and ignore bytes.  An error
-	 ** or EOF ends things, otherwise we go until a timeout.
-	 */
-	r = read(c->hc->conn_fd, buf, sizeof(buf));
-	if (r < 0 && (errno == EINTR || errno == EAGAIN))
-		return;
-	if (r <= 0)
-		really_clear_connection(c, tvP);
+	c->conn_state = CNST_READING;
+	c->next_byte_index = 0;
+
+	if (c->linger_timer)
+		tmr_reset(tvP, c->linger_timer);
+
+	/* release file memory */
+	if (hc->file_address) {
+		mmc_unmap(hc->file_address, &hc->sb, tvP);
+		hc->file_address = NULL;
+	}
+
+	/* release httpd_conn auxiliary memory */
+	httpd_destroy_conn(hc);
+
+	/* reinitialize httpd_conn */
+	httpd_init_conn_mem(hc);
+	httpd_init_conn_content(hc);
 }
 
 
@@ -1628,18 +1637,19 @@ static void clear_connection(connecttab *c, struct timeval *tvP)
 	if (c->hc->should_linger) {
 		if (c->conn_state != CNST_PAUSING)
 			fdwatch_del_fd(c->hc->conn_fd);
+
 		c->conn_state = CNST_LINGERING;
-		shutdown(c->hc->conn_fd, SHUT_WR);
 		fdwatch_add_fd(c->hc->conn_fd, c, FDW_READ);
 
 		client_data.p = c;
-		if (c->linger_timer)
-			syslog(LOG_ERR, "replacing non-null linger_timer!");
-
-		c->linger_timer = tmr_create(tvP, linger_clear_connection, client_data, LINGER_TIME, 0);
-		if (!c->linger_timer) {
-			syslog(LOG_CRIT, "tmr_create(linger_clear_connection) failed");
-			exit(1);
+		if (c->linger_timer) {
+			tmr_reset(tvP,  c->linger_timer);
+		} else {
+			c->linger_timer = tmr_create(tvP, linger_clear_connection, client_data, LINGER_TIME, 0);
+			if (!c->linger_timer) {
+				syslog(LOG_CRIT, "tmr_create(linger_clear_connection) failed");
+				exit(1);
+			}
 		}
 	} else {
 		really_clear_connection(c, tvP);
