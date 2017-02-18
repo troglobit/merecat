@@ -39,6 +39,7 @@
 .Op Fl I Ar IDENT
 .Op Fl l Ar LEVEL
 .Op Fl p Ar PORT
+.Op Fl P Ar PIDFN
 .Op Fl t Ar FILE
 .Op Fl u Ar USER
 .Op Ar WEBDIR
@@ -128,6 +129,15 @@ a process monitor like Finit or systemd.
 Alternate TCP port number to listen on.  The default is 80.  The config
 file setting for this flag is
 .Cm port = Ar PORT .
+.It Fl P Ar PIDFN
+Optional PID file name.  By default the
+.Ar IDENT
+option, or its default value, is used to construct the PID file name.
+Usually this results in
+.Pa /var/run/merecat.pid .
+If the argument to this option is an absolute path it will be used
+as-is.  Otherwise the argument will be used as the basename for the PID
+file.
 .It Fl r
 Do a chroot() at initialization time, restricting file access to the
 program's current directory.  The config file setting for this flag

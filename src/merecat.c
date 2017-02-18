@@ -1296,6 +1296,7 @@ static int usage(int code)
 	       "  -l LEVEL   Set log level: none, err, info, notice*, debug\n"
 	       "  -n         Run in foreground, do not detach from controlling terminal\n"
 	       "  -p PORT    Port to listen to, default 80\n"
+	       "  -P PIDFN   Absolute path to PID file.  Default uses IDENT, /run/merecat.pid\n"
 	       "  -r         Chroot into WEBROOT\n"
 	       "  -s         Check symlinks so they don't point outside WEBROOT\n"
 	       "  -t FILE    Throttle file\n"
@@ -1341,6 +1342,7 @@ int main(int argc, char **argv)
 	struct passwd *pwd;
 	uid_t uid = 32767;
 	gid_t gid = 32767;
+	char *pidfn = NULL;
 	char path[MAXPATHLEN + 1];
 	int num_ready;
 	int cnum;
@@ -1353,7 +1355,7 @@ int main(int argc, char **argv)
 	struct sigaction sa;
 
 	ident = prognm = progname(argv[0]);
-	while ((c = getopt(argc, argv, CONF_FILE_OPT "c:d:ghI:l:np:rsu:vV")) != EOF) {
+	while ((c = getopt(argc, argv, CONF_FILE_OPT "c:d:ghI:l:np:P:rsu:vV")) != EOF) {
 		switch (c) {
 #ifdef HAVE_LIBCONFUSE
 		case 'f':
@@ -1391,6 +1393,10 @@ int main(int argc, char **argv)
 
 		case 'p':
 			port = (unsigned short)atoi(optarg);
+			break;
+
+		case 'P':
+			pidfn = optarg;
 			break;
 
 		case 'r':
@@ -1540,7 +1546,9 @@ int main(int argc, char **argv)
 	}
 
 	/* Create PID file */
-	pidfile(ident);
+	if (!pidfn)
+		pidfn = ident;
+	pidfile(pidfn);
 
 	/* Initialize the fdwatch package.  Have to do this before chroot,
 	 ** if /dev/poll is used.
