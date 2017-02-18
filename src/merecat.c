@@ -148,7 +148,7 @@ long stats_connections;
 off_t stats_bytes;
 int stats_simultaneous;
 
-static volatile int got_hup, got_usr1, watchdog_flag;
+static volatile int got_hup, got_bus, got_usr1, watchdog_flag;
 
 /* External functions */
 extern int pidfile(const char *basename);
@@ -233,6 +233,19 @@ static void handle_chld(int signo)
 				hs->cgi_count = 0;
 		}
 	}
+
+	/* Restore previous errno. */
+	errno = oerrno;
+}
+
+
+/* SIGBUS is a workaround for Linux 2.4.x / NFS */
+static void handle_bus(int sig)
+{
+	const int oerrno = errno;
+
+	/* Just set a flag that we got the signal. */
+	got_bus = 1;
 
 	/* Restore previous errno. */
 	errno = oerrno;
@@ -614,11 +627,13 @@ int main(int argc, char **argv)
 	SIGNAL(SIGINT, handle_term);
 	SIGNAL(SIGCHLD, handle_chld);
 	SIGNAL(SIGPIPE, SIG_IGN);	/* get EPIPE instead */
+	SIGNAL(SIGHUP, handle_bus);
 	SIGNAL(SIGHUP, handle_hup);
 	SIGNAL(SIGUSR1, handle_usr1);
 	SIGNAL(SIGUSR2, handle_usr2);
 	SIGNAL(SIGALRM, handle_alrm);
 
+	got_bus = 0;
 	got_hup = 0;
 	got_usr1 = 0;
 	watchdog_flag = 0;
@@ -805,6 +820,12 @@ int main(int argc, char **argv)
 					fdwatch_del_fd(hs->listen6_fd);
 				httpd_unlisten(hs);
 			}
+		}
+
+		/* From handle_send()/writev; see handle_sigbus(). */
+		if (got_bus) {
+			syslog(LOG_WARNING, "SIGBUS received - stale NFS-handle?");
+			got_bus = 0;
 		}
 	}
 
