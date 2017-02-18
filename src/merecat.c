@@ -1428,6 +1428,10 @@ int main(int argc, char **argv)
 	if (optind < argc)
 		hostname = strdup(argv[optind++]);
 
+#ifdef LOG_PERROR
+	if (!background && loglevel == LOG_DEBUG)
+		log_opts |= LOG_PERROR;
+#endif
 	openlog(ident, log_opts, LOG_FACILITY);
 	setlogmask(LOG_UPTO(loglevel));
 
