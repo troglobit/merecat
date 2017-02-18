@@ -82,7 +82,7 @@
 ** or whatever.  If you don't want any limit, comment this out, but that's
 ** probably a really bad idea.
 */
-#define CGI_TIMELIMIT 30
+#define CGI_TIMELIMIT 90
 
 /* CONFIGURE: Maximum number of simultaneous CGI programs allowed.
 ** If this many are already running, then attempts to run more will
@@ -312,7 +312,7 @@
 /* CONFIGURE: Minimum and maximum intervals between child-process reaping,
 ** in seconds.
 */
-#define MIN_REAP_TIME 30
+#define MIN_REAP_TIME 90
 #define MAX_REAP_TIME 900
 
 
