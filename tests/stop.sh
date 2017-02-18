@@ -3,5 +3,5 @@
 cd ../www
 rm *.gz
 
-kill %1
+kill `cat /tmp/merecat.test`
 
