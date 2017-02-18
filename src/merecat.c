@@ -1133,8 +1133,8 @@ static void show_stats(ClientData client_data, struct timeval *nowP)
 /* SIGTERM and SIGINT say to exit immediately. */
 static void handle_term(int signo)
 {
-	shut_down();
 	syslog(LOG_NOTICE, "Exiting due to signal %d, dropping %d connections.", signo, num_connects);
+	shut_down();
 	closelog();
 	exit(0);
 }
