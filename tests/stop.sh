@@ -3,4 +3,5 @@
 cd ../www
 rm *.gz
 
-killall merecat
+kill %1
+
