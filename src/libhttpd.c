@@ -1,6 +1,6 @@
 /* libhttpd.c - HTTP protocol library
 **
-** Copyright © 1995,1998,1999,2000,2001 by Jef Poskanzer <jef@mail.acme.com>.
+** Copyright © 1995,1998,1999,2000,2001,2015 by Jef Poskanzer <jef@mail.acme.com>
 ** All rights reserved.
 **
 ** Redistribution and use in source and binary forms, with or without
@@ -1759,7 +1759,7 @@ static char *expand_symlinks(char *path, char **restP, int no_symlink_check, int
 	if (!tildemapped) {
 		/* Remove any leading slashes. */
 		while (restlen && rest[0] == '/') {
-			/*One more for '\0', one less for the eaten first */
+			/* One more for '\0', one less for the eaten first */
 			(void)memmove(rest, &(rest[1]), strlen(rest));
 			--restlen;
 		}
@@ -1865,11 +1865,11 @@ static char *expand_symlinks(char *path, char **restP, int no_symlink_check, int
 
 		/* Insert the link contents in front of the rest of the filename. */
 		if (restlen != 0) {
-			(void)strcpy(rest, r);
+			(void)memmove(rest, r, strlen(r) + 1);
 			httpd_realloc_str(&rest, &maxrest, restlen + linklen + 1);
 			for (i = restlen; i >= 0; --i)
 				rest[i + linklen + 1] = rest[i];
-			(void)strcpy(rest, link);
+			(void)memmove(rest, link, strlen(link) + 1);
 			rest[linklen] = '/';
 			restlen += linklen + 1;
 			r = rest;
@@ -1878,7 +1878,7 @@ static char *expand_symlinks(char *path, char **restP, int no_symlink_check, int
 			 ** becomes the rest.
 			 */
 			httpd_realloc_str(&rest, &maxrest, linklen);
-			(void)strcpy(rest, link);
+			(void)memmove(rest, link, strlen(link) + 1);
 			restlen = linklen;
 			r = rest;
 		}
@@ -2693,7 +2693,7 @@ static void de_dotdot(char *file)
 	while (strncmp(file, "./", 2) == 0)
 		memmove(file, file + 2, strlen(file) - 1);
 	while ((cp = strstr(file, "/./")))
-		memmove(cp, cp + 2, strlen(file) - 1);
+		memmove(cp, cp + 2, strlen(cp) - 1);
 
 	/* Alternate between removing leading ../ and removing xxx/../ */
 	for (;;) {
