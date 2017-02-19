@@ -77,14 +77,15 @@ static int strlong_search(char *str, struct strlong *tab, int n, long *lP)
 	for (;;) {
 		i = (h + l) / 2;
 		r = strcmp(str, tab[i].s);
-		if (r < 0)
+		if (r < 0) {
 			h = i - 1;
-		else if (r > 0)
+		} else if (r > 0) {
 			l = i + 1;
-		else {
+		} else {
 			*lP = tab[i].l;
 			return 1;
 		}
+
 		if (h < l)
 			return 0;
 	}
@@ -108,11 +109,11 @@ static int scan_wday(char *str_wday, long *tm_wdayP)
 		qsort(wday_tab, sizeof(wday_tab) / sizeof(struct strlong), sizeof(struct strlong), strlong_compare);
 		sorted = 1;
 	}
+
 	pound_case(str_wday);
+
 	return strlong_search(str_wday, wday_tab, sizeof(wday_tab) / sizeof(struct strlong), tm_wdayP);
 }
-
-
 static int scan_mon(char *str_mon, long *tm_monP)
 {
 	static struct strlong mon_tab[] = {
@@ -135,7 +136,9 @@ static int scan_mon(char *str_mon, long *tm_monP)
 		qsort(mon_tab, sizeof(mon_tab) / sizeof(struct strlong), sizeof(struct strlong), strlong_compare);
 		sorted = 1;
 	}
+
 	pound_case(str_mon);
+
 	return strlong_search(str_mon, mon_tab, sizeof(mon_tab) / sizeof(struct strlong), tm_monP);
 }
 
@@ -185,7 +188,7 @@ time_t tdate_parse(char *str)
 	time_t t;
 
 	/* Initialize. */
-	memset((char *)&tm, 0, sizeof(struct tm));
+	memset(&tm, 0, sizeof(struct tm));
 
 	/* Skip initial whitespace ourselves - sscanf is clumsy at this. */
 	for (cp = str; *cp == ' ' || *cp == '\t'; ++cp)

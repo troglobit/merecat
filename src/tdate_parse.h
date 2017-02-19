@@ -30,4 +30,4 @@
 
 extern time_t tdate_parse(char *str);
 
-#endif				/* _TDATE_PARSE_H_ */
+#endif /* _TDATE_PARSE_H_ */
