@@ -520,7 +520,7 @@ static void add_response(httpd_conn *hc, const char *str)
 
 	len = strlen(str);
 	httpd_realloc_str(&hc->response, &hc->maxresponse, hc->responselen + len);
-	memmove(&(hc->response[hc->responselen]), str, len);
+	memmove(&(hc->response[hc->responselen]), str, len + 1);
 	hc->responselen += len;
 }
 
