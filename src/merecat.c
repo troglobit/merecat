@@ -1438,10 +1438,10 @@ int main(int argc, char **argv)
 	}
 
 	if (optind < argc)
-		dir = strdup(argv[optind++]);
+		dir = argv[optind++];
 
 	if (optind < argc)
-		hostname = strdup(argv[optind++]);
+		hostname = argv[optind++];
 
 #ifdef LOG_PERROR
 	if (!background && loglevel == LOG_DEBUG)
