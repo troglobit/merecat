@@ -518,6 +518,7 @@ static void shut_down(void)
 		httpd_exit(ths);
 	}
 
+	fdwatch_put_nfiles();
 	mmc_destroy();
 	tmr_destroy();
 	free(connects);
@@ -1793,8 +1794,8 @@ int main(int argc, char **argv)
 
 	/* The main loop terminated. */
 	shut_down();
-	fdwatch_put_nfiles();
 	syslog(LOG_NOTICE, "Exiting cleanly, all connections completed.");
 	closelog();
+
 	exit(0);
 }

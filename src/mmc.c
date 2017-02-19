@@ -394,15 +394,21 @@ void mmc_destroy(void)
 {
 	Map *m;
 
-	while (maps != (Map *)0)
+	while (maps)
 		really_unmap(&maps);
-	while (free_maps != (Map *)0) {
-		m = free_maps;
+
+	while (free_maps) {
+		m         = free_maps;
 		free_maps = m->next;
+
 		--free_count;
-		free((void *)m);
 		--alloc_count;
+
+		free(m);
 	}
+
+	if (hash_table)
+		free(hash_table);
 }
 
 
