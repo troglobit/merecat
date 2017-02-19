@@ -627,7 +627,7 @@ send_mime(httpd_conn *hc, int status, char *title, char *encodings, const char *
 		}
 
 		now = time(NULL);
-		if (mod == (time_t)0)
+		if (!mod)
 			mod = now;
 		strftime(nowbuf, sizeof(nowbuf), rfc1123fmt, gmtime(&now));
 		strftime(modbuf, sizeof(modbuf), rfc1123fmt, gmtime(&mod));
@@ -635,16 +635,16 @@ send_mime(httpd_conn *hc, int status, char *title, char *encodings, const char *
 
 		/* EntityTag -- https://en.wikipedia.org/wiki/HTTP_ETag */
 		if (hc->file_address) {
-			uint8_t digest[MD5_DIGEST_LENGTH];
-			MD5_CTX md5_ctx;
+			uint8_t dig[MD5_DIGEST_LENGTH];
+			MD5_CTX ctx;
 
-			MD5Init(&md5_ctx);
-			MD5Update(&md5_ctx, (const u_int8_t *)hc->file_address, length);
-			MD5Final(digest, &md5_ctx);
+			MD5Init(&ctx);
+			MD5Update(&ctx, (const u_int8_t *)hc->file_address, length);
+			MD5Final(dig, &ctx);
 			snprintf(etagbuf, sizeof(etagbuf),
 				 "ETag: \"%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x\"\r\n",
-				 digest[0], digest[1], digest[2], digest[3], digest[4], digest[5], digest[6], digest[7],
-				 digest[8], digest[9], digest[10], digest[11], digest[12], digest[13], digest[14], digest[15]);
+				 dig[0], dig[1], dig[2], dig[3], dig[4], dig[5], dig[6], dig[7],
+				 dig[8], dig[9], dig[10], dig[11], dig[12], dig[13], dig[14], dig[15]);
 		}
 
 		/* Match Apache as close as possible, but follow RFC 2616, section 4.2 */
