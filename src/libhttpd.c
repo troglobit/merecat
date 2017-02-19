@@ -186,7 +186,7 @@ static void cgi_interpose_output(httpd_conn *hc, int rfd);
 static void cgi_child(httpd_conn *hc);
 static int cgi(httpd_conn *hc);
 static int really_start_request(httpd_conn *hc, struct timeval *nowP);
-static void make_log_entry(httpd_conn *hc, struct timeval *nowP);
+static void make_log_entry(httpd_conn *hc);
 static int check_referer(httpd_conn *hc);
 static int really_check_referer(httpd_conn *hc);
 static int sockaddr_check(httpd_sockaddr *saP);
@@ -4167,7 +4167,7 @@ int httpd_start_request(httpd_conn *hc, struct timeval *nowP)
 }
 
 
-static void make_log_entry(httpd_conn *hc, struct timeval *nowP)
+static void make_log_entry(httpd_conn *hc)
 {
 	char *ru;
 	char url[305];
