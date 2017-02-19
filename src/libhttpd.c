@@ -48,6 +48,9 @@
 #include <unistd.h>
 #include <stdarg.h>
 
+#include <stdint.h>		/* int64_t */
+#include <inttypes.h>		/* PRId64 */
+
 #ifdef HAVE_OSRELDATE_H
 #include <osreldate.h>
 #endif
@@ -657,13 +660,13 @@ send_mime(httpd_conn *hc, int status, char *title, char *encodings, const char *
 
 		if (partial_content) {
 			snprintf(buf, sizeof(buf),
-				 "Content-Range: bytes %lld-%lld/%lld\r\n"
-				 "Content-Length: %lld\r\n",
+				 "Content-Range: bytes %" PRId64 "-%" PRId64 "/%" PRId64 "\r\n"
+				 "Content-Length: %" PRId64 "\r\n",
 				 (int64_t)hc->first_byte_index, (int64_t)hc->last_byte_index,
 				 (int64_t)length, (int64_t)(hc->last_byte_index - hc->first_byte_index + 1));
 			add_response(hc, buf);
 		} else if (length >= 0) {
-			snprintf(buf, sizeof(buf), "Content-Length: %lld\r\n", (int64_t)length);
+			snprintf(buf, sizeof(buf), "Content-Length: %" PRId64 "\r\n", (int64_t)length);
 			add_response(hc, buf);
 		} else {
 			hc->do_keep_alive = 0;
@@ -4192,7 +4195,7 @@ static void make_log_entry(httpd_conn *hc, struct timeval *nowP)
 
 	/* Format the bytes. */
 	if (hc->bytes_sent >= 0)
-		(void)snprintf(bytes, sizeof(bytes), "%lld", (int64_t)hc->bytes_sent);
+		(void)snprintf(bytes, sizeof(bytes), "%" PRId64, (int64_t)hc->bytes_sent);
 	else
 		(void)strcpy(bytes, "-");
 
