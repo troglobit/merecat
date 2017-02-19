@@ -170,6 +170,12 @@
 */
 #define DEFAULT_CHARSET "UTF-8"
 
+/* CONFIGURE: The default max-age, in seconds, to use in Cache-Control:
+** headers for all transactions.  This will likely differ a lot between
+** different installations, but to make Google Chrome PageSpeed happy a
+** default of a week is defined here.
+*/
+#define DEFAULT_MAX_AGE 604800
 
 /* Most people won't want to change anything below here. */
 

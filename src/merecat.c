@@ -98,7 +98,7 @@ static char *throttlefile      = NULL;
 static char *hostname          = NULL;
 static char *user              = DEFAULT_USER;    /* Usually www-data or nobody */
 static char *charset           = DEFAULT_CHARSET;
-static int   max_age           = -1;
+static int   max_age           = DEFAULT_MAX_AGE;
 
 
 typedef struct {
@@ -187,7 +187,7 @@ static int read_config(char *filename)
 		CFG_BOOL("list-dotfiles", cfg_false, CFGF_NONE),
 		CFG_STR ("local-pattern", NULL, CFGF_NONE),
 		CFG_STR ("url-pattern", NULL, CFGF_NONE),
-		CFG_INT ("max-age", -1, CFGF_NONE), /* 0: Disabled */
+		CFG_INT ("max-age", DEFAULT_MAX_AGE, CFGF_NONE), /* 0: Disabled */
 		CFG_STR ("username", user, CFGF_NONE),
 		CFG_STR ("hostname", hostname, CFGF_NONE),
 		CFG_BOOL("virtual-host", do_vhost, CFGF_NONE),
