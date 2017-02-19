@@ -600,7 +600,7 @@ void httpd_clear_ndelay(int fd)
 static void
 send_mime(httpd_conn *hc, int status, char *title, char *encodings, const char *extraheads, const char *type, off_t length, time_t mod)
 {
-	time_t now, expires;
+	time_t now;
 	const char *rfc1123fmt = "%a, %d %b %Y %H:%M:%S GMT";
 	char fixed_type[500];
 	char buf[1000];
@@ -687,14 +687,18 @@ send_mime(httpd_conn *hc, int status, char *title, char *encodings, const char *
 		}
 
 		if (hc->hs->max_age >= 0) {
+			snprintf(buf, sizeof(buf), "Cache-Control: max-age=%d\r\n", hc->hs->max_age);
+			add_response(hc, buf);
+
+#ifdef USE_SUPERSEDED_EXPIRES
 			char expbuf[100];
+			time_t expires;
 
 			expires = now + hc->hs->max_age;
 			strftime(expbuf, sizeof(expbuf), rfc1123fmt, gmtime(&expires));
-			snprintf(buf, sizeof(buf),
-				 "Cache-Control: max-age=%d\r\n"
-				 "Expires: %s\r\n", hc->hs->max_age, expbuf);
+			snprintf(buf, sizeof(buf), "Expires: %s\r\n", expbuf);
 			add_response(hc, buf);
+#endif
 		}
 
 		if (hc->do_keep_alive)
