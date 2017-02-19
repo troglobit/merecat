@@ -1793,6 +1793,7 @@ int main(int argc, char **argv)
 
 	/* The main loop terminated. */
 	shut_down();
+	fdwatch_put_nfiles();
 	syslog(LOG_NOTICE, "Exiting cleanly, all connections completed.");
 	closelog();
 	exit(0);

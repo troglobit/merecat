@@ -84,6 +84,7 @@ static int nreturned, next_ridx;
 
 #define WHICH                  "kevent"
 #define INIT(nfiles)           kqueue_init(nfiles)
+#define EXIT()                 kqueue_exit()
 #define ADD_FD(fd, rw)         kqueue_add_fd(fd, rw)
 #define DEL_FD(fd)             kqueue_del_fd(fd)
 #define WATCH(timeout_msecs)   kqueue_watch(timeout_msecs)
@@ -91,6 +92,7 @@ static int nreturned, next_ridx;
 #define GET_FD(ridx)           kqueue_get_fd(ridx)
 
 static int kqueue_init(int nfiles);
+static void kqueue_exit(void);
 static void kqueue_add_fd(int fd, int rw);
 static void kqueue_del_fd(int fd);
 static int kqueue_watch(long timeout_msecs);
@@ -102,6 +104,7 @@ static int kqueue_get_fd(int ridx);
 
 #define WHICH                  "devpoll"
 #define INIT(nfiles)           devpoll_init(nfiles)
+#define EXIT()                 devpoll_exit()
 #define ADD_FD(fd, rw)         devpoll_add_fd(fd, rw)
 #define DEL_FD(fd)             devpoll_del_fd(fd)
 #define WATCH(timeout_msecs)   devpoll_watch(timeout_msecs)
@@ -109,6 +112,7 @@ static int kqueue_get_fd(int ridx);
 #define GET_FD(ridx)           devpoll_get_fd(ridx)
 
 static int devpoll_init(int nfiles);
+static void devpoll_exit(void);
 static void devpoll_add_fd(int fd, int rw);
 static void devpoll_del_fd(int fd);
 static int devpoll_watch(long timeout_msecs);
@@ -120,6 +124,7 @@ static int devpoll_get_fd(int ridx);
 
 #define WHICH                  "poll"
 #define INIT(nfiles)           poll_init(nfiles)
+#define EXIT()                 poll_exit()
 #define ADD_FD(fd, rw)         poll_add_fd(fd, rw)
 #define DEL_FD(fd)             poll_del_fd(fd)
 #define WATCH(timeout_msecs)   poll_watch(timeout_msecs)
@@ -127,6 +132,7 @@ static int devpoll_get_fd(int ridx);
 #define GET_FD(ridx)           poll_get_fd(ridx)
 
 static int poll_init(int nfiles);
+static void poll_exit(void);
 static void poll_add_fd(int fd, int rw);
 static void poll_del_fd(int fd);
 static int poll_watch(long timeout_msecs);
@@ -138,6 +144,7 @@ static int poll_get_fd(int ridx);
 
 #define WHICH                  "select"
 #define INIT(nfiles)           select_init(nfiles)
+#define EXIT()                 select_exit()
 #define ADD_FD(fd, rw)         select_add_fd(fd, rw)
 #define DEL_FD(fd)             select_del_fd(fd)
 #define WATCH(timeout_msecs)   select_watch(timeout_msecs)
@@ -145,6 +152,7 @@ static int poll_get_fd(int ridx);
 #define GET_FD(ridx)           select_get_fd(ridx)
 
 static int select_init(int nfiles);
+static void select_exit(void);
 static void select_add_fd(int fd, int rw);
 static void select_del_fd(int fd);
 static int select_watch(long timeout_msecs);
@@ -211,6 +219,12 @@ int fdwatch_get_nfiles(void)
 	return nfiles;
 }
 
+void fdwatch_put_nfiles(void)
+{
+	free(fd_rw);
+	free(fd_data);
+	EXIT();
+}
 
 /* Add a descriptor to the watch list.  rw is either FDW_READ or FDW_WRITE.  */
 void fdwatch_add_fd(int fd, void *client_data, int rw)
@@ -324,6 +338,14 @@ static int kqueue_init(int nfiles)
 	}
 
 	return 0;
+}
+
+
+static void kqueue_exit(void)
+{
+	free(kqevents);
+	free(kqrevents);
+	free(kqrfdidx);
 }
 
 
@@ -488,6 +510,14 @@ static int devpoll_init(int nfiles)
 }
 
 
+static void devpoll_exit(void)
+{
+	free(dpevents);
+	free(dprevents);
+	free(dp_rfdidx);
+}
+
+
 static void devpoll_add_fd(int fd, int rw)
 {
 	if (ndpevents >= maxdpevents) {
@@ -625,6 +655,14 @@ static int poll_init(int nfiles)
 		pollfds[i].fd = poll_fdidx[i] = poll_rfdidx[i] = -1;
 
 	return 0;
+}
+
+
+static void poll_exit(void)
+{
+	free(pollfds);
+	free(poll_fdidx);
+	free(poll_rfdidx);
 }
 
 
@@ -774,6 +812,14 @@ static int select_init(int nfiles)
 		select_fds[i] = select_fdidx[i] = -1;
 
 	return 0;
+}
+
+
+static void select_exit(void)
+{
+	free(select_fds);
+	free(select_fdidx);
+	free(select_rfdidx);
 }
 
 

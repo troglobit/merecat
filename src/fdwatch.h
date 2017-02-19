@@ -59,6 +59,9 @@
 */
 extern int fdwatch_get_nfiles(void);
 
+/* Free initialized fdwatch data structues at exit */
+extern void fdwatch_put_nfiles(void);
+
 /* Add a descriptor to the watch list.  rw is either FDW_READ or FDW_WRITE.  */
 extern void fdwatch_add_fd(int fd, void *client_data, int rw);
 
