@@ -108,6 +108,7 @@ typedef struct {
 	char *decodedurl;
 	char *protocol;
 	char *origfilename;
+	char *indexname;
 	char *expnfilename;
 	char *encodings;
 	char *pathinfo;
@@ -125,7 +126,7 @@ typedef struct {
 	char *authorization;
 	char *remoteuser;
 	char *response;
-	size_t maxdecodedurl, maxorigfilename, maxexpnfilename, maxencodings,
+	size_t maxdecodedurl, maxindexname, maxorigfilename, maxexpnfilename, maxencodings,
 	    maxpathinfo, maxquery, maxaccept, maxaccepte, maxreqhost, maxhostdir, maxremoteuser, maxresponse;
 #ifdef TILDE_MAP_2
 	char *altdir;

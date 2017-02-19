@@ -1931,6 +1931,7 @@ void httpd_destroy_conn(httpd_conn *hc)
 		free(hc->read_buf);
 		free(hc->decodedurl);
 		free(hc->origfilename);
+		free(hc->indexname);
 		free(hc->expnfilename);
 		free(hc->encodings);
 		free(hc->pathinfo);
@@ -1964,13 +1965,13 @@ void httpd_init_conn_mem(httpd_conn *hc)
 
 	hc->read_size = 0;
 	httpd_realloc_str(&hc->read_buf, &hc->read_size, 16384);
-	hc->maxdecodedurl =
-		hc->maxorigfilename = hc->maxexpnfilename = hc->maxencodings =
-		hc->maxpathinfo = hc->maxquery = hc->maxaccept =
+	hc->maxdecodedurl = hc->maxorigfilename =  hc->maxindexname =
+		hc->maxexpnfilename = hc->maxencodings = hc->maxpathinfo = hc->maxquery = hc->maxaccept =
 		hc->maxaccepte = hc->maxreqhost = hc->maxhostdir = hc->maxremoteuser = hc->maxresponse = 0;
 
 	httpd_realloc_str(&hc->decodedurl, &hc->maxdecodedurl, 1);
 	httpd_realloc_str(&hc->origfilename, &hc->maxorigfilename, 1);
+	httpd_realloc_str(&hc->indexname,  &hc->maxindexname, 1);
 	httpd_realloc_str(&hc->expnfilename, &hc->maxexpnfilename, 0);
 	httpd_realloc_str(&hc->encodings, &hc->maxencodings, 0);
 	httpd_realloc_str(&hc->pathinfo, &hc->maxpathinfo, 0);
@@ -3941,12 +3942,11 @@ done:
 
 static int really_start_request(httpd_conn *hc, struct timeval *nowP)
 {
-	static char *indexname = NULL;
-	static size_t maxindexname = 0;
+	int rc;
 	static const char *index_names[] = { INDEX_NAMES };
 #if defined(AUTH_FILE) || defined(ACCESS_FILE)
-	static char *dirname = NULL;
-	static size_t maxdirname = 0;
+	char *dirname = NULL;
+	size_t maxdirname = 0;
 #endif
 	size_t expnlen, indxlen, i;
 	char *cp;
@@ -3997,16 +3997,16 @@ static int really_start_request(httpd_conn *hc, struct timeval *nowP)
 		}
 
 		/* Check for an index file. */
-		for (i = 0; i < sizeof(index_names) / sizeof(char *); ++i) {
-			httpd_realloc_str(&indexname, &maxindexname, expnlen + 1 + strlen(index_names[i]));
-			strcpy(indexname, hc->expnfilename);
-			indxlen = strlen(indexname);
-			if (indxlen == 0 || indexname[indxlen - 1] != '/')
-				strcat(indexname, "/");
-			if (strcmp(indexname, "./") == 0)
-				indexname[0] = '\0';
-			strcat(indexname, index_names[i]);
-			if (stat(indexname, &hc->sb) >= 0)
+		for (i = 0; i < NELEMS(index_names); ++i) {
+			httpd_realloc_str(&hc->indexname, &hc->maxindexname, expnlen + 1 + strlen(index_names[i]));
+			strcpy(hc->indexname, hc->expnfilename);
+			indxlen = strlen(hc->indexname);
+			if (indxlen == 0 || hc->indexname[indxlen - 1] != '/')
+				strcat(hc->indexname, "/");
+			if (strcmp(hc->indexname, "./") == 0)
+				hc->indexname[0] = '\0';
+			strcat(hc->indexname, index_names[i]);
+			if (stat(hc->indexname, &hc->sb) >= 0)
 				goto got_one;
 		}
 
@@ -4053,7 +4053,7 @@ static int really_start_request(httpd_conn *hc, struct timeval *nowP)
 		/* Got an index file.  Expand symlinks again.  More pathinfo means
 		** something went wrong.
 		*/
-		cp = expand_symlinks(indexname, &pi, hc->hs->no_symlink_check, hc->tildemapped);
+		cp = expand_symlinks(hc->indexname, &pi, hc->hs->no_symlink_check, hc->tildemapped);
 		if (!cp || pi[0] != '\0') {
 			httpd_send_err(hc, 500, err500title, "", err500form, hc->encodedurl);
 			return -1;
@@ -4084,8 +4084,11 @@ static int really_start_request(httpd_conn *hc, struct timeval *nowP)
 		strcpy(dirname, ".");
 	else
 		*cp = '\0';
-	if (access_check(hc, dirname) == -1)
+	rc = access_check(hc, dirname);
+	if (rc == -1) {
+		free(dirname);
 		return -1;
+	}
 
 	/* Check if the filename is the ACCESS_FILE itself - that's verboten. */
 	if (expnlen == sizeof(ACCESS_FILE) - 1) {
@@ -4117,8 +4120,9 @@ static int really_start_request(httpd_conn *hc, struct timeval *nowP)
 		strcpy(dirname, ".");
 	else
 		*cp = '\0';
-
-	if (auth_check(hc, dirname) == -1)
+	rc = auth_check(hc, dirname);
+	free(dirname);
+	if (rc == -1)
 		return -1;
 
 	/* Check if the filename is the AUTH_FILE itself - that's verboten. */
