@@ -165,10 +165,9 @@ static int select_get_fd(int ridx);
 int fdwatch_get_nfiles(void)
 {
 	int i;
-
 #ifdef RLIMIT_NOFILE
 	struct rlimit rl;
-#endif				/* RLIMIT_NOFILE */
+#endif
 
 	/* Figure out how many fd's we can have. */
 	nfiles = getdtablesize();
@@ -183,21 +182,29 @@ int fdwatch_get_nfiles(void)
 		if (setrlimit(RLIMIT_NOFILE, &rl) == 0)
 			nfiles = rl.rlim_cur;
 	}
-#endif				/* RLIMIT_NOFILE */
+#endif
 
 #if defined(HAVE_SELECT) && ! ( defined(HAVE_POLL) || defined(HAVE_DEVPOLL) || defined(HAVE_KQUEUE) )
 	/* If we use select(), then we must limit ourselves to FD_SETSIZE. */
 	nfiles = MIN(nfiles, FD_SETSIZE);
-#endif				/* HAVE_SELECT && ! ( HAVE_POLL || HAVE_DEVPOLL || HAVE_KQUEUE ) */
+#endif
 
 	/* Initialize the fdwatch data structures. */
 	nwatches = 0;
+
 	fd_rw = (int *)malloc(sizeof(int) * nfiles);
-	fd_data = (void **)malloc(sizeof(void *) * nfiles);
-	if (fd_rw == (int *)0 || fd_data == (void **)0)
+	if (!fd_rw)
 		return -1;
+
+	fd_data = (void **)malloc(sizeof(void *) * nfiles);
+	if (!fd_data) {
+		free(fd_rw);
+		return -1;
+	}
+
 	for (i = 0; i < nfiles; ++i)
 		fd_rw[i] = -1;
+
 	if (INIT(nfiles) == -1)
 		return -1;
 
@@ -212,6 +219,7 @@ void fdwatch_add_fd(int fd, void *client_data, int rw)
 		syslog(LOG_ERR, "bad fd (%d) passed to fdwatch_add_fd!", fd);
 		return;
 	}
+
 	ADD_FD(fd, rw);
 	fd_rw[fd] = rw;
 	fd_data[fd] = client_data;
@@ -225,9 +233,10 @@ void fdwatch_del_fd(int fd)
 		syslog(LOG_ERR, "bad fd (%d) passed to fdwatch_del_fd!", fd);
 		return;
 	}
+
 	DEL_FD(fd);
 	fd_rw[fd] = -1;
-	fd_data[fd] = (void *)0;
+	fd_data[fd] = NULL;
 }
 
 /* Do the watch.  Return value is the number of descriptors that are ready,
@@ -239,6 +248,7 @@ int fdwatch(long timeout_msecs)
 	++nwatches;
 	nreturned = WATCH(timeout_msecs);
 	next_ridx = 0;
+
 	return nreturned;
 }
 
@@ -250,6 +260,7 @@ int fdwatch_check_fd(int fd)
 		syslog(LOG_ERR, "bad fd (%d) passed to fdwatch_check_fd!", fd);
 		return 0;
 	}
+
 	return CHECK_FD(fd);
 }
 
@@ -260,9 +271,11 @@ void *fdwatch_get_next_client_data(void)
 
 	if (next_ridx >= nreturned)
 		return (void *)-1;
+
 	fd = GET_FD(next_ridx++);
 	if (fd < 0 || fd >= nfiles)
-		return (void *)0;
+		return NULL;
+
 	return fd_data[fd];
 }
 
@@ -291,14 +304,25 @@ static int kqueue_init(int nfiles)
 	kq = kqueue();
 	if (kq == -1)
 		return -1;
+
 	maxkqevents = nfiles * 2;
-	kqevents = (struct kevent *)malloc(sizeof(struct kevent) * maxkqevents);
-	kqrevents = (struct kevent *)malloc(sizeof(struct kevent) * nfiles);
-	kqrfdidx = (int *)malloc(sizeof(int) * nfiles);
-	if (kqevents == (struct kevent *)0 || kqrevents == (struct kevent *)0 || kqrfdidx == (int *)0)
+	kqevents = (struct kevent *)calloc(maxkqevents, sizeof(struct kevent));
+	if (!kqevents)
 		return -1;
-	memset(kqevents, 0, sizeof(struct kevent) * maxkqevents);
-	memset(kqrfdidx, 0, sizeof(int) * nfiles);
+
+	kqrevents = (struct kevent *)calloc(nfiles, sizeof(struct kevent));
+	if (!kqrevents) {
+		free(kqevents);
+		return -1;
+	}
+
+	kqrfdidx = (int *)calloc(nfiles, sizeof(int));
+	if (!kqrfdidx) {
+		free(kqevents);
+		free(kqrevents);
+		return -1;
+	}
+
 	return 0;
 }
 
@@ -309,18 +333,22 @@ static void kqueue_add_fd(int fd, int rw)
 		syslog(LOG_ERR, "too many kqevents in kqueue_add_fd!");
 		return;
 	}
+
 	kqevents[nkqevents].ident = fd;
 	kqevents[nkqevents].flags = EV_ADD;
 	switch (rw) {
 	case FDW_READ:
 		kqevents[nkqevents].filter = EVFILT_READ;
 		break;
+
 	case FDW_WRITE:
 		kqevents[nkqevents].filter = EVFILT_WRITE;
 		break;
+
 	default:
 		break;
 	}
+
 	++nkqevents;
 }
 
@@ -331,16 +359,19 @@ static void kqueue_del_fd(int fd)
 		syslog(LOG_ERR, "too many kqevents in kqueue_del_fd!");
 		return;
 	}
+
 	kqevents[nkqevents].ident = fd;
 	kqevents[nkqevents].flags = EV_DELETE;
 	switch (fd_rw[fd]) {
 	case FDW_READ:
 		kqevents[nkqevents].filter = EVFILT_READ;
 		break;
+
 	case FDW_WRITE:
 		kqevents[nkqevents].filter = EVFILT_WRITE;
 		break;
 	}
+
 	++nkqevents;
 }
 
@@ -349,15 +380,16 @@ static int kqueue_watch(long timeout_msecs)
 {
 	int i, r;
 
-	if (timeout_msecs == INFTIM)
-		r = kevent(kq, kqevents, nkqevents, kqrevents, nfiles, (struct timespec *)0);
-	else {
+	if (timeout_msecs == INFTIM) {
+		r = kevent(kq, kqevents, nkqevents, kqrevents, nfiles, NULL);
+	} else {
 		struct timespec ts;
 
 		ts.tv_sec = timeout_msecs / 1000L;
 		ts.tv_nsec = (timeout_msecs % 1000L) * 1000000L;
 		r = kevent(kq, kqevents, nkqevents, kqrevents, nfiles, &ts);
 	}
+
 	nkqevents = 0;
 	if (r == -1)
 		return -1;
@@ -377,20 +409,25 @@ static int kqueue_check_fd(int fd)
 		syslog(LOG_ERR, "bad ridx (%d) in kqueue_check_fd!", ridx);
 		return 0;
 	}
+
 	if (ridx >= nreturned)
 		return 0;
+
 	if (kqrevents[ridx].ident != fd)
 		return 0;
+
 	if (kqrevents[ridx].flags & EV_ERROR)
 		return 0;
+
 	switch (fd_rw[fd]) {
 	case FDW_READ:
 		return kqrevents[ridx].filter == EVFILT_READ;
+
 	case FDW_WRITE:
 		return kqrevents[ridx].filter == EVFILT_WRITE;
-	default:
-		return 0;
 	}
+
+	return 0;
 }
 
 
@@ -400,10 +437,11 @@ static int kqueue_get_fd(int ridx)
 		syslog(LOG_ERR, "bad ridx (%d) in kqueue_get_fd!", ridx);
 		return -1;
 	}
+
 	return kqrevents[ridx].ident;
 }
 
-#else				/* HAVE_KQUEUE */
+#else /* HAVE_KQUEUE */
 
 
 # ifdef HAVE_DEVPOLL
@@ -421,14 +459,31 @@ static int devpoll_init(int nfiles)
 	dp = open("/dev/poll", O_RDWR);
 	if (dp == -1)
 		return -1;
+
 	fcntl(dp, F_SETFD, 1);
+
 	maxdpevents = nfiles * 2;
-	dpevents = (struct pollfd *)malloc(sizeof(struct pollfd) * maxdpevents);
-	dprevents = (struct pollfd *)malloc(sizeof(struct pollfd) * nfiles);
-	dp_rfdidx = (int *)malloc(sizeof(int) * nfiles);
-	if (dpevents == (struct pollfd *)0 || dprevents == (struct pollfd *)0 || dp_rfdidx == (int *)0)
+	dpevents = (struct pollfd *)calloc(sizeof(maxdpevents, struct pollfd));
+	if (!dpevents) {
+		close(dp);
 		return -1;
-	memset(dp_rfdidx, 0, sizeof(int) * nfiles);
+	}
+
+	dprevents = (struct pollfd *)calloc(nfiles, sizeof(struct pollfd));
+	if (!dprevents) {
+		close(dp);
+		free(dpevents);
+		return -1;
+	}
+
+	dp_rfdidx = (int *)calloc(nfiles, sizeof(int));
+	if (!dp_rfdidx) {
+		close(dp);
+		free(dpevents);
+		free(dprevents);
+		return -1;
+	}
+
 	return 0;
 }
 
@@ -439,17 +494,18 @@ static void devpoll_add_fd(int fd, int rw)
 		syslog(LOG_ERR, "too many fds in devpoll_add_fd!");
 		return;
 	}
+
 	dpevents[ndpevents].fd = fd;
 	switch (rw) {
 	case FDW_READ:
 		dpevents[ndpevents].events = POLLIN;
 		break;
+
 	case FDW_WRITE:
 		dpevents[ndpevents].events = POLLOUT;
 		break;
-	default:
-		break;
 	}
+
 	++ndpevents;
 }
 
@@ -460,6 +516,7 @@ static void devpoll_del_fd(int fd)
 		syslog(LOG_ERR, "too many fds in devpoll_del_fd!");
 		return;
 	}
+
 	dpevents[ndpevents].fd = fd;
 	dpevents[ndpevents].events = POLLREMOVE;
 	++ndpevents;
@@ -499,20 +556,25 @@ static int devpoll_check_fd(int fd)
 		syslog(LOG_ERR, "bad ridx (%d) in devpoll_check_fd!", ridx);
 		return 0;
 	}
+
 	if (ridx >= nreturned)
 		return 0;
+
 	if (dprevents[ridx].fd != fd)
 		return 0;
+
 	if (dprevents[ridx].revents & POLLERR)
 		return 0;
+
 	switch (fd_rw[fd]) {
 	case FDW_READ:
 		return dprevents[ridx].revents & (POLLIN | POLLHUP | POLLNVAL);
+
 	case FDW_WRITE:
 		return dprevents[ridx].revents & (POLLOUT | POLLHUP | POLLNVAL);
-	default:
-		return 0;
 	}
+
+	return 0;
 }
 
 
@@ -522,11 +584,12 @@ static int devpoll_get_fd(int ridx)
 		syslog(LOG_ERR, "bad ridx (%d) in devpoll_get_fd!", ridx);
 		return -1;
 	}
+
 	return dprevents[ridx].fd;
 }
 
 
-# else				/* HAVE_DEVPOLL */
+# else /* HAVE_DEVPOLL */
 
 
 #  ifdef HAVE_POLL
@@ -542,12 +605,25 @@ static int poll_init(int nfiles)
 	int i;
 
 	pollfds = (struct pollfd *)malloc(sizeof(struct pollfd) * nfiles);
-	poll_fdidx = (int *)malloc(sizeof(int) * nfiles);
-	poll_rfdidx = (int *)malloc(sizeof(int) * nfiles);
-	if (pollfds == (struct pollfd *)0 || poll_fdidx == (int *)0 || poll_rfdidx == (int *)0)
+	if (!pollfds)
 		return -1;
+
+	poll_fdidx = (int *)malloc(sizeof(int) * nfiles);
+	if (!poll_fdidx) {
+		free(pollfds);
+		return -1;
+	}
+
+	poll_rfdidx = (int *)malloc(sizeof(int) * nfiles);
+	if (!poll_rfdidx) {
+		free(pollfds);
+		free(poll_fdidx);
+		return -1;
+	}
+
 	for (i = 0; i < nfiles; ++i)
-		pollfds[i].fd = poll_fdidx[i] = -1;
+		pollfds[i].fd = poll_fdidx[i] = poll_rfdidx[i] = -1;
+
 	return 0;
 }
 
@@ -558,17 +634,21 @@ static void poll_add_fd(int fd, int rw)
 		syslog(LOG_ERR, "too many fds in poll_add_fd!");
 		return;
 	}
+
 	pollfds[npoll_fds].fd = fd;
 	switch (rw) {
 	case FDW_READ:
 		pollfds[npoll_fds].events = POLLIN;
 		break;
+
 	case FDW_WRITE:
 		pollfds[npoll_fds].events = POLLOUT;
 		break;
+
 	default:
 		break;
 	}
+
 	poll_fdidx[fd] = npoll_fds;
 	++npoll_fds;
 }
@@ -582,6 +662,7 @@ static void poll_del_fd(int fd)
 		syslog(LOG_ERR, "bad idx (%d) in poll_del_fd!", idx);
 		return;
 	}
+
 	--npoll_fds;
 	pollfds[idx] = pollfds[npoll_fds];
 	poll_fdidx[pollfds[idx].fd] = idx;
@@ -599,12 +680,13 @@ static int poll_watch(long timeout_msecs)
 		return r;
 
 	ridx = 0;
-	for (i = 0; i < npoll_fds; ++i)
+	for (i = 0; i < npoll_fds; ++i) {
 		if (pollfds[i].revents & (POLLIN | POLLOUT | POLLERR | POLLHUP | POLLNVAL)) {
 			poll_rfdidx[ridx++] = pollfds[i].fd;
 			if (ridx == r)
 				break;
 		}
+	}
 
 	return ridx;		/* should be equal to r */
 }
@@ -618,16 +700,19 @@ static int poll_check_fd(int fd)
 		syslog(LOG_ERR, "bad fdidx (%d) in poll_check_fd!", fdidx);
 		return 0;
 	}
+
 	if (pollfds[fdidx].revents & POLLERR)
 		return 0;
+
 	switch (fd_rw[fd]) {
 	case FDW_READ:
 		return pollfds[fdidx].revents & (POLLIN | POLLHUP | POLLNVAL);
+
 	case FDW_WRITE:
 		return pollfds[fdidx].revents & (POLLOUT | POLLHUP | POLLNVAL);
-	default:
-		return 0;
 	}
+
+	return 0;
 }
 
 
@@ -637,6 +722,7 @@ static int poll_get_fd(int ridx)
 		syslog(LOG_ERR, "bad ridx (%d) in poll_get_fd!", ridx);
 		return -1;
 	}
+
 	return poll_rfdidx[ridx];
 }
 
@@ -664,15 +750,29 @@ static int select_init(int nfiles)
 	FD_ZERO(&master_rfdset);
 	FD_ZERO(&master_wfdset);
 	select_fds = (int *)malloc(sizeof(int) * nfiles);
-	select_fdidx = (int *)malloc(sizeof(int) * nfiles);
-	select_rfdidx = (int *)malloc(sizeof(int) * nfiles);
-	if (select_fds == (int *)0 || select_fdidx == (int *)0 || select_rfdidx == (int *)0)
+	if (!select_fds)
 		return -1;
+
+	select_fdidx = (int *)malloc(sizeof(int) * nfiles);
+	if (!select_fdidx) {
+		free(select_fds);
+		return -1;
+	}
+
+	select_rfdidx = (int *)malloc(sizeof(int) * nfiles);
+	if (!select_rfdidx) {
+		free(select_fds);
+		free(select_fdidx);
+		return -1;
+	}
+
 	nselect_fds = 0;
 	maxfd = -1;
 	maxfd_changed = 0;
+
 	for (i = 0; i < nfiles; ++i)
 		select_fds[i] = select_fdidx[i] = -1;
+
 	return 0;
 }
 
@@ -683,17 +783,21 @@ static void select_add_fd(int fd, int rw)
 		syslog(LOG_ERR, "too many fds in select_add_fd!");
 		return;
 	}
+
 	select_fds[nselect_fds] = fd;
 	switch (rw) {
 	case FDW_READ:
 		FD_SET(fd, &master_rfdset);
 		break;
+
 	case FDW_WRITE:
 		FD_SET(fd, &master_wfdset);
 		break;
+
 	default:
 		break;
 	}
+
 	if (fd > maxfd)
 		maxfd = fd;
 	select_fdidx[fd] = nselect_fds;
@@ -730,11 +834,13 @@ static int select_get_maxfd(void)
 		int i;
 
 		maxfd = -1;
-		for (i = 0; i < nselect_fds; ++i)
+		for (i = 0; i < nselect_fds; ++i) {
 			if (select_fds[i] > maxfd)
 				maxfd = select_fds[i];
+		}
 		maxfd_changed = 0;
 	}
+
 	return maxfd;
 }
 
@@ -747,25 +853,27 @@ static int select_watch(long timeout_msecs)
 	working_rfdset = master_rfdset;
 	working_wfdset = master_wfdset;
 	mfd = select_get_maxfd();
-	if (timeout_msecs == INFTIM)
-		r = select(mfd + 1, &working_rfdset, &working_wfdset, (fd_set *) 0, (struct timeval *)0);
-	else {
+	if (timeout_msecs == INFTIM) {
+		r = select(mfd + 1, &working_rfdset, &working_wfdset, NULL, NULL);
+	} else {
 		struct timeval timeout;
 
 		timeout.tv_sec = timeout_msecs / 1000L;
 		timeout.tv_usec = (timeout_msecs % 1000L) * 1000L;
-		r = select(mfd + 1, &working_rfdset, &working_wfdset, (fd_set *) 0, &timeout);
+		r = select(mfd + 1, &working_rfdset, &working_wfdset, NULL, &timeout);
 	}
+
 	if (r <= 0)
 		return r;
 
 	ridx = 0;
-	for (idx = 0; idx < nselect_fds; ++idx)
+	for (idx = 0; idx < nselect_fds; ++idx) {
 		if (select_check_fd(select_fds[idx])) {
 			select_rfdidx[ridx++] = select_fds[idx];
 			if (ridx == r)
 				break;
 		}
+	}
 
 	return ridx;		/* should be equal to r */
 }
@@ -776,11 +884,12 @@ static int select_check_fd(int fd)
 	switch (fd_rw[fd]) {
 	case FDW_READ:
 		return FD_ISSET(fd, &working_rfdset);
+
 	case FDW_WRITE:
 		return FD_ISSET(fd, &working_wfdset);
-	default:
-		return 0;
 	}
+
+	return 0;
 }
 
 
@@ -790,6 +899,7 @@ static int select_get_fd(int ridx)
 		syslog(LOG_ERR, "bad ridx (%d) in select_get_fd!", ridx);
 		return -1;
 	}
+
 	return select_rfdidx[ridx];
 }
 
