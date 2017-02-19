@@ -72,7 +72,6 @@
 #define SIGNAL(signo, cb)		\
 	sa.sa_flags     = SA_RESTART;	\
 	sa.sa_handler   = cb;		\
-	sa.sa_sigaction = NULL;		\
 	sigemptyset(&sa.sa_mask);	\
 	sigaction(signo, &sa, NULL)
 
