@@ -3943,15 +3943,14 @@ done:
 
 static int really_start_request(httpd_conn *hc, struct timeval *nowP)
 {
-	int rc;
-	static const char *index_names[] = { INDEX_NAMES };
 #if defined(AUTH_FILE) || defined(ACCESS_FILE)
+	int rc;
 	char *dirname = NULL;
 	size_t maxdirname = 0;
 #endif
+	char *cp, *pi;
+	static const char *index_names[] = { INDEX_NAMES };
 	size_t expnlen, indxlen, i;
-	char *cp;
-	char *pi;
 
 	expnlen = strlen(hc->expnfilename);
 
