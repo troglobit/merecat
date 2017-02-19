@@ -83,12 +83,12 @@ static int nreturned, next_ridx;
 #ifdef HAVE_KQUEUE
 
 #define WHICH                  "kevent"
-#define INIT( nfiles )         kqueue_init( nfiles )
-#define ADD_FD( fd, rw )       kqueue_add_fd( fd, rw )
-#define DEL_FD( fd )           kqueue_del_fd( fd )
-#define WATCH( timeout_msecs ) kqueue_watch( timeout_msecs )
-#define CHECK_FD( fd )         kqueue_check_fd( fd )
-#define GET_FD( ridx )         kqueue_get_fd( ridx )
+#define INIT(nfiles)           kqueue_init(nfiles)
+#define ADD_FD(fd, rw)         kqueue_add_fd(fd, rw)
+#define DEL_FD(fd)             kqueue_del_fd(fd)
+#define WATCH(timeout_msecs)   kqueue_watch(timeout_msecs)
+#define CHECK_FD(fd)           kqueue_check_fd(fd)
+#define GET_FD(ridx)           kqueue_get_fd(ridx)
 
 static int kqueue_init(int nfiles);
 static void kqueue_add_fd(int fd, int rw);
@@ -101,12 +101,12 @@ static int kqueue_get_fd(int ridx);
 # ifdef HAVE_DEVPOLL
 
 #define WHICH                  "devpoll"
-#define INIT( nfiles )         devpoll_init( nfiles )
-#define ADD_FD( fd, rw )       devpoll_add_fd( fd, rw )
-#define DEL_FD( fd )           devpoll_del_fd( fd )
-#define WATCH( timeout_msecs ) devpoll_watch( timeout_msecs )
-#define CHECK_FD( fd )         devpoll_check_fd( fd )
-#define GET_FD( ridx )         devpoll_get_fd( ridx )
+#define INIT(nfiles)           devpoll_init(nfiles)
+#define ADD_FD(fd, rw)         devpoll_add_fd(fd, rw)
+#define DEL_FD(fd)             devpoll_del_fd(fd)
+#define WATCH(timeout_msecs)   devpoll_watch(timeout_msecs)
+#define CHECK_FD(fd)           devpoll_check_fd(fd)
+#define GET_FD(ridx)           devpoll_get_fd(ridx)
 
 static int devpoll_init(int nfiles);
 static void devpoll_add_fd(int fd, int rw);
@@ -119,12 +119,12 @@ static int devpoll_get_fd(int ridx);
 #  ifdef HAVE_POLL
 
 #define WHICH                  "poll"
-#define INIT( nfiles )         poll_init( nfiles )
-#define ADD_FD( fd, rw )       poll_add_fd( fd, rw )
-#define DEL_FD( fd )           poll_del_fd( fd )
-#define WATCH( timeout_msecs ) poll_watch( timeout_msecs )
-#define CHECK_FD( fd )         poll_check_fd( fd )
-#define GET_FD( ridx )         poll_get_fd( ridx )
+#define INIT(nfiles)           poll_init(nfiles)
+#define ADD_FD(fd, rw)         poll_add_fd(fd, rw)
+#define DEL_FD(fd)             poll_del_fd(fd)
+#define WATCH(timeout_msecs)   poll_watch(timeout_msecs)
+#define CHECK_FD(fd)           poll_check_fd(fd)
+#define GET_FD(ridx)           poll_get_fd(ridx)
 
 static int poll_init(int nfiles);
 static void poll_add_fd(int fd, int rw);
@@ -137,12 +137,12 @@ static int poll_get_fd(int ridx);
 #   ifdef HAVE_SELECT
 
 #define WHICH                  "select"
-#define INIT( nfiles )         select_init( nfiles )
-#define ADD_FD( fd, rw )       select_add_fd( fd, rw )
-#define DEL_FD( fd )           select_del_fd( fd )
-#define WATCH( timeout_msecs ) select_watch( timeout_msecs )
-#define CHECK_FD( fd )         select_check_fd( fd )
-#define GET_FD( ridx )         select_get_fd( ridx )
+#define INIT(nfiles)           select_init(nfiles)
+#define ADD_FD(fd, rw)         select_add_fd(fd, rw)
+#define DEL_FD(fd)             select_del_fd(fd)
+#define WATCH(timeout_msecs)   select_watch(timeout_msecs)
+#define CHECK_FD(fd)           select_check_fd(fd)
+#define GET_FD(ridx)           select_get_fd(ridx)
 
 static int select_init(int nfiles);
 static void select_add_fd(int fd, int rw);
