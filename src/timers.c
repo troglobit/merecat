@@ -69,34 +69,36 @@ static void l_add(Timer *t)
 	Timer *t2prev;
 
 	t2 = timers[h];
-	if (t2 == (Timer *)0) {
+	if (!t2) {
 		/* The list is empty. */
 		timers[h] = t;
-		t->prev = t->next = (Timer *)0;
+		t->prev = t->next = NULL;
 	} else {
-		if (t->time.tv_sec < t2->time.tv_sec || (t->time.tv_sec == t2->time.tv_sec && t->time.tv_usec <= t2->time.tv_usec)) {
+		if ( t->time.tv_sec  < t2->time.tv_sec ||
+		    (t->time.tv_sec == t2->time.tv_sec && t->time.tv_usec <= t2->time.tv_usec)) {
 			/* The new timer goes at the head of the list. */
 			timers[h] = t;
-			t->prev = (Timer *)0;
-			t->next = t2;
-			t2->prev = t;
+			t->prev   = NULL;
+			t->next   = t2;
+			t2->prev  = t;
 		} else {
 			/* Walk the list to find the insertion point. */
-			for (t2prev = t2, t2 = t2->next; t2 != (Timer *)0; t2prev = t2, t2 = t2->next) {
+			for (t2prev = t2, t2 = t2->next; t2; t2prev = t2, t2 = t2->next) {
 				if (t->time.tv_sec < t2->time.tv_sec ||
 				    (t->time.tv_sec == t2->time.tv_sec && t->time.tv_usec <= t2->time.tv_usec)) {
 					/* Found it. */
 					t2prev->next = t;
-					t->prev = t2prev;
-					t->next = t2;
-					t2->prev = t;
+					t->prev      = t2prev;
+					t->next      = t2;
+					t2->prev     = t;
 					return;
 				}
 			}
+
 			/* Oops, got to the end of the list.  Add to tail. */
 			t2prev->next = t;
-			t->prev = t2prev;
-			t->next = (Timer *)0;
+			t->prev     = t2prev;
+			t->next     = NULL;
 		}
 	}
 }
@@ -104,13 +106,15 @@ static void l_add(Timer *t)
 
 static void l_remove(Timer *t)
 {
-	int h = t->hash;
+	if (!t)
+		return;
 
-	if (t->prev == (Timer *)0)
-		timers[h] = t->next;
+	if (!t->prev)
+		timers[t->hash] = t->next;
 	else
 		t->prev->next = t->next;
-	if (t->next != (Timer *)0)
+
+	if (t->next)
 		t->next->prev = t->prev;
 }
 
@@ -119,8 +123,10 @@ static void l_resort(Timer *t)
 {
 	/* Remove the timer from its old list. */
 	l_remove(t);
+
 	/* Recompute the hash. */
 	t->hash = hash(t);
+
 	/* And add it back in to its new list, sorted correctly. */
 	l_add(t);
 }
@@ -131,8 +137,8 @@ void tmr_init(void)
 	int h;
 
 	for (h = 0; h < HASH_SIZE; ++h)
-		timers[h] = (Timer *)0;
-	free_timers = (Timer *)0;
+		timers[h] = NULL;
+	free_timers = NULL;
 	alloc_count = active_count = free_count = 0;
 
 	/* Check for monotonic clock availability */
@@ -145,7 +151,7 @@ void tmr_init(void)
 		use_monotonic = 1;
 
 		/* Get current system time */
-		gettimeofday(&tv_start, (struct timezone *)0);
+		gettimeofday(&tv_start, NULL);
 		tv.tv_sec = ts.tv_sec;
 		tv.tv_usec = ts.tv_nsec / 1000L;
 		/* Calculate and save the difference: tv_start is since the Epoch, so tv_start > ts
@@ -153,7 +159,6 @@ void tmr_init(void)
 		timersub(&tv_start, &tv, &tv_diff);
 	}
 #endif
-
 }
 
 
@@ -161,32 +166,36 @@ Timer *tmr_create(struct timeval *nowP, TimerProc *timer_proc, ClientData client
 {
 	Timer *t;
 
-	if (free_timers != (Timer *)0) {
-		t = free_timers;
+	if (free_timers) {
+		t           = free_timers;
 		free_timers = t->next;
 		--free_count;
 	} else {
 		t = (Timer *)malloc(sizeof(Timer));
-		if (t == (Timer *)0)
-			return (Timer *)0;
+		if (!t)
+			return NULL;
+
 		++alloc_count;
 	}
 
-	t->timer_proc = timer_proc;
+	t->timer_proc  = timer_proc;
 	t->client_data = client_data;
-	t->msecs = msecs;
-	t->periodic = periodic;
-	if (nowP != (struct timeval *)0)
+	t->msecs       = msecs;
+	t->periodic    = periodic;
+	if (nowP)
 		t->time = *nowP;
 	else
 		tmr_prepare_timeval(&t->time);
-	t->time.tv_sec += msecs / 1000L;
+
+	t->time.tv_sec  +=  msecs / 1000L;
 	t->time.tv_usec += (msecs % 1000L) * 1000L;
 	if (t->time.tv_usec >= 1000000L) {
 		t->time.tv_sec += t->time.tv_usec / 1000000L;
 		t->time.tv_usec %= 1000000L;
 	}
+
 	t->hash = hash(t);
+
 	/* Add the new timer to the proper active list. */
 	l_add(t);
 	++active_count;
@@ -202,9 +211,11 @@ struct timeval *tmr_timeout(struct timeval *nowP)
 
 	msecs = tmr_mstimeout(nowP);
 	if (msecs == INFTIM)
-		return (struct timeval *)0;
+		return NULL;
+
 	timeout.tv_sec = msecs / 1000L;
 	timeout.tv_usec = (msecs % 1000L) * 1000L;
+
 	return &timeout;
 }
 
@@ -223,19 +234,23 @@ long tmr_mstimeout(struct timeval *nowP)
 	 */
 	for (h = 0; h < HASH_SIZE; ++h) {
 		t = timers[h];
-		if (t != (Timer *)0) {
+		if (t) {
 			m = (t->time.tv_sec - nowP->tv_sec) * 1000L + (t->time.tv_usec - nowP->tv_usec) / 1000L;
 			if (!gotone) {
 				msecs = m;
 				gotone = 1;
-			} else if (m < msecs)
+			} else if (m < msecs) {
 				msecs = m;
+			}
 		}
 	}
+
 	if (!gotone)
 		return INFTIM;
+
 	if (msecs <= 0)
 		msecs = 0;
+
 	return msecs;
 }
 
@@ -247,7 +262,7 @@ void tmr_run(struct timeval *nowP)
 	Timer *next;
 
 	for (h = 0; h < HASH_SIZE; ++h)
-		for (t = timers[h]; t != (Timer *)0; t = next) {
+		for (t = timers[h]; t; t = next) {
 			next = t->next;
 			/* Since the lists are sorted, as soon as we find a timer
 			 ** that isn't ready yet, we can go on to the next list.
@@ -272,6 +287,9 @@ void tmr_run(struct timeval *nowP)
 
 void tmr_reset(struct timeval *nowP, Timer *t)
 {
+	if (!t)
+		return;
+
 	t->time = *nowP;
 	t->time.tv_sec += t->msecs / 1000L;
 	t->time.tv_usec += (t->msecs % 1000L) * 1000L;
@@ -285,14 +303,19 @@ void tmr_reset(struct timeval *nowP, Timer *t)
 
 void tmr_cancel(Timer *t)
 {
+	if (!t)
+		return;
+
 	/* Remove it from its active list. */
 	l_remove(t);
 	--active_count;
+
 	/* And put it on the free list. */
-	t->next = free_timers;
+	t->prev     = NULL;
+	t->next     = free_timers;
 	free_timers = t;
+
 	++free_count;
-	t->prev = (Timer *)0;
 }
 
 
@@ -300,12 +323,14 @@ void tmr_cleanup(void)
 {
 	Timer *t;
 
-	while (free_timers != (Timer *)0) {
-		t = free_timers;
+	while (free_timers) {
+		t           = free_timers;
 		free_timers = t->next;
+
 		--free_count;
-		free((void *)t);
 		--alloc_count;
+
+		free(t);
 	}
 }
 
@@ -314,9 +339,10 @@ void tmr_destroy(void)
 {
 	int h;
 
-	for (h = 0; h < HASH_SIZE; ++h)
-		while (timers[h] != (Timer *)0)
+	for (h = 0; h < HASH_SIZE; ++h) {
+		while (timers[h])
 			tmr_cancel(timers[h]);
+	}
 	tmr_cleanup();
 }
 
@@ -347,7 +373,7 @@ void tmr_prepare_timeval(struct timeval *tv)
 		timeradd(&tv_diff, &tv0, tv);
 	} else {
 #endif
-		gettimeofday(tv, (struct timezone *)0);
+		gettimeofday(tv, NULL);
 #ifdef HAVE_CLOCK_MONO
 	}
 #endif
