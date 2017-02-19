@@ -165,7 +165,7 @@ void *mmc_map(char *filename, struct stat *sbP, struct timeval *nowP)
 	} else {
 		m = (Map *)malloc(sizeof(Map));
 		if (!m) {
-			(void)close(fd);
+			close(fd);
 			syslog(LOG_ERR, "out of memory allocating a Map");
 
 			return NULL;
@@ -203,7 +203,7 @@ void *mmc_map(char *filename, struct stat *sbP, struct timeval *nowP)
 
 		if (m->addr == (void *)-1) {
 			syslog(LOG_ERR, "mmap: %s", strerror(errno));
-			(void)close(fd);
+			close(fd);
 			free(m);
 			--alloc_count;
 
@@ -222,7 +222,7 @@ void *mmc_map(char *filename, struct stat *sbP, struct timeval *nowP)
 
 		if (!m->addr) {
 			syslog(LOG_ERR, "out of memory storing a file");
-			(void)close(fd);
+			close(fd);
 			free(m);
 			--alloc_count;
 
@@ -231,7 +231,7 @@ void *mmc_map(char *filename, struct stat *sbP, struct timeval *nowP)
 
 		if (httpd_read_fully(fd, m->addr, size_size) != m->size) {
 			syslog(LOG_ERR, "read: %s", strerror(errno));
-			(void)close(fd);
+			close(fd);
 			free(m);
 			--alloc_count;
 
@@ -239,7 +239,7 @@ void *mmc_map(char *filename, struct stat *sbP, struct timeval *nowP)
 		}
 #endif /* HAVE_MMAP */
 	}
-	(void)close(fd);
+	close(fd);
 
 	/* Put the Map into the hash table. */
 	if (add_hash(m) < 0) {

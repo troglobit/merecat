@@ -72,7 +72,7 @@ static void internal_error(char *reason)
 {
 	char *title = "500 Internal Error";
 
-	(void)printf("\
+	printf("\
 Status: %s\n\
 Content-type: text/html\n\
 \n\
@@ -90,7 +90,7 @@ static void not_found(char *script_name)
 {
 	char *title = "404 Not Found";
 
-	(void)printf("\
+	printf("\
 Status: %s\n\
 Content-type: text/html\n\
 \n\
@@ -106,7 +106,7 @@ static void moved(char *script_name, char *url)
 {
 	char *title = "Moved";
 
-	(void)printf("\
+	printf("\
 Location: %s\n\
 Content-type: text/html\n\
 \n\
@@ -146,7 +146,7 @@ int main(int argc, char **argv)
 			internal_error("Out of memory.");
 			exit(1);
 		}
-		(void)sprintf(cp, "%s%s", script_name, path_info);
+		sprintf(cp, "%s%s", script_name, path_info);
 		script_name = cp;
 	}
 

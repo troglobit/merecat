@@ -145,7 +145,7 @@ void tmr_init(void)
 		use_monotonic = 1;
 
 		/* Get current system time */
-		(void)gettimeofday(&tv_start, (struct timezone *)0);
+		gettimeofday(&tv_start, (struct timezone *)0);
 		tv.tv_sec = ts.tv_sec;
 		tv.tv_usec = ts.tv_nsec / 1000L;
 		/* Calculate and save the difference: tv_start is since the Epoch, so tv_start > ts
@@ -347,7 +347,7 @@ void tmr_prepare_timeval(struct timeval *tv)
 		timeradd(&tv_diff, &tv0, tv);
 	} else {
 #endif
-		(void)gettimeofday(tv, (struct timezone *)0);
+		gettimeofday(tv, (struct timezone *)0);
 #ifdef HAVE_CLOCK_MONO
 	}
 #endif

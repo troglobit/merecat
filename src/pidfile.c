@@ -91,14 +91,14 @@ pidfile(const char *basename)
 
 	if (fprintf(f, "%ld\n", (long)pid) <= 0 || fflush(f) != 0) {
 		save_errno = errno;
-		(void) fclose(f);
-		(void) unlink(pidfile_path);
+		 fclose(f);
+		 unlink(pidfile_path);
 		free(pidfile_path);
 		pidfile_path = NULL;
 		errno = save_errno;
 		return (-1);
 	}
-	(void) fclose(f);
+	 fclose(f);
 	__pidfile_name = pidfile_path;
 
 	/*
@@ -111,7 +111,7 @@ pidfile(const char *basename)
 	pidfile_pid = pid;
 	if (atexit(pidfile_cleanup) < 0) {
 		save_errno = errno;
-		(void) unlink(pidfile_path);
+		 unlink(pidfile_path);
 		free(pidfile_path);
 		pidfile_path = NULL;
 		pidfile_pid = 0;
@@ -126,7 +126,7 @@ static void
 pidfile_cleanup(void)
 {
 	if (pidfile_path != NULL && pidfile_pid == getpid()) {
-		(void) unlink(pidfile_path);
+		 unlink(pidfile_path);
 		free(pidfile_path);
 		pidfile_path = NULL;
 	}

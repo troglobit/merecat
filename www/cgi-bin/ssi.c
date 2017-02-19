@@ -64,7 +64,7 @@ static void internal_error(char *reason)
 {
 	char *title = "500 Internal Error";
 
-	(void)printf("\
+	printf("\
 <HTML><HEAD><TITLE>%s</TITLE></HEAD>\n\
 <BODY><H2>%s</H2>\n\
 Something unusual went wrong during a server-side-includes request:\n\
@@ -79,7 +79,7 @@ static void not_found(char *filename)
 {
 	char *title = "404 Not Found";
 
-	(void)printf("\
+	printf("\
 <HTML><HEAD><TITLE>%s</TITLE></HEAD>\n\
 <BODY><H2>%s</H2>\n\
 The requested server-side-includes filename, %s,\n\
@@ -92,7 +92,7 @@ static void not_found2(char *directive, char *tag, char *filename2)
 {
 	char *title = "Not Found";
 
-	(void)printf("\
+	printf("\
 <HR><H2>%s</H2>\n\
 The filename requested in a %s %s directive, %s,\n\
 does not seem to exist.\n\
@@ -104,7 +104,7 @@ static void not_permitted(char *directive, char *tag, char *val)
 {
 	char *title = "Not Permitted";
 
-	(void)printf("\
+	printf("\
 <HR><H2>%s</H2>\n\
 The filename requested in the %s %s=%s directive\n\
 may not be fetched.\n\
@@ -116,7 +116,7 @@ static void unknown_directive(char *filename, char *directive)
 {
 	char *title = "Unknown Directive";
 
-	(void)printf("\
+	printf("\
 <HR><H2>%s</H2>\n\
 The requested server-side-includes filename, %s,\n\
 tried to use an unknown directive, %s.\n\
@@ -128,7 +128,7 @@ static void unknown_tag(char *filename, char *directive, char *tag)
 {
 	char *title = "Unknown Tag";
 
-	(void)printf("\
+	printf("\
 <HR><H2>%s</H2>\n\
 The requested server-side-includes filename, %s,\n\
 tried to use the directive %s with an unknown tag, %s.\n\
@@ -140,7 +140,7 @@ static void unknown_value(char *filename, char *directive, char *tag, char *val)
 {
 	char *title = "Unknown Value";
 
-	(void)printf("\
+	printf("\
 <HR><H2>%s</H2>\n\
 The requested server-side-includes filename, %s,\n\
 tried to use the directive %s %s with an unknown value, %s.\n\
@@ -173,8 +173,8 @@ static int get_filename(char *vfilename, char *filename, char *directive, char *
 			return -1;
 		if (fl - vl + strlen(val) >= fnsize)
 			return -1;
-		(void)strncpy(fn, filename, fl - vl);
-		(void)strcpy(&fn[fl - vl], val);
+		strncpy(fn, filename, fl - vl);
+		strcpy(&fn[fl - vl], val);
 	} else if (strcmp(tag, "file") == 0) {
 		if (val[0] == '/' || strstr(val, "../") != (char *)0) {
 			not_permitted(directive, tag, val);
@@ -182,13 +182,13 @@ static int get_filename(char *vfilename, char *filename, char *directive, char *
 		}
 		if (fl + 1 + strlen(val) >= fnsize)
 			return -1;
-		(void)strcpy(fn, filename);
+		strcpy(fn, filename);
 		cp = strrchr(fn, '/');
 		if (cp == (char *)0) {
 			cp = &fn[strlen(fn)];
 			*cp = '/';
 		}
-		(void)strcpy(++cp, val);
+		strcpy(++cp, val);
 	} else {
 		unknown_tag(filename, directive, tag);
 		return -1;
@@ -240,7 +240,7 @@ static int check_filename(char *filename)
 		return 0;	/* out of memory */
 	cp = strrchr(dirname, '/');
 	if (cp == (char *)0)
-		(void)strcpy(dirname, ".");
+		strcpy(dirname, ".");
 	else
 		*cp = '\0';
 	authname = malloc(strlen(dirname) + 1 + sizeof(AUTH_FILE));
@@ -248,7 +248,7 @@ static int check_filename(char *filename)
 		free(dirname);
 		return 0;	/* out of memory */
 	}
-	(void)sprintf(authname, "%s/%s", dirname, AUTH_FILE);
+	sprintf(authname, "%s/%s", dirname, AUTH_FILE);
 	r = stat(authname, &sb);
 	free(dirname);
 	free(authname);
@@ -274,7 +274,7 @@ static void show_time(time_t t, int gmt)
 	else
 		tmP = localtime(&t);
 	if (strftime(tbuf, sizeof(tbuf), timefmt, tmP) > 0)
-		(void)fputs(tbuf, stdout);
+		fputs(tbuf, stdout);
 }
 
 
@@ -282,17 +282,17 @@ static void show_size(off_t size)
 {
 	switch (sizefmt) {
 	case SF_BYTES:
-		(void)printf("%ld", (long)size);	/* spec says should have commas */
+		printf("%ld", (long)size);	/* spec says should have commas */
 		break;
 	case SF_ABBREV:
 		if (size < 1024)
-			(void)printf("%ld", (long)size);
+			printf("%ld", (long)size);
 		else if (size < 1024)
-			(void)printf("%ldK", (long)size / 1024L);
+			printf("%ldK", (long)size / 1024L);
 		else if (size < 1024 * 1024)
-			(void)printf("%ldM", (long)size / (1024L * 1024L));
+			printf("%ldM", (long)size / (1024L * 1024L));
 		else
-			(void)printf("%ldG", (long)size / (1024L * 1024L * 1024L));
+			printf("%ldG", (long)size / (1024L * 1024L * 1024L));
 		break;
 	}
 }
@@ -313,7 +313,7 @@ static void do_config(char *vfilename, char *filename, FILE *fp, char *directive
 	 */
 
 	if (strcmp(tag, "timefmt") == 0) {
-		(void)strncpy(timefmt, val, sizeof(timefmt) - 1);
+		strncpy(timefmt, val, sizeof(timefmt) - 1);
 		timefmt[sizeof(timefmt) - 1] = '\0';
 	} else if (strcmp(tag, "sizefmt") == 0) {
 		if (strcmp(val, "bytes") == 0)
@@ -351,26 +351,26 @@ static void do_include(char *vfilename, char *filename, FILE *fp, char *directiv
 
 	if (strcmp(tag, "virtual") == 0) {
 		if (strlen(val) < sizeof(vfilename2))
-			(void)strcpy(vfilename2, val);
+			strcpy(vfilename2, val);
 		else
-			(void)strcpy(vfilename2, filename2);	/* same size, has to fit */
+			strcpy(vfilename2, filename2);	/* same size, has to fit */
 	} else {
 		if (strlen(vfilename) + 1 + strlen(val) < sizeof(vfilename2)) {
 			char *cp;
 
-			(void)strcpy(vfilename2, vfilename);
+			strcpy(vfilename2, vfilename);
 			cp = strrchr(vfilename2, '/');
 			if (cp == (char *)0) {
 				cp = &vfilename2[strlen(vfilename2)];
 				*cp = '/';
 			}
-			(void)strcpy(++cp, val);
+			strcpy(++cp, val);
 		} else
-			(void)strcpy(vfilename2, filename2);	/* same size, has to fit */
+			strcpy(vfilename2, filename2);	/* same size, has to fit */
 	}
 
 	read_file(vfilename2, filename2, fp2);
-	(void)fclose(fp2);
+	fclose(fp2);
 }
 
 
@@ -389,15 +389,15 @@ static void do_echo(char *vfilename, char *filename, FILE *fp, char *directive, 
 	else {
 		if (strcmp(val, "DOCUMENT_NAME") == 0) {
 			/* The current filename. */
-			(void)fputs(filename, stdout);
+			fputs(filename, stdout);
 		} else if (strcmp(val, "DOCUMENT_URI") == 0) {
 			/* The virtual path to this file (such as /~robm/foo.shtml). */
-			(void)fputs(vfilename, stdout);
+			fputs(vfilename, stdout);
 		} else if (strcmp(val, "QUERY_STRING_UNESCAPED") == 0) {
 			/* The unescaped version of any search query the client sent. */
 			cp = getenv("QUERY_STRING");
 			if (cp != (char *)0)
-				(void)fputs(cp, stdout);
+				fputs(cp, stdout);
 		} else if (strcmp(val, "DATE_LOCAL") == 0) {
 			/* The current date, local time zone. */
 			t = time((time_t *)0);
@@ -416,7 +416,7 @@ static void do_echo(char *vfilename, char *filename, FILE *fp, char *directive, 
 			if (cp == (char *)0)
 				unknown_value(filename, directive, tag, val);
 			else
-				(void)fputs(cp, stdout);
+				fputs(cp, stdout);
 		}
 	}
 }
@@ -610,7 +610,7 @@ static void read_file(char *vfilename, char *filename, FILE *fp)
 				continue;
 			} else {
 				state = ST_GROUND;
-				(void)fputs("<!", stdout);
+				fputs("<!", stdout);
 			}
 			break;
 		case ST_MINUS1:
@@ -619,7 +619,7 @@ static void read_file(char *vfilename, char *filename, FILE *fp)
 				continue;
 			} else {
 				state = ST_GROUND;
-				(void)fputs("<!-", stdout);
+				fputs("<!-", stdout);
 			}
 			break;
 		case ST_MINUS2:
@@ -629,7 +629,7 @@ static void read_file(char *vfilename, char *filename, FILE *fp)
 				continue;
 			} else {
 				state = ST_GROUND;
-				(void)fputs("<!--", stdout);
+				fputs("<!--", stdout);
 			}
 			break;
 		}
@@ -646,11 +646,11 @@ int main(int argc, char **argv)
 	FILE *fp;
 
 	/* Default formats. */
-	(void)strcpy(timefmt, "%a %b %e %T %Z %Y");
+	strcpy(timefmt, "%a %b %e %T %Z %Y");
 	sizefmt = SF_BYTES;
 
 	/* The MIME type has to be text/html. */
-	(void)fputs("Content-type: text/html\n\n", stdout);
+	fputs("Content-type: text/html\n\n", stdout);
 
 	/* Get the name that we were run as. */
 	script_name = getenv("SCRIPT_NAME");
@@ -668,7 +668,7 @@ int main(int argc, char **argv)
 		internal_error("Out of memory.");
 		exit(1);
 	}
-	(void)sprintf(url, "%s%s", script_name, path_info);
+	sprintf(url, "%s%s", script_name, path_info);
 
 	/* Get the name of the file to parse. */
 	path_translated = getenv("PATH_TRANSLATED");
@@ -692,6 +692,6 @@ int main(int argc, char **argv)
 	/* Read and handle the file. */
 	read_file(path_info, path_translated, fp);
 
-	(void)fclose(fp);
+	fclose(fp);
 	exit(0);
 }

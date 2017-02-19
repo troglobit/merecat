@@ -72,7 +72,7 @@
 #define SIGNAL(signo, cb)		\
 	sa.sa_flags   = SA_RESTART;	\
 	sa.sa_handler = cb;		\
-	(void)sigaction(signo, &sa, NULL)
+	sigaction(signo, &sa, NULL)
 
 /* Instead of non-portable __progname */
 char        *prognm;
@@ -333,7 +333,7 @@ static void lookup_hostname(httpd_sockaddr *sa4P, size_t sa4_len, int *gotv4P, h
 
 	*gotv6P = 0;
 
-	(void)memset(sa4P, 0, sa4_len);
+	memset(sa4P, 0, sa4_len);
 	sa4P->sa.sa_family = AF_INET;
 	if (!hostname) {
 		sa4P->sa_in.sin_addr.s_addr = htonl(INADDR_ANY);
@@ -353,7 +353,7 @@ static void lookup_hostname(httpd_sockaddr *sa4P, size_t sa4_len, int *gotv4P, h
 				syslog(LOG_CRIT, "%s - non-IP network address", hostname);
 				exit(1);
 			}
-			(void)memmove(&sa4P->sa_in.sin_addr.s_addr, he->h_addr, he->h_length);
+			memmove(&sa4P->sa_in.sin_addr.s_addr, he->h_addr, he->h_length);
 		}
 	}
 	sa4P->sa_in.sin_port = htons(port);
@@ -379,7 +379,7 @@ static void read_throttlefile(char *throttlefile)
 		exit(1);
 	}
 
-	(void)gettimeofday(&tv, NULL);
+	gettimeofday(&tv, NULL);
 
 	while (fgets(buf, sizeof(buf), fp)) {
 		/* Nuke comments. */
@@ -407,9 +407,9 @@ static void read_throttlefile(char *throttlefile)
 
 		/* Nuke any leading slashes in pattern. */
 		if (pattern[0] == '/')
-			(void)memmove(pattern, &pattern[1], strlen(pattern));
+			memmove(pattern, &pattern[1], strlen(pattern));
 		while ((cp = strstr(pattern, "|/")))
-			(void)memmove(cp + 1, cp + 2, strlen(cp) - 1);
+			memmove(cp + 1, cp + 2, strlen(cp) - 1);
 
 		/* Check for room in throttles. */
 		if (numthrottles >= maxthrottles) {
@@ -468,7 +468,7 @@ static void logstats(struct timeval *nowP)
 	long up_secs, stats_secs;
 
 	if (!nowP) {
-		(void)gettimeofday(&tv, NULL);
+		gettimeofday(&tv, NULL);
 		nowP = &tv;
 	}
 	now = nowP->tv_sec;
@@ -492,7 +492,7 @@ static void shut_down(void)
 	int cnum;
 	struct timeval tv;
 
-	(void)gettimeofday(&tv, NULL);
+	gettimeofday(&tv, NULL);
 	logstats(&tv);
 	for (cnum = 0; cnum < max_connects; ++cnum) {
 		if (connects[cnum].conn_state != CNST_FREE)
@@ -1009,7 +1009,7 @@ static void handle_send(connecttab *c, struct timeval *tvP)
 			/* Yes; move the unwritten part to the front of the buffer. */
 			int newlen = hc->responselen - sz;
 
-			(void)memmove(hc->response, &(hc->response[sz]), newlen);
+			memmove(hc->response, &(hc->response[sz]), newlen);
 			hc->responselen = newlen;
 			sz = 0;
 		} else {
@@ -1256,14 +1256,14 @@ static void handle_alrm(int signo)
 	/* If nothing has been happening */
 	if (!watchdog_flag) {
 		/* Try changing dirs to someplace we can write. */
-		(void)chdir("/tmp");
+		chdir("/tmp");
 		/* Dump core. */
 		abort();
 	}
 	watchdog_flag = 0;
 
 	/* Set up alarm again. */
-	(void)alarm(OCCASIONAL_TIME * 3);
+	alarm(OCCASIONAL_TIME * 3);
 
 	/* Restore previous errno. */
 	errno = oerrno;
@@ -1504,17 +1504,17 @@ int main(int argc, char **argv)
 #endif				/* USE_USER_DIR */
 
 	/* Get current directory. */
-	(void)getcwd(path, sizeof(path) - 1);
+	getcwd(path, sizeof(path) - 1);
 	if (path[strlen(path) - 1] != '/')
-		(void)strcat(path, "/");
+		strcat(path, "/");
 
 	if (background) {
 		/* We're not going to use stdin stdout or stderr from here on, so close
 		 ** them to save file descriptors.
 		 */
-		(void)fclose(stdin);
-		(void)fclose(stdout);
-		(void)fclose(stderr);
+		fclose(stdin);
+		fclose(stdout);
+		fclose(stderr);
 
 		/* Daemonize - make ourselves a subprocess. */
 #ifdef HAVE_DAEMON
@@ -1533,7 +1533,7 @@ int main(int argc, char **argv)
 			exit(0);
 		}
 #ifdef HAVE_SETSID
-		(void)setsid();
+		setsid();
 #endif
 #endif /* HAVE_DAEMON */
 	} else {
@@ -1541,7 +1541,7 @@ int main(int argc, char **argv)
 		 ** process.
 		 */
 #ifdef HAVE_SETSID
-		(void)setsid();
+		setsid();
 #endif
 	}
 
@@ -1567,7 +1567,7 @@ int main(int argc, char **argv)
 			exit(1);
 		}
 
-		(void)strcpy(path, "/");
+		strcpy(path, "/");
 		/* Always chdir to / after a chroot. */
 		if (chdir(path) < 0) {
 			syslog(LOG_CRIT, "chroot chdir: %s", strerror(errno));
@@ -1598,7 +1598,7 @@ int main(int argc, char **argv)
 	got_hup = 0;
 	got_usr1 = 0;
 	watchdog_flag = 0;
-	(void)alarm(OCCASIONAL_TIME * 3);
+	alarm(OCCASIONAL_TIME * 3);
 
 	/* Initialize the timer package. */
 	tmr_init();
@@ -1666,7 +1666,7 @@ int main(int argc, char **argv)
 
 #ifdef HAVE_SETLOGIN
 		/* Set login name. */
-		(void)setlogin(user);
+		setlogin(user);
 #endif
 
 		/* Set uid. */

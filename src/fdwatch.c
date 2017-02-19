@@ -297,8 +297,8 @@ static int kqueue_init(int nfiles)
 	kqrfdidx = (int *)malloc(sizeof(int) * nfiles);
 	if (kqevents == (struct kevent *)0 || kqrevents == (struct kevent *)0 || kqrfdidx == (int *)0)
 		return -1;
-	(void)memset(kqevents, 0, sizeof(struct kevent) * maxkqevents);
-	(void)memset(kqrfdidx, 0, sizeof(int) * nfiles);
+	memset(kqevents, 0, sizeof(struct kevent) * maxkqevents);
+	memset(kqrfdidx, 0, sizeof(int) * nfiles);
 	return 0;
 }
 
@@ -421,14 +421,14 @@ static int devpoll_init(int nfiles)
 	dp = open("/dev/poll", O_RDWR);
 	if (dp == -1)
 		return -1;
-	(void)fcntl(dp, F_SETFD, 1);
+	fcntl(dp, F_SETFD, 1);
 	maxdpevents = nfiles * 2;
 	dpevents = (struct pollfd *)malloc(sizeof(struct pollfd) * maxdpevents);
 	dprevents = (struct pollfd *)malloc(sizeof(struct pollfd) * nfiles);
 	dp_rfdidx = (int *)malloc(sizeof(int) * nfiles);
 	if (dpevents == (struct pollfd *)0 || dprevents == (struct pollfd *)0 || dp_rfdidx == (int *)0)
 		return -1;
-	(void)memset(dp_rfdidx, 0, sizeof(int) * nfiles);
+	memset(dp_rfdidx, 0, sizeof(int) * nfiles);
 	return 0;
 }
 
