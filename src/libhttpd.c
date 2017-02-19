@@ -3880,6 +3880,9 @@ static char *has_gzip(httpd_conn *hc)
 	}
 
 done:
+	if (strstr(hc->encodings, "gzip"))
+		header = "Vary: Accept-Encoding\r\n";
+
 	return header;
 }
 
