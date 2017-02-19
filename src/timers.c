@@ -249,7 +249,7 @@ long tmr_mstimeout(struct timeval *nowP)
 		return INFTIM;
 
 	if (msecs <= 0)
-		msecs = 0;
+		msecs = 500; /* Was 0, but we should never poll() < 500 msec */
 
 	return msecs;
 }
