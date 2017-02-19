@@ -563,6 +563,7 @@ void httpd_write_response(httpd_conn *hc)
 
 	/* Send the response, if necessary. */
 	if (hc->responselen > 0) {
+		make_log_entry(hc);
 		httpd_write_fully(hc->conn_fd, hc->response, hc->responselen);
 		hc->responselen = 0;
 	}
@@ -2516,8 +2517,8 @@ int httpd_parse_request(httpd_conn *hc)
 				cp = &buf[11];
 				cp += strspn(cp, " \t");
 				if (strcasecmp(cp, "keep-alive") == 0) {
-					hc->keep_alive = 1;    /* Client signaling */
-					hc->do_keep_alive = 1; /* Our intention, which might change later */
+					hc->keep_alive = 1;     /* Client signaling */
+					hc->do_keep_alive = 10; /* Our intention, which might change later */
 				}
 			} else if (strncasecmp(buf, "X-Forwarded-For:", 16) == 0) {
 				int i;

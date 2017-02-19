@@ -677,6 +677,7 @@ static void linger_clear_connection(ClientData client_data, struct timeval *nowP
 	connecttab *c;
 
 	c = (connecttab *)client_data.p;
+	c->hc->do_keep_alive = 0;
 	c->linger_timer = NULL;
 	really_clear_connection(c, nowP);
 }
@@ -702,18 +703,52 @@ static void clear_connection(connecttab *c, struct timeval *tvP)
 	 ** circumstances that make a lingering close necessary.  If the flag
 	 ** isn't set we do the real close now.
 	 */
-	if (c->conn_state == CNST_LINGERING) {
+	if (c->conn_state == CNST_LINGERING && !c->hc->do_keep_alive) {
 		/* If we were already lingering, shut down for real. */
 		tmr_cancel(c->linger_timer);
 		c->linger_timer = NULL;
 		c->hc->should_linger = 0;
 	}
 
-	if (c->hc->should_linger) {
+	if (c->hc->do_keep_alive) {
+		c->conn_state = CNST_READING;
+		c->next_byte_index = 0;
+
+		client_data.p = c;
+		if (c->linger_timer)
+			tmr_cancel(c->linger_timer);
+
+		/* release file memory */
+		if (c->hc->file_address) {
+			mmc_unmap(c->hc->file_address, &c->hc->sb, tvP);
+			c->hc->file_address = NULL;
+		}
+
+		/* release httpd_conn auxiliary memory */
+		httpd_destroy_conn(c->hc);
+
+		/* reinitialize httpd_conn */
+		httpd_init_conn_mem(c->hc);
+		httpd_init_conn_content(c->hc);
+
+		fdwatch_del_fd(c->hc->conn_fd);
+		fdwatch_add_fd(c->hc->conn_fd, c, FDW_READ);
+
+		/* Reset the connection file descriptor to no-delay mode. */
+		httpd_set_ndelay(c->hc->conn_fd);
+
+		c->linger_timer = tmr_create(tvP, linger_clear_connection, client_data, KEEPALIVE_TIMELIMIT, 0);
+		if (!c->linger_timer) {
+			syslog(LOG_CRIT, "tmr_create(linger_clear_connection)2 failed");
+			exit(1);
+		}
+	} else if (c->hc->should_linger) {
 		if (c->conn_state != CNST_PAUSING)
 			fdwatch_del_fd(c->hc->conn_fd);
 
 		c->conn_state = CNST_LINGERING;
+		fdwatch_del_fd(c->hc->conn_fd);
+		shutdown(c->hc->conn_fd, SHUT_WR);
 		fdwatch_add_fd(c->hc->conn_fd, c, FDW_READ);
 
 		client_data.p = c;
@@ -836,7 +871,12 @@ static void handle_read(connecttab *c, struct timeval *tvP)
 	/* Read some more bytes. */
 	sz = read(hc->conn_fd, &(hc->read_buf[hc->read_idx]), hc->read_size - hc->read_idx);
 	if (sz == 0) {
-		httpd_send_err(hc, 400, httpd_err400title, "", httpd_err400form, "");
+		if (!hc->do_keep_alive)
+			httpd_send_err(hc, 400, httpd_err400title, "", httpd_err400form, "");
+		else
+			hc->do_keep_alive--;
+
+		c->active_at = tvP->tv_sec;
 		finish_connection(c, tvP);
 		return;
 	}
@@ -961,8 +1001,10 @@ static void handle_send(connecttab *c, struct timeval *tvP)
 		sz = writev(hc->conn_fd, iv, 2);
 	}
 
-	if (sz < 0 && errno == EINTR)
+	if (sz < 0 && errno == EINTR) {
+		clear_connection(c, tvP);
 		return;
+	}
 
 	if (sz == 0 || (sz < 0 && (errno == EWOULDBLOCK || errno == EAGAIN))) {
 		/* This shouldn't happen, but some kernels, e.g.
@@ -988,6 +1030,7 @@ static void handle_send(connecttab *c, struct timeval *tvP)
 			syslog(LOG_CRIT, "tmr_create(wakeup_connection) failed");
 			exit(1);
 		}
+		clear_connection(c, tvP);
 		return;
 	}
 
@@ -1072,26 +1115,20 @@ static void handle_send(connecttab *c, struct timeval *tvP)
 
 static void handle_linger(connecttab *c, struct timeval *tvP)
 {
-	httpd_conn *hc = c->hc;
+	ssize_t r;
+	char buf[512];
 
-	c->conn_state = CNST_READING;
-	c->next_byte_index = 0;
+	/* In lingering-close mode we just read and ignore bytes.  An error
+	** or EOF ends things, otherwise we go until a timeout.
+	 */
+	do {
+		r = read(c->hc->conn_fd, buf, sizeof(buf));
+		if (r < 0 && (errno == EINTR || errno == EAGAIN || errno == EWOULDBLOCK))
+			return;
+	} while (r > 0);
 
-	if (c->linger_timer)
-		tmr_reset(tvP, c->linger_timer);
-
-	/* release file memory */
-	if (hc->file_address) {
-		mmc_unmap(hc->file_address, &hc->sb, tvP);
-		hc->file_address = NULL;
-	}
-
-	/* release httpd_conn auxiliary memory */
-	httpd_destroy_conn(hc);
-
-	/* reinitialize httpd_conn */
-	httpd_init_conn_mem(hc);
-	httpd_init_conn_content(hc);
+	if (r <= 0)
+		really_clear_connection(c, tvP);
 }
 
 
@@ -1762,6 +1799,7 @@ int main(int argc, char **argv)
 			hc = ct->hc;
 			if (!fdwatch_check_fd(hc->conn_fd)) {
 				/* Something went wrong. */
+				hc->do_keep_alive = 0;
 				clear_connection(ct, &tv);
 			} else {
 				switch (ct->conn_state) {
