@@ -940,7 +940,7 @@ static int err_accessfile(httpd_conn* hc, char* accesspath, char* err, FILE* f)
 /* Returns -1 == unauthorized, 0 == no access file, 1 = authorized. */
 static int access_check(httpd_conn* hc, char* dirname)
 {
-	int rc;
+	int rc = 0;
 	char *topdir;
 
 	if (hc->hs->vhost && hc->hostdir[0] != '\0')
@@ -951,21 +951,27 @@ static int access_check(httpd_conn* hc, char* dirname)
 	/* TODO: Refactor code duplication between this and auth_check() recursive lookup */
 	if (!hc->hs->global_passwd) {
 		int found;
-		char *slash, *currdir;
+		char *path, *slash, *currdir;
+		size_t len;
 		struct stat sb;
-		static char *path;
-		static size_t maxpath = 0;
 
 		currdir = strdup(dirname);
 		if (!currdir) {
+		err:
 			syslog(LOG_ERR, "out of memory in authentication code; "
 			       "Denying access.");
 			return -1;
 		}
 
-		httpd_realloc_str(&path, &maxpath, strlen(dirname) + 1 + sizeof(ACCESS_FILE));
-		while(1) {
-			snprintf(path, maxpath, "%s/%s", (currdir[0] ? currdir : "."), ACCESS_FILE);
+		len = strlen(dirname) + 1 + sizeof(ACCESS_FILE);
+		path = malloc(len);
+		if (!path) {
+			free(currdir);
+			goto err;
+		}
+
+		while (1) {
+			snprintf(path, len, "%s/%s", (currdir[0] ? currdir : "."), ACCESS_FILE);
 			
 			/* Does this directory have an auth file? */
 			if (stat(path, &sb) == 0) {
@@ -987,14 +993,13 @@ static int access_check(httpd_conn* hc, char* dirname)
 			*slash = 0;
 		}
 		
-		if (!found) {
-			free(currdir);
-			return 0;
+		if (found) {
+			/* use this directory for authentication */
+			rc = access_check2(hc, currdir[0] ? currdir : ".");
 		}
 
-		/* use this directory for authentication */
-		rc = access_check2(hc, currdir[0] ? currdir : ".");
 		free(currdir);
+		free(path);
 
 		return rc;
 	}
@@ -1009,8 +1014,6 @@ static int access_check(httpd_conn* hc, char* dirname)
 /* Returns -1 == unauthorized, 0 == no access file, 1 = authorized. */
 static int access_check2 (httpd_conn* hc, char* dirname)
 {
-	static char *accesspath;
-	static size_t maxaccesspath = 0;
 	struct in_addr ipv4_addr, ipv4_mask = { 0xffffffff };
 	FILE* fp;
 	char line[500];
@@ -1019,21 +1022,21 @@ static int access_check2 (httpd_conn* hc, char* dirname)
 	size_t l;
 
 	/* Construct access filename. */
-	httpd_realloc_str(&accesspath, &maxaccesspath, strlen(dirname) + 1 + sizeof(ACCESS_FILE));
-	snprintf(accesspath, maxaccesspath, "%s/%s", dirname, ACCESS_FILE);
+	httpd_realloc_str(&hc->accesspath, &hc->maxaccesspath, strlen(dirname) + 1 + sizeof(ACCESS_FILE));
+	snprintf(hc->accesspath, hc->maxaccesspath, "%s/%s", dirname, ACCESS_FILE);
 
 	/* Does this directory have an access file? */
-	if (lstat(accesspath, &sb) < 0) {
+	if (lstat(hc->accesspath, &sb) < 0) {
 		/* Nope, let the request go through. */
 		return 0;
 	}
 
 	/* Open the access file. */
-	fp = fopen(accesspath, "r");
+	fp = fopen(hc->accesspath, "r");
 	if (!fp) {
 		/* The file exists but we can't open it? Disallow access. */
 		syslog(LOG_ERR, "%.80s access file %.80s could not be opened: %s",
-		       httpd_client(hc), accesspath, strerror(errno));
+		       httpd_client(hc), hc->accesspath, strerror(errno));
 
 		httpd_send_err(hc, 403, err403title, "",
 			       ERROR_FORM(err403form,
@@ -1055,30 +1058,30 @@ static int access_check2 (httpd_conn* hc, char* dirname)
 		else
 			addr = addr2;
 		if (!addr)
-			return err_accessfile(hc, accesspath, line, fp);
+			return err_accessfile(hc, hc->accesspath, line, fp);
 
 		mask = strchr(++addr, '/');
 		if (mask) {
 			*mask++ = '\0';
 			if (!*mask)
-				return err_accessfile(hc, accesspath, line, fp);
+				return err_accessfile(hc, hc->accesspath, line, fp);
 
 			if (!strchr(mask, '.')) {
 				long l = atol(mask);
 				if ((l < 0) || (l > 32))
-					return err_accessfile(hc, accesspath, line, fp);
+					return err_accessfile(hc, hc->accesspath, line, fp);
 
 				for (l = 32 - l; l > 0; --l)
 					ipv4_mask.s_addr ^= 1 << (l - 1);
 				ipv4_mask.s_addr = htonl(ipv4_mask.s_addr);
 			} else {
 				if (!inet_aton(mask, &ipv4_mask))
-					return err_accessfile(hc, accesspath, line, fp);
+					return err_accessfile(hc, hc->accesspath, line, fp);
 			}
 		}
 
 		if (!inet_aton(addr, &ipv4_addr))
-			return err_accessfile(hc, accesspath, line, fp);
+			return err_accessfile(hc, hc->accesspath, line, fp);
 
 		/*
 		 * Does client addr match this rule?
@@ -1098,14 +1101,13 @@ static int access_check2 (httpd_conn* hc, char* dirname)
 				return 1;
 
 			default:
-				return err_accessfile(hc, accesspath, line, fp);
+				return err_accessfile(hc, hc->accesspath, line, fp);
 			}
 		}
 	}
 
 	httpd_send_err(hc, 403, err403title, "",
-		       ERROR_FORM(err403form,
-				  "The requested URL '%.80s' is protected by an address restriction."),
+		       ERROR_FORM(err403form, "The requested URL '%.80s' is protected by an address restriction."),
 		       hc->encodedurl);
 	fclose(fp);
 
@@ -1942,6 +1944,9 @@ void httpd_destroy_conn(httpd_conn *hc)
 #ifdef TILDE_MAP_2
 		free(hc->altdir);
 #endif
+#ifdef ACCESS_FILE
+		free(hc->accesspath);
+#endif
 #ifdef AUTH_FILE
 		free(hc->authpath);
 		free(hc->prevauthpath);
@@ -1982,6 +1987,10 @@ void httpd_init_conn_mem(httpd_conn *hc)
 	httpd_realloc_str(&hc->altdir, &hc->maxaltdir, 0);
 #endif
 
+#ifdef ACCESS_FILE
+	hc->maxaccesspath = 0;
+	httpd_realloc_str(&hc->accesspath, &hc->maxaccesspath, 0);
+#endif
 #ifdef AUTH_FILE
 	hc->maxauthpath = 0;
 	hc->maxprevauthpath = 0;
@@ -2961,6 +2970,32 @@ static char *humane_size(struct stat *st)
 	return str;
 }
 
+
+static int is_reserved_htfile(const char *fn)
+{
+	int i;
+	const char *res[] = {
+#ifdef AUTH_FILE
+		AUTH_FILE,
+#else
+		".htpasswd",
+#endif
+#ifdef ACCESS_FILE
+		ACCESS_FILE,
+#else
+		".htaccess",
+#endif
+		NULL
+	};
+
+	for (i = 0; res[i]; i++) {
+		if (!strcmp(res[i], fn))
+			return 1;
+	}
+
+	return 0;
+}
+
 /* qsort comparison routine - declared old-style on purpose, for portability. */
 static int name_compare(a, b)
 char **a;
@@ -3046,14 +3081,7 @@ static int child_ls_read_names(httpd_conn *hc, DIR *dirp, FILE *fp, int onlydir)
 			continue;
 
 		/* Do not show .htpasswd and .htaccess files */
-#ifdef AUTH_FILE
-		if (!strcmp(nameptrs[i], AUTH_FILE))
-			continue;
-#else
-		if (!strcmp(nameptrs[i], ".htpasswd"))
-			continue;
-#endif
-		if (!strcmp(nameptrs[i], ACCESS_FILE))
+		if (is_reserved_htfile(nameptrs[i]))
 			continue;
 
 		httpd_realloc_str(&name, &maxname, strlen(hc->expnfilename) + 1 + strlen(nameptrs[i]));
@@ -4094,8 +4122,8 @@ static int really_start_request(httpd_conn *hc, struct timeval *nowP)
 		return -1;
 
 	/* Check if the filename is the AUTH_FILE itself - that's verboten. */
-	if (expnlen == sizeof(AUTH_FILE) - 1 || expnlen == sizeof(ACCESS_FILE) - 1) {
-		if (!strcmp(hc->expnfilename, AUTH_FILE) || !strcmp(hc->expnfilename, ACCESS_FILE)) {
+	if (expnlen == sizeof(AUTH_FILE) - 1) {
+		if (!strcmp(hc->expnfilename, AUTH_FILE)) {
 			syslog(LOG_NOTICE, "%s URL \"%s\" tried to retrieve an auth file", httpd_client(hc), hc->encodedurl);
 			httpd_send_err(hc, 403, err403title, "",
 				       ERROR_FORM(err403form,

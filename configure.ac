@@ -22,6 +22,9 @@ AC_CHECK_LIB(resolv, hstrerror)
 AC_ARG_ENABLE(public-html,
         AS_HELP_STRING([--enable-public-html], [Enable ~user/public_html in non-chrooted setups]))
 
+AC_ARG_ENABLE(htaccess,
+        AS_HELP_STRING([--enable-htaccess], [Enable .htaccess files for access control]))
+
 AC_ARG_ENABLE(htpasswd,
         AS_HELP_STRING([--enable-htpasswd], [Enable .htpasswd files for authentication]))
 
@@ -60,6 +63,9 @@ AC_CHECK_FUNCS([alarm atoll clock_gettime daemon dup2 gai_strerror getcwd getadd
 
 AS_IF([test "x$enable_public_html" = "xyes"], [
         AC_DEFINE_UNQUOTED(TILDE_MAP_2, "public_html", [Enables ~user/public_html])])
+
+AS_IF([test "x$enable_htaccess" = "xyes"], [
+        AC_DEFINE_UNQUOTED(ACCESS_FILE, ".htaccess", [Enables .htaccess access control files])])
 
 AS_IF([test "x$enable_htpasswd" = "xyes"], [
         AC_DEFINE_UNQUOTED(AUTH_FILE, ".htpasswd", [Enables .htpasswd auth. files])])

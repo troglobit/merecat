@@ -162,7 +162,9 @@
 ** If you undefine this then merecat will not implement access checks
 ** at all and will not check for access files, which saves a bit of CPU time.
 */
+#ifdef notdef
 #define ACCESS_FILE ".htaccess"
+#endif
 
 /* CONFIGURE: The default character set name to use with text MIME types.
 ** This gets substituted into the MIME types where they have a "%s".

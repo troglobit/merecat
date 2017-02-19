@@ -131,6 +131,10 @@ typedef struct {
 	char *altdir;
 	size_t maxaltdir;
 #endif
+#ifdef ACCESS_FILE
+	size_t maxaccesspath;
+	char *accesspath;
+#endif
 #ifdef AUTH_FILE
 	size_t maxauthpath, maxprevauthpath, maxprevuser, maxprevcryp;
 	char *authpath;
