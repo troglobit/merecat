@@ -3845,20 +3845,21 @@ static int is_cgi(httpd_conn *hc)
 static char *has_gzip(httpd_conn *hc)
 {
 	int serve_dotgz = 0;
-	static char *header = "";
+	char *fn = NULL;
+	size_t len;
 	struct stat st;
-	static char *dotgzfn = NULL;
-	static size_t dotgz_fnlen = 0;
+	static char *header = "";
 
 	if (!hc->dotgz)
 		goto done;
 
-	/* construct .gz filename */
-	httpd_realloc_str(&dotgzfn, &dotgz_fnlen, strlen(hc->expnfilename) + 3);
-	snprintf(dotgzfn, dotgz_fnlen, "%s.gz", hc->expnfilename);
+	/* construct .gz filename, remember NUL */
+	len = strlen(hc->expnfilename) + 4;
+	fn = malloc(len);
+	snprintf(fn, len, "%s.gz", hc->expnfilename);
 
 	/* is there a .gz file */
-	if (!stat(dotgzfn, &st)) {
+	if (!stat(fn, &st)) {
 		/* Is it world-readable or world-executable? and newer than original */
 		if (st.st_mode & (S_IROTH | S_IXOTH) && st.st_mtime >= hc->sb.st_mtime)
 			serve_dotgz = 1;
@@ -3868,8 +3869,8 @@ static char *has_gzip(httpd_conn *hc)
 	if (serve_dotgz && hc->encodings[0] == 0) {
 		header = "Vary: Accept-Encoding\r\n";
 
-		httpd_realloc_str(&hc->expnfilename, &hc->maxexpnfilename, strlen(dotgzfn) + 1);
-		strncpy(hc->expnfilename, dotgzfn, hc->maxexpnfilename);
+		httpd_realloc_str(&hc->expnfilename, &hc->maxexpnfilename, strlen(fn) + 1);
+		strncpy(hc->expnfilename, fn, hc->maxexpnfilename);
 		hc->sb.st_size = st.st_size;
 
 		httpd_realloc_str(&hc->encodings, &hc->maxencodings, 5);
@@ -3878,6 +3879,7 @@ static char *has_gzip(httpd_conn *hc)
 		header = "";
 	}
 
+	free(fn);
 done:
 	if (strstr(hc->encodings, "gzip"))
 		header = "Vary: Accept-Encoding\r\n";
