@@ -172,7 +172,8 @@ static void conf_errfunc(cfg_t *cfg, const char *format, va_list args)
 
 static int read_config(char *filename)
 {
-	static cfg_t *cfg = NULL;
+	int rc = 0;
+	cfg_t *cfg = NULL;
 	cfg_opt_t opts[] = {
 		CFG_INT ("port", port, CFGF_NONE),
 		CFG_BOOL("chroot", do_chroot, CFGF_NONE),
@@ -197,9 +198,6 @@ static int read_config(char *filename)
 	if (access(filename, F_OK))
 		return 0;
 
-	if (cfg)
-		cfg_free(cfg);
-
 	cfg = cfg_init(opts, CFGF_NONE);
 	if (!cfg) {
 		syslog(LOG_ERR, "Failed initializing configuration file parser: %s", strerror(errno));
@@ -209,14 +207,15 @@ static int read_config(char *filename)
 	/* Custom logging, rather than default Confuse stderr logging */
 	cfg_set_error_function(cfg, conf_errfunc);
 
-	switch (cfg_parse(cfg, filename)) {
+	rc = cfg_parse(cfg, filename);
+	switch (rc) {
 	case CFG_FILE_ERROR:
 		syslog(LOG_ERR, "Cannot read configuration file %s", filename);
-		return 1;
+		goto end;
 
 	case CFG_PARSE_ERROR:
 		syslog(LOG_ERR, "Parse error in %s", filename);
-		return 1;
+		goto end;
 
 	case CFG_SUCCESS:
 		break;
@@ -248,6 +247,8 @@ static int read_config(char *filename)
 	charset = cfg_getstr(cfg, "charset");
 	max_age = cfg_getint(cfg, "max-age");
 
+end:
+	cfg_free(cfg);
 	return 0;
 }
 #endif /* HAVE_LIBCONFUSE */
