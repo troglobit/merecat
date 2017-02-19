@@ -142,6 +142,9 @@ static int httpd_conn_count;
 #define CNST_PAUSING 3
 #define CNST_LINGERING 4
 
+#ifdef HAVE_LIBCONFUSE
+cfg_t *cfg = NULL;
+#endif
 
 static httpd_server *hs = NULL;
 int terminate = 0;
@@ -156,8 +159,6 @@ static volatile int got_hup, got_bus, got_usr1, watchdog_flag;
 extern int pidfile(const char *basename);
 
 #ifdef HAVE_LIBCONFUSE
-static int  read_config(char *filename);
-
 static void conf_errfunc(cfg_t *cfg, const char *format, va_list args)
 {
 	char fmt[80];
@@ -175,7 +176,6 @@ static void conf_errfunc(cfg_t *cfg, const char *format, va_list args)
 static int read_config(char *filename)
 {
 	int rc = 0;
-	cfg_t *cfg = NULL;
 	cfg_opt_t opts[] = {
 		CFG_INT ("port", port, CFGF_NONE),
 		CFG_BOOL("chroot", do_chroot, CFGF_NONE),
@@ -184,13 +184,13 @@ static int read_config(char *filename)
 		CFG_BOOL("global-passwd", do_global_passwd, CFGF_NONE),
 		CFG_BOOL("check-symlink", !no_symlink_check, CFGF_NONE),
 		CFG_BOOL("check-referer", cfg_false, CFGF_NONE),
-		CFG_STR ("charset", DEFAULT_CHARSET, CFGF_NONE),
+		CFG_STR ("charset", charset, CFGF_NONE),
 		CFG_INT ("cgi-limit", CGI_LIMIT, CFGF_NONE),
 		CFG_STR ("cgi-pattern", cgi_pattern, CFGF_NONE),
 		CFG_BOOL("list-dotfiles", cfg_false, CFGF_NONE),
 		CFG_STR ("local-pattern", NULL, CFGF_NONE),
 		CFG_STR ("url-pattern", NULL, CFGF_NONE),
-		CFG_INT ("max-age", DEFAULT_MAX_AGE, CFGF_NONE), /* 0: Disabled */
+		CFG_INT ("max-age", max_age, CFGF_NONE), /* 0: Disabled */
 		CFG_STR ("username", user, CFGF_NONE),
 		CFG_STR ("hostname", hostname, CFGF_NONE),
 		CFG_BOOL("virtual-host", do_vhost, CFGF_NONE),
@@ -213,11 +213,11 @@ static int read_config(char *filename)
 	switch (rc) {
 	case CFG_FILE_ERROR:
 		syslog(LOG_ERR, "Cannot read configuration file %s", filename);
-		goto end;
+		goto error;
 
 	case CFG_PARSE_ERROR:
 		syslog(LOG_ERR, "Parse error in %s", filename);
-		goto end;
+		goto error;
 
 	case CFG_SUCCESS:
 		break;
@@ -249,9 +249,12 @@ static int read_config(char *filename)
 	charset = cfg_getstr(cfg, "charset");
 	max_age = cfg_getint(cfg, "max-age");
 
-end:
-	cfg_free(cfg);
 	return 0;
+error:
+	cfg_free(cfg);
+	cfg = NULL;
+
+	return 1;
 }
 #endif /* HAVE_LIBCONFUSE */
 
@@ -520,6 +523,9 @@ static void shut_down(void)
 		httpd_exit(ths);
 	}
 
+#ifdef HAVE_LIBCONFUSE
+	cfg_free(cfg);
+#endif
 	fdwatch_put_nfiles();
 	mmc_destroy();
 	tmr_destroy();
