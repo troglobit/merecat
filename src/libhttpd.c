@@ -1215,7 +1215,7 @@ static int b64_decode(const char *str, unsigned char *space, int size)
 /* Returns -1 == unauthorized, 0 == no auth file, 1 = authorized. */
 static int auth_check(httpd_conn *hc, char *dirname)
 {
-	int rc;
+	int rc = 0;
 	char *topdir;
 
 	if (hc->hs->vhost && hc->hostdir[0] != '\0')
@@ -1226,21 +1226,27 @@ static int auth_check(httpd_conn *hc, char *dirname)
 	/* TODO: Refactor code duplication between this and access_check() recursive lookup */
 	if (!hc->hs->global_passwd) {
 		int found;
-		char *slash, *currdir;
+		char *path, *slash, *currdir;
+		size_t len;
 		struct stat sb;
-		static char *path;
-		static size_t maxpath = 0;
 
 		currdir = strdup(dirname);
 		if (!currdir) {
+		err:
 			syslog(LOG_ERR, "out of memory in authentication code; "
 			       "Denying authorization.");
 			return -1;
 		}
 
-		httpd_realloc_str(&path, &maxpath, strlen(dirname) + 1 + sizeof(AUTH_FILE));
-		while(1) {
-			snprintf(path, maxpath, "%s/%s", (currdir[0] ? currdir : "."), AUTH_FILE);
+		len = strlen(dirname) + 1 + sizeof(AUTH_FILE);
+		path = malloc(len);
+		if (!path) {
+			free(currdir);
+			goto err;
+		}
+
+		while (1) {
+			snprintf(path, len, "%s/%s", (currdir[0] ? currdir : "."), AUTH_FILE);
 			
 			/* Does this directory have an auth file? */
 			if (stat(path, &sb) == 0) {
@@ -1263,13 +1269,11 @@ static int auth_check(httpd_conn *hc, char *dirname)
 		}
 		
 		if (!found) {
-			free(currdir);
-			return 0;
+			/* use this directory for authentication */
+			rc = auth_check2(hc, currdir[0] ? currdir : ".");
 		}
-
-		/* use this directory for authentication */
-		rc = auth_check2(hc, currdir[0] ? currdir : ".");
 		free(currdir);
+		free(path);
 
 		return rc;
 	}
@@ -1286,8 +1290,6 @@ static int auth_check(httpd_conn *hc, char *dirname)
 /* Returns -1 == unauthorized, 0 == no auth file, 1 = authorized. */
 static int auth_check2(httpd_conn *hc, char *dirname)
 {
-	static char *authpath;
-	static size_t maxauthpath = 0;
 	struct stat sb;
 	char authinfo[550];
 	char *authpass;
@@ -1296,21 +1298,15 @@ static int auth_check2(httpd_conn *hc, char *dirname)
 	FILE *fp;
 	char line[500];
 	char *cryp;
-	static char *prevauthpath;
-	static size_t maxprevauthpath = 0;
 	static time_t prevmtime;
-	static char *prevuser;
-	static size_t maxprevuser = 0;
-	static char *prevcryp;
-	static size_t maxprevcryp = 0;
 	char *crypt_result;
 
 	/* Construct auth filename. */
-	httpd_realloc_str(&authpath, &maxauthpath, strlen(dirname) + 1 + sizeof(AUTH_FILE));
-	snprintf(authpath, maxauthpath, "%s/%s", dirname, AUTH_FILE);
+	httpd_realloc_str(&hc->authpath, &hc->maxauthpath, strlen(dirname) + 1 + sizeof(AUTH_FILE));
+	snprintf(hc->authpath, hc->maxauthpath, "%s/%s", dirname, AUTH_FILE);
 
 	/* Does this directory have an auth file? */
-	if (lstat(authpath, &sb) < 0)
+	if (lstat(hc->authpath, &sb) < 0)
 		/* Nope, let the request go through. */
 		return 0;
 
@@ -1339,16 +1335,16 @@ static int auth_check2(httpd_conn *hc, char *dirname)
 		*colon = '\0';
 
 	/* See if we have a cached entry and can use it. */
-	if (maxprevauthpath != 0 &&
-	    strcmp(authpath, prevauthpath) == 0 && sb.st_mtime == prevmtime && strcmp(authinfo, prevuser) == 0) {
+	if (hc->maxprevauthpath != 0 &&
+	    strcmp(hc->authpath, hc->prevauthpath) == 0 && sb.st_mtime == prevmtime && strcmp(authinfo, hc->prevuser) == 0) {
 		/* Yes.  Check against the cached encrypted password. */
-		crypt_result = crypt(authpass, prevcryp);
+		crypt_result = crypt(authpass, hc->prevcryp);
 		if (!crypt_result)
 			return -1;
 
-		if (strcmp(crypt_result, prevcryp) == 0) {
+		if (strcmp(crypt_result, hc->prevcryp) == 0) {
 			/* Ok! */
-			httpd_realloc_str(&hc->remoteuser, &hc->maxremoteuser, strlen(authinfo));
+			httpd_realloc_str(&hc->remoteuser, &hc->maxremoteuser, strlen(authinfo) + 1);
 			strcpy(hc->remoteuser, authinfo);
 			return 1;
 		}
@@ -1359,10 +1355,10 @@ static int auth_check2(httpd_conn *hc, char *dirname)
 	}
 
 	/* Open the password file. */
-	fp = fopen(authpath, "r");
+	fp = fopen(hc->authpath, "r");
 	if (!fp) {
 		/* The file exists but we can't open it?  Disallow access. */
-		syslog(LOG_ERR, "%s auth file %s could not be opened: %s", httpd_client(hc), authpath, strerror(errno));
+		syslog(LOG_ERR, "%s auth file %s could not be opened: %s", httpd_client(hc), hc->authpath, strerror(errno));
 		httpd_send_err(hc, 403, err403title, "",
 			       ERROR_FORM(err403form,
 					  "The requested URL '%s' is protected by an authentication file, but the authentication file cannot be opened.\n"),
@@ -1395,16 +1391,21 @@ static int auth_check2(httpd_conn *hc, char *dirname)
 
 			if (strcmp(crypt_result, cryp) == 0) {
 				/* Ok! */
-				httpd_realloc_str(&hc->remoteuser, &hc->maxremoteuser, strlen(line));
+				httpd_realloc_str(&hc->remoteuser, &hc->maxremoteuser, strlen(line) + 1);
 				strcpy(hc->remoteuser, line);
+
 				/* And cache this user's info for next time. */
-				httpd_realloc_str(&prevauthpath, &maxprevauthpath, strlen(authpath));
-				strcpy(prevauthpath, authpath);
 				prevmtime = sb.st_mtime;
-				httpd_realloc_str(&prevuser, &maxprevuser, strlen(authinfo));
-				strcpy(prevuser, authinfo);
-				httpd_realloc_str(&prevcryp, &maxprevcryp, strlen(cryp));
-				strcpy(prevcryp, cryp);
+
+				httpd_realloc_str(&hc->prevauthpath, &hc->maxprevauthpath, strlen(hc->authpath) + 1);
+				strcpy(hc->prevauthpath, hc->authpath);
+
+				httpd_realloc_str(&hc->prevuser, &hc->maxprevuser, strlen(authinfo) + 1);
+				strcpy(hc->prevuser, authinfo);
+
+				httpd_realloc_str(&hc->prevcryp, &hc->maxprevcryp, strlen(cryp) + 1);
+				strcpy(hc->prevcryp, cryp);
+
 				return 1;
 			}
 
@@ -1941,6 +1942,12 @@ void httpd_destroy_conn(httpd_conn *hc)
 #ifdef TILDE_MAP_2
 		free(hc->altdir);
 #endif
+#ifdef AUTH_FILE
+		free(hc->authpath);
+		free(hc->prevauthpath);
+		free(hc->prevuser);
+		free(hc->prevcryp);
+#endif
 		hc->initialized = 0;
 	}
 }
@@ -1956,9 +1963,7 @@ void httpd_init_conn_mem(httpd_conn *hc)
 		hc->maxorigfilename = hc->maxexpnfilename = hc->maxencodings =
 		hc->maxpathinfo = hc->maxquery = hc->maxaccept =
 		hc->maxaccepte = hc->maxreqhost = hc->maxhostdir = hc->maxremoteuser = hc->maxresponse = 0;
-#ifdef TILDE_MAP_2
-	hc->maxaltdir = 0;
-#endif
+
 	httpd_realloc_str(&hc->decodedurl, &hc->maxdecodedurl, 1);
 	httpd_realloc_str(&hc->origfilename, &hc->maxorigfilename, 1);
 	httpd_realloc_str(&hc->expnfilename, &hc->maxexpnfilename, 0);
@@ -1971,9 +1976,23 @@ void httpd_init_conn_mem(httpd_conn *hc)
 	httpd_realloc_str(&hc->hostdir, &hc->maxhostdir, 0);
 	httpd_realloc_str(&hc->remoteuser, &hc->maxremoteuser, 0);
 	httpd_realloc_str(&hc->response, &hc->maxresponse, 0);
+
 #ifdef TILDE_MAP_2
+	hc->maxaltdir = 0;
 	httpd_realloc_str(&hc->altdir, &hc->maxaltdir, 0);
 #endif
+
+#ifdef AUTH_FILE
+	hc->maxauthpath = 0;
+	hc->maxprevauthpath = 0;
+	hc->maxprevuser = 0;
+	hc->maxprevcryp = 0;
+	httpd_realloc_str(&hc->authpath, &hc->maxauthpath, 0);
+	httpd_realloc_str(&hc->prevauthpath, &hc->maxprevauthpath, 0);
+	httpd_realloc_str(&hc->prevuser, &hc->maxprevuser, 0);
+	httpd_realloc_str(&hc->prevcryp, &hc->maxprevcryp, 0);
+#endif
+
 	hc->initialized = 1;
 }
 
@@ -3027,8 +3046,13 @@ static int child_ls_read_names(httpd_conn *hc, DIR *dirp, FILE *fp, int onlydir)
 			continue;
 
 		/* Do not show .htpasswd and .htaccess files */
+#ifdef AUTH_FILE
 		if (!strcmp(nameptrs[i], AUTH_FILE))
 			continue;
+#else
+		if (!strcmp(nameptrs[i], ".htpasswd"))
+			continue;
+#endif
 		if (!strcmp(nameptrs[i], ACCESS_FILE))
 			continue;
 
@@ -3892,7 +3916,7 @@ static int really_start_request(httpd_conn *hc, struct timeval *nowP)
 	static char *indexname = NULL;
 	static size_t maxindexname = 0;
 	static const char *index_names[] = { INDEX_NAMES };
-#ifdef AUTH_FILE
+#if defined(AUTH_FILE) || defined(ACCESS_FILE)
 	static char *dirname = NULL;
 	static size_t maxdirname = 0;
 #endif

@@ -149,7 +149,9 @@
 ** If you undefine this then merecat will not implement authentication
 ** at all and will not check for auth files, which saves a bit of CPU time.
 */
+#ifdef notdef
 #define AUTH_FILE ".htpasswd"
+#endif
 
 /* CONFIGURE: The file to use for restricting access on an ip basis. If
 ** this is defined then merecat checks for this file in the local

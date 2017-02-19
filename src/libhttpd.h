@@ -130,7 +130,14 @@ typedef struct {
 #ifdef TILDE_MAP_2
 	char *altdir;
 	size_t maxaltdir;
-#endif				/* TILDE_MAP_2 */
+#endif
+#ifdef AUTH_FILE
+	size_t maxauthpath, maxprevauthpath, maxprevuser, maxprevcryp;
+	char *authpath;
+	char *prevauthpath;
+	char *prevuser;
+	char *prevcryp;
+#endif
 	size_t responselen;
 	time_t if_modified_since, range_if;
 	size_t contentlength;
