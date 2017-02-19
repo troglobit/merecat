@@ -1909,6 +1909,43 @@ static char *expand_symlinks(char *path, char **restP, int no_symlink_check, int
 }
 
 
+void httpd_close_conn(httpd_conn *hc, struct timeval *now)
+{
+	if (hc->file_address) {
+		mmc_unmap(hc->file_address, &(hc->sb), now);
+		hc->file_address = NULL;
+	}
+
+	if (hc->conn_fd >= 0) {
+		close(hc->conn_fd);
+		hc->conn_fd = -1;
+	}
+}
+
+
+void httpd_destroy_conn(httpd_conn *hc)
+{
+	if (hc->initialized) {
+		free(hc->read_buf);
+		free(hc->decodedurl);
+		free(hc->origfilename);
+		free(hc->expnfilename);
+		free(hc->encodings);
+		free(hc->pathinfo);
+		free(hc->query);
+		free(hc->accept);
+		free(hc->accepte);
+		free(hc->reqhost);
+		free(hc->hostdir);
+		free(hc->remoteuser);
+		free(hc->response);
+#ifdef TILDE_MAP_2
+		free(hc->altdir);
+#endif
+		hc->initialized = 0;
+	}
+}
+
 void httpd_init_conn_mem(httpd_conn *hc)
 {
 	if (hc->initialized)
@@ -2722,45 +2759,6 @@ static void de_dotdot(char *file)
 		if (cp2 < file)
 			break;
 		*cp2 = '\0';
-	}
-}
-
-
-void httpd_close_conn(httpd_conn *hc, struct timeval *now)
-{
-	make_log_entry(hc, now);
-
-	if (hc->file_address) {
-		mmc_unmap(hc->file_address, &(hc->sb), now);
-		hc->file_address = NULL;
-	}
-
-	if (hc->conn_fd >= 0) {
-		close(hc->conn_fd);
-		hc->conn_fd = -1;
-	}
-}
-
-void httpd_destroy_conn(httpd_conn *hc)
-{
-	if (hc->initialized) {
-		free(hc->read_buf);
-		free(hc->decodedurl);
-		free(hc->origfilename);
-		free(hc->expnfilename);
-		free(hc->encodings);
-		free(hc->pathinfo);
-		free(hc->query);
-		free(hc->accept);
-		free(hc->accepte);
-		free(hc->reqhost);
-		free(hc->hostdir);
-		free(hc->remoteuser);
-		free(hc->response);
-#ifdef TILDE_MAP_2
-		free(hc->altdir);
-#endif
-		hc->initialized = 0;
 	}
 }
 
