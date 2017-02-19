@@ -633,29 +633,14 @@ send_mime(httpd_conn *hc, int status, char *title, char *encodings, const char *
 		strftime(modbuf, sizeof(modbuf), rfc1123fmt, gmtime(&mod));
 		snprintf(fixed_type, sizeof(fixed_type), type, hc->hs->charset);
 
-		/* EntityTag -- https://en.wikipedia.org/wiki/HTTP_ETag */
-		if (hc->file_address) {
-			uint8_t dig[MD5_DIGEST_LENGTH];
-			MD5_CTX ctx;
-
-			MD5Init(&ctx);
-			MD5Update(&ctx, (const u_int8_t *)hc->file_address, length);
-			MD5Final(dig, &ctx);
-			snprintf(etagbuf, sizeof(etagbuf),
-				 "ETag: \"%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x\"\r\n",
-				 dig[0], dig[1], dig[2], dig[3], dig[4], dig[5], dig[6], dig[7],
-				 dig[8], dig[9], dig[10], dig[11], dig[12], dig[13], dig[14], dig[15]);
-		}
-
 		/* Match Apache as close as possible, but follow RFC 2616, section 4.2 */
 		snprintf(buf, sizeof(buf),
 			 "%.20s %d %s\r\n"
 			 "Date: %s\r\n"
 			 "Server: %s\r\n"
 			 "Last-Modified: %s\r\n"
-			 "%s"
 			 "Accept-Ranges: bytes\r\n",
-			 hc->protocol, status, title, nowbuf, EXPOSED_SERVER_SOFTWARE, modbuf, etagbuf);
+			 hc->protocol, status, title, nowbuf, EXPOSED_SERVER_SOFTWARE, modbuf);
 		add_response(hc, buf);
 
 		if (partial_content) {
@@ -686,8 +671,22 @@ send_mime(httpd_conn *hc, int status, char *title, char *encodings, const char *
 			add_response(hc, buf);
 		}
 
+		/* EntityTag -- https://en.wikipedia.org/wiki/HTTP_ETag */
+		if (hc->file_address) {
+			uint8_t dig[MD5_DIGEST_LENGTH];
+			MD5_CTX ctx;
+
+			MD5Init(&ctx);
+			MD5Update(&ctx, (const u_int8_t *)hc->file_address, length);
+			MD5Final(dig, &ctx);
+			snprintf(etagbuf, sizeof(etagbuf),
+				 "ETag: \"%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x\"\r\n",
+				 dig[0], dig[1], dig[2], dig[3], dig[4], dig[5], dig[6], dig[7],
+				 dig[8], dig[9], dig[10], dig[11], dig[12], dig[13], dig[14], dig[15]);
+		}
+
 		if (hc->hs->max_age >= 0) {
-			snprintf(buf, sizeof(buf), "Cache-Control: max-age=%d\r\n", hc->hs->max_age);
+			snprintf(buf, sizeof(buf), "Cache-Control: max-age=%d\r\n%s", hc->hs->max_age, etagbuf);
 			add_response(hc, buf);
 
 #ifdef USE_SUPERSEDED_EXPIRES
