@@ -188,7 +188,6 @@ static int check_referer(httpd_conn *hc);
 static int really_check_referer(httpd_conn *hc);
 static int sockaddr_check(httpd_sockaddr *saP);
 static size_t sockaddr_len(httpd_sockaddr *saP);
-static int my_snprintf(char *str, size_t size, const char *format, ...);
 
 #ifndef HAVE_ATOLL
 static long long atoll(const char *str);
@@ -629,7 +628,7 @@ send_mime(httpd_conn *hc, int status, char *title, char *encodings, const char *
 			mod = now;
 		strftime(nowbuf, sizeof(nowbuf), rfc1123fmt, gmtime(&now));
 		strftime(modbuf, sizeof(modbuf), rfc1123fmt, gmtime(&mod));
-		my_snprintf(fixed_type, sizeof(fixed_type), type, hc->hs->charset);
+		snprintf(fixed_type, sizeof(fixed_type), type, hc->hs->charset);
 
 		/* EntityTag -- https://en.wikipedia.org/wiki/HTTP_ETag */
 		if (hc->file_address) {
@@ -639,48 +638,48 @@ send_mime(httpd_conn *hc, int status, char *title, char *encodings, const char *
 			MD5Init(&md5_ctx);
 			MD5Update(&md5_ctx, (const u_int8_t *)hc->file_address, length);
 			MD5Final(digest, &md5_ctx);
-			my_snprintf(etagbuf, sizeof(etagbuf),
-				    "ETag: \"%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x\"\r\n",
-				    digest[0], digest[1], digest[2], digest[3], digest[4], digest[5], digest[6], digest[7],
-				    digest[8], digest[9], digest[10], digest[11], digest[12], digest[13], digest[14], digest[15]);
+			snprintf(etagbuf, sizeof(etagbuf),
+				 "ETag: \"%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x\"\r\n",
+				 digest[0], digest[1], digest[2], digest[3], digest[4], digest[5], digest[6], digest[7],
+				 digest[8], digest[9], digest[10], digest[11], digest[12], digest[13], digest[14], digest[15]);
 		}
 
 		/* Match Apache as close as possible, but follow RFC 2616, section 4.2 */
-		my_snprintf(buf, sizeof(buf),
-			    "%.20s %d %s\r\n"
-			    "Date: %s\r\n"
-			    "Server: %s\r\n"
-			    "Last-Modified: %s\r\n"
-			    "%s"
-			    "Accept-Ranges: bytes\r\n",
-			    hc->protocol, status, title, nowbuf, EXPOSED_SERVER_SOFTWARE, modbuf, etagbuf);
+		snprintf(buf, sizeof(buf),
+			 "%.20s %d %s\r\n"
+			 "Date: %s\r\n"
+			 "Server: %s\r\n"
+			 "Last-Modified: %s\r\n"
+			 "%s"
+			 "Accept-Ranges: bytes\r\n",
+			 hc->protocol, status, title, nowbuf, EXPOSED_SERVER_SOFTWARE, modbuf, etagbuf);
 		add_response(hc, buf);
 
 		if (partial_content) {
-			my_snprintf(buf, sizeof(buf),
-				    "Content-Range: bytes %lld-%lld/%lld\r\n"
-				    "Content-Length: %lld\r\n",
-				    (int64_t)hc->first_byte_index, (int64_t)hc->last_byte_index,
-				    (int64_t)length, (int64_t)(hc->last_byte_index - hc->first_byte_index + 1));
+			snprintf(buf, sizeof(buf),
+				 "Content-Range: bytes %lld-%lld/%lld\r\n"
+				 "Content-Length: %lld\r\n",
+				 (int64_t)hc->first_byte_index, (int64_t)hc->last_byte_index,
+				 (int64_t)length, (int64_t)(hc->last_byte_index - hc->first_byte_index + 1));
 			add_response(hc, buf);
 		} else if (length >= 0) {
-			my_snprintf(buf, sizeof(buf), "Content-Length: %lld\r\n", (int64_t)length);
+			snprintf(buf, sizeof(buf), "Content-Length: %lld\r\n", (int64_t)length);
 			add_response(hc, buf);
 		} else {
 			hc->do_keep_alive = 0;
 		}
 
-		my_snprintf(buf, sizeof(buf), "Content-Type: %s\r\n", fixed_type);
+		snprintf(buf, sizeof(buf), "Content-Type: %s\r\n", fixed_type);
 		add_response(hc, buf);
 
 		if (encodings[0] != '\0') {
-			my_snprintf(buf, sizeof(buf), "Content-Encoding: %s\r\n", encodings);
+			snprintf(buf, sizeof(buf), "Content-Encoding: %s\r\n", encodings);
 			add_response(hc, buf);
 		}
 
 		s100 = status / 100;
 		if (s100 != 2 && s100 != 3) {
-			my_snprintf(buf, sizeof(buf), "Cache-Control: no-cache,no-store\r\n");
+			snprintf(buf, sizeof(buf), "Cache-Control: no-cache,no-store\r\n");
 			add_response(hc, buf);
 		}
 
@@ -689,16 +688,16 @@ send_mime(httpd_conn *hc, int status, char *title, char *encodings, const char *
 
 			expires = now + hc->hs->max_age;
 			strftime(expbuf, sizeof(expbuf), rfc1123fmt, gmtime(&expires));
-			my_snprintf(buf, sizeof(buf),
-				    "Cache-Control: max-age=%d\r\n"
-				    "Expires: %s\r\n", hc->hs->max_age, expbuf);
+			snprintf(buf, sizeof(buf),
+				 "Cache-Control: max-age=%d\r\n"
+				 "Expires: %s\r\n", hc->hs->max_age, expbuf);
 			add_response(hc, buf);
 		}
 
 		if (hc->do_keep_alive)
-			my_snprintf(buf, sizeof(buf), "Connection: keep-alive\r\n");
+			snprintf(buf, sizeof(buf), "Connection: keep-alive\r\n");
 		else
-			my_snprintf(buf, sizeof(buf), "Connection: close\r\n");
+			snprintf(buf, sizeof(buf), "Connection: close\r\n");
 		add_response(hc, buf);
 
 		if (extraheads[0] != '\0')
@@ -740,23 +739,23 @@ static void send_response(httpd_conn *hc, int status, char *title, const char *e
 	char defanged_arg[1000], buf[2000];
 
 	send_mime(hc, status, title, "", extraheads, "text/html; charset=%s", (off_t) - 1, (time_t)0);
-	my_snprintf(buf, sizeof(buf), "<!DOCTYPE html>\n"
-		    "<html>\n"
-		    " <head>\n"
-		    "  <title>%d %s</title>\n"
-		    "  <link rel=\"icon\" type=\"image/x-icon\" href=\"/icons/favicon.ico\">\n"
-		    "%s"
-		    " </head>\n"
-		    " <body>\n"
-		    "<div id=\"wrapper\" tabindex=\"-1\">\n"
-		    "<h2>%d %s</h2>\n"
-		    "<p>\n",
-		    status, title,
-		    httpd_css_default(),
-		    status, title);
+	snprintf(buf, sizeof(buf), "<!DOCTYPE html>\n"
+		 "<html>\n"
+		 " <head>\n"
+		 "  <title>%d %s</title>\n"
+		 "  <link rel=\"icon\" type=\"image/x-icon\" href=\"/icons/favicon.ico\">\n"
+		 "%s"
+		 " </head>\n"
+		 " <body>\n"
+		 "<div id=\"wrapper\" tabindex=\"-1\">\n"
+		 "<h2>%d %s</h2>\n"
+		 "<p>\n",
+		 status, title,
+		 httpd_css_default(),
+		 status, title);
 	add_response(hc, buf);
 	defang(arg, defanged_arg, sizeof(defanged_arg));
-	my_snprintf(buf, sizeof(buf), form, defanged_arg);
+	snprintf(buf, sizeof(buf), form, defanged_arg);
 	add_response(hc, buf);
 #ifdef MSIE_PADDING
 	if (match("**MSIE**", hc->useragent)) {
@@ -791,11 +790,11 @@ static void send_response_tail(httpd_conn *hc)
 {
 	char buf[1000];
 
-	my_snprintf(buf, sizeof(buf),
-		    " <address>%s httpd at %s port %d</address>\n"
-		    "</div>\n"
-		    "</body>\n"
-		    "</html>\n", EXPOSED_SERVER_SOFTWARE, get_hostname(hc), (int)hc->hs->port);
+	snprintf(buf, sizeof(buf),
+		 " <address>%s httpd at %s port %d</address>\n"
+		 "</div>\n"
+		 "</body>\n"
+		 "</html>\n", EXPOSED_SERVER_SOFTWARE, get_hostname(hc), (int)hc->hs->port);
 	add_response(hc, buf);
 }
 
@@ -870,13 +869,13 @@ void httpd_send_err(httpd_conn *hc, int status, char *title, const char *extrahe
 
 	/* Try virtual host error page. */
 	if (hc->hs->vhost && hc->hostdir[0] != '\0') {
-		(void)my_snprintf(filename, sizeof(filename), "%s/%s/err%d.html", hc->hostdir, ERR_DIR, status);
+		(void)snprintf(filename, sizeof(filename), "%s/%s/err%d.html", hc->hostdir, ERR_DIR, status);
 		if (send_err_file(hc, status, title, extraheads, filename))
 			return;
 	}
 
 	/* Try server-wide error page. */
-	(void)my_snprintf(filename, sizeof(filename), "%s/err%d.html", ERR_DIR, status);
+	(void)snprintf(filename, sizeof(filename), "%s/err%d.html", ERR_DIR, status);
 	if (send_err_file(hc, status, title, extraheads, filename))
 		return;
 
@@ -960,7 +959,7 @@ static int access_check(httpd_conn* hc, char* dirname)
 
 		httpd_realloc_str(&path, &maxpath, strlen(dirname) + 1 + sizeof(ACCESS_FILE));
 		while(1) {
-			my_snprintf(path, maxpath, "%s/%s", (currdir[0] ? currdir : "."), ACCESS_FILE);
+			snprintf(path, maxpath, "%s/%s", (currdir[0] ? currdir : "."), ACCESS_FILE);
 			
 			/* Does this directory have an auth file? */
 			if (stat(path, &sb) == 0) {
@@ -1015,7 +1014,7 @@ static int access_check2 (httpd_conn* hc, char* dirname)
 
 	/* Construct access filename. */
 	httpd_realloc_str(&accesspath, &maxaccesspath, strlen(dirname) + 1 + sizeof(ACCESS_FILE));
-	my_snprintf(accesspath, maxaccesspath, "%s/%s", dirname, ACCESS_FILE);
+	snprintf(accesspath, maxaccesspath, "%s/%s", dirname, ACCESS_FILE);
 
 	/* Does this directory have an access file? */
 	if (lstat(accesspath, &sb) < 0) {
@@ -1116,11 +1115,11 @@ static void send_authenticate(httpd_conn *hc, char *realm)
 	static char headstr[] = "WWW-Authenticate: Basic realm=\"";
 
 	httpd_realloc_str(&header, &maxheader, sizeof(headstr) + strlen(realm) + 3);
-	(void)my_snprintf(header, maxheader, "%s%s\"\r\n", headstr, realm);
+	(void)snprintf(header, maxheader, "%s%s\"\r\n", headstr, realm);
 	httpd_send_err(hc, 401, err401title, header, err401form, hc->encodedurl);
 	/* If the request was a POST then there might still be data to be read,
-	 ** so we need to do a lingering close.
-	 */
+	** so we need to do a lingering close.
+	*/
 	if (hc->method == METHOD_POST)
 		hc->should_linger = 1;
 }
@@ -1235,7 +1234,7 @@ static int auth_check(httpd_conn *hc, char *dirname)
 
 		httpd_realloc_str(&path, &maxpath, strlen(dirname) + 1 + sizeof(AUTH_FILE));
 		while(1) {
-			my_snprintf(path, maxpath, "%s/%s", (currdir[0] ? currdir : "."), AUTH_FILE);
+			snprintf(path, maxpath, "%s/%s", (currdir[0] ? currdir : "."), AUTH_FILE);
 			
 			/* Does this directory have an auth file? */
 			if (stat(path, &sb) == 0) {
@@ -1302,7 +1301,7 @@ static int auth_check2(httpd_conn *hc, char *dirname)
 
 	/* Construct auth filename. */
 	httpd_realloc_str(&authpath, &maxauthpath, strlen(dirname) + 1 + sizeof(AUTH_FILE));
-	(void)my_snprintf(authpath, maxauthpath, "%s/%s", dirname, AUTH_FILE);
+	(void)snprintf(authpath, maxauthpath, "%s/%s", dirname, AUTH_FILE);
 
 	/* Does this directory have an auth file? */
 	if (lstat(authpath, &sb) < 0)
@@ -1434,14 +1433,14 @@ static void send_dirredirect(httpd_conn *hc)
 			*cp = '\0';
 
 		httpd_realloc_str(&location, &maxlocation, strlen(hc->encodedurl) + 2 + strlen(hc->query));
-		my_snprintf(location, maxlocation, "%s/?%s", hc->encodedurl, hc->query);
+		snprintf(location, maxlocation, "%s/?%s", hc->encodedurl, hc->query);
 	} else {
 		httpd_realloc_str(&location, &maxlocation, strlen(hc->encodedurl) + 1);
-		my_snprintf(location, maxlocation, "%s/", hc->encodedurl);
+		snprintf(location, maxlocation, "%s/", hc->encodedurl);
 	}
 
 	httpd_realloc_str(&header, &maxheader, sizeof(headstr) + strlen(location));
-	my_snprintf(header, maxheader, "%s%s\r\n", headstr, location);
+	snprintf(header, maxheader, "%s%s\r\n", headstr, location);
 	send_response(hc, 302, err302title, header, err302form, location);
 }
 
@@ -1581,7 +1580,7 @@ static int tilde_map_2(httpd_conn *hc)
 
 	/* And the filename becomes altdir plus the post-~ part of the original. */
 	httpd_realloc_str(&hc->expnfilename, &hc->maxexpnfilename, strlen(hc->altdir) + 1 + strlen(cp));
-	(void)my_snprintf(hc->expnfilename, hc->maxexpnfilename, "%s/%s", hc->altdir, cp);
+	(void)snprintf(hc->expnfilename, hc->maxexpnfilename, "%s/%s", hc->altdir, cp);
 
 	/* For this type of tilde mapping, we want to defeat vhost mapping. */
 	hc->tildemapped = 1;
@@ -3035,11 +3034,11 @@ static int child_ls_read_names(httpd_conn *hc, DIR *dirp, FILE *fp, int onlydir)
 			(void)strcpy(name, nameptrs[i]);
 			(void)strcpy(rname, nameptrs[i]);
 		} else {
-			(void)my_snprintf(name, maxname, "%s/%s", hc->expnfilename, nameptrs[i]);
+			(void)snprintf(name, maxname, "%s/%s", hc->expnfilename, nameptrs[i]);
 			if (strcmp(hc->origfilename, ".") == 0)
-				(void)my_snprintf(rname, maxrname, "%s", nameptrs[i]);
+				(void)snprintf(rname, maxrname, "%s", nameptrs[i]);
 			else
-				(void)my_snprintf(rname, maxrname, "%s%s", hc->origfilename, nameptrs[i]);
+				(void)snprintf(rname, maxrname, "%s%s", hc->origfilename, nameptrs[i]);
 		}
 		httpd_realloc_str(&encrname, &maxencrname, 3 * strlen(rname) + 1);
 		strencode(encrname, maxencrname, rname);
@@ -3218,7 +3217,7 @@ static char *build_env(char *fmt, char *arg)
 	size = strlen(fmt) + strlen(arg);
 	if (size > maxbuf)
 		httpd_realloc_str(&buf, &maxbuf, size);
-	my_snprintf(buf, maxbuf, fmt, arg);
+	snprintf(buf, maxbuf, fmt, arg);
 
 	cp = strdup(buf);
 	if (!cp) {
@@ -3272,7 +3271,7 @@ static char **make_envp(httpd_conn *hc)
 		envp[envn++] = build_env("SERVER_NAME=%s", cp);
 	envp[envn++] = "GATEWAY_INTERFACE=CGI/1.1";
 	envp[envn++] = build_env("SERVER_PROTOCOL=%s", hc->protocol);
-	(void)my_snprintf(buf, sizeof(buf), "%d", (int)hc->hs->port);
+	(void)snprintf(buf, sizeof(buf), "%d", (int)hc->hs->port);
 	envp[envn++] = build_env("SERVER_PORT=%s", buf);
 	envp[envn++] = build_env("REQUEST_METHOD=%s", httpd_method_str(hc->method));
 	if (hc->pathinfo[0] != '\0') {
@@ -3284,7 +3283,7 @@ static char **make_envp(httpd_conn *hc)
 		cp2 = NEW(char, l);
 
 		if (cp2) {
-			my_snprintf(cp2, l, "%s%s", hc->hs->cwd, hc->pathinfo);
+			snprintf(cp2, l, "%s%s", hc->hs->cwd, hc->pathinfo);
 			envp[envn++] = build_env("PATH_TRANSLATED=%s", cp2);
 		}
 	}
@@ -3296,9 +3295,9 @@ static char **make_envp(httpd_conn *hc)
 	 * Fanfan <francois@cerbelle.net>
 	 */
 	if (hc->expnfilename[0] == '/')
-		my_snprintf(buf, sizeof(buf), "%s", strcmp(hc->expnfilename, ".") == 0 ? "" : hc->expnfilename);
+		snprintf(buf, sizeof(buf), "%s", strcmp(hc->expnfilename, ".") == 0 ? "" : hc->expnfilename);
 	else
-		my_snprintf(buf, sizeof(buf), "%s%s", hc->hs->cwd, strcmp(hc->expnfilename, ".") == 0 ? "" : hc->expnfilename);
+		snprintf(buf, sizeof(buf), "%s%s", hc->hs->cwd, strcmp(hc->expnfilename, ".") == 0 ? "" : hc->expnfilename);
 	envp[envn++] = build_env("SCRIPT_FILENAME=%s", buf);
 
 	if (hc->query[0] != '\0')
@@ -3322,7 +3321,7 @@ static char **make_envp(httpd_conn *hc)
 	if (hc->hdrhost[0] != '\0')
 		envp[envn++] = build_env("HTTP_HOST=%s", hc->hdrhost);
 	if (hc->contentlength > 0) {
-		(void)my_snprintf(buf, sizeof(buf), "%lu", (unsigned long)hc->contentlength);
+		(void)snprintf(buf, sizeof(buf), "%lu", (unsigned long)hc->contentlength);
 		envp[envn++] = build_env("CONTENT_LENGTH=%s", buf);
 	}
 	if (hc->remoteuser[0] != '\0')
@@ -3558,7 +3557,7 @@ static void cgi_interpose_output(httpd_conn *hc, int rfd)
 		break;
 	}
 
-	my_snprintf(buf, sizeof(buf), "HTTP/1.0 %d %s\r\n", status, title);
+	snprintf(buf, sizeof(buf), "HTTP/1.0 %d %s\r\n", status, title);
 	httpd_write_fully(hc->conn_fd, buf, strlen(buf));
 
 	/* Write the saved headers. */
@@ -4188,13 +4187,13 @@ static void make_log_entry(httpd_conn *hc, struct timeval *nowP)
 	 ** each vhost would make more sense.
 	 */
 	if (hc->hs->vhost && !hc->tildemapped)
-		my_snprintf(url, sizeof(url), "/%.100s%.200s", get_hostname(hc), hc->encodedurl);
+		snprintf(url, sizeof(url), "/%.100s%.200s", get_hostname(hc), hc->encodedurl);
 	else
-		my_snprintf(url, sizeof(url), "%.200s", hc->encodedurl);
+		snprintf(url, sizeof(url), "%.200s", hc->encodedurl);
 
 	/* Format the bytes. */
 	if (hc->bytes_sent >= 0)
-		(void)my_snprintf(bytes, sizeof(bytes), "%lld", (int64_t) hc->bytes_sent);
+		(void)snprintf(bytes, sizeof(bytes), "%lld", (int64_t) hc->bytes_sent);
 	else
 		(void)strcpy(bytes, "-");
 
@@ -4351,27 +4350,6 @@ static size_t sockaddr_len(httpd_sockaddr *saP)
 	default:
 		return 0;	/* shouldn't happen */
 	}
-}
-
-
-/* Some systems don't have snprintf(), so we make our own that uses
-** either vsnprintf() or vsprintf().  If your system doesn't have
-** vsnprintf(), it is probably vulnerable to buffer overruns.
-** Upgrade!
-*/
-static int my_snprintf(char *str, size_t size, const char *format, ...)
-{
-	va_list ap;
-	int r;
-
-	va_start(ap, format);
-#ifdef HAVE_VSNPRINTF
-	r = vsnprintf(str, size, format, ap);
-#else
-	r = vsprintf(str, format, ap);
-#endif
-	va_end(ap);
-	return r;
 }
 
 
