@@ -3479,7 +3479,7 @@ static void cgi_interpose_output(httpd_conn *hc, int rfd)
 	headers_len = 0;
 	for (;;) {
 		r = read(rfd, buf, sizeof(buf));
-		if (r < 0 && (errno == EINTR || errno == EAGAIN)) {
+		if (r < 0 && (errno == EINTR || errno == EAGAIN || errno == EWOULDBLOCK)) {
 			sleep(1);
 			continue;
 		}
@@ -3570,7 +3570,7 @@ static void cgi_interpose_output(httpd_conn *hc, int rfd)
 	/* Echo the rest of the output. */
 	for (;;) {
 		r = read(rfd, buf, sizeof(buf));
-		if (r < 0 && (errno == EINTR || errno == EAGAIN)) {
+		if (r < 0 && (errno == EINTR || errno == EAGAIN || errno == EWOULDBLOCK)) {
 			sleep(1);
 			continue;
 		}

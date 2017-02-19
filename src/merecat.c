@@ -1158,7 +1158,7 @@ static void handle_chld(int signo)
 			break;
 
 		if ((int)pid < 0) {
-			if (errno == EINTR || errno == EAGAIN)
+			if (errno == EINTR || errno == EAGAIN || errno == EWOULDBLOCK)
 				continue;
 
 			/* ECHILD shouldn't happen with the WNOHANG option,
@@ -1712,7 +1712,7 @@ int main(int argc, char **argv)
 		/* Do the fd watch. */
 		num_ready = fdwatch(tmr_mstimeout(&tv));
 		if (num_ready < 0) {
-			if (errno == EINTR || errno == EAGAIN)
+			if (errno == EINTR || errno == EAGAIN || errno == EWOULDBLOCK)
 				continue;	/* try again */
 
 			syslog(LOG_ERR, "fdwatch: %s", strerror(errno));
