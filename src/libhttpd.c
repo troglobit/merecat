@@ -338,9 +338,9 @@ httpd_server *httpd_init(char *hostname, httpd_sockaddr *sa4P, httpd_sockaddr *s
 	hs->list_dotfiles = list_dotfiles;
 
 	/* Initialize listen sockets.  Try v6 first because of a Linux peculiarity;
-	 ** like some other systems, it has magical v6 sockets that also listen for
-	 ** v4, but in Linux if you bind a v4 socket first then the v6 bind fails.
-	 */
+	** like some other systems, it has magical v6 sockets that also listen for
+	** v4, but in Linux if you bind a v4 socket first then the v6 bind fails.
+	*/
 	if (!sa6P)
 		hs->listen6_fd = -1;
 	else
@@ -1659,11 +1659,11 @@ static int vhost_map(httpd_conn *hc)
 		cp1 = hc->hostname;
 	for (cp2 = hc->hostdir, i = 0; i < VHOST_DIRLEVELS; ++i) {
 		/* Skip dots in the hostname.  If we don't, then we get vhost
-		 ** directories in higher level of filestructure if dot gets
-		 ** involved into path construction.  It's `while' used here instead
-		 ** of `if' for it's possible to have a hostname formed with two
-		 ** dots at the end of it.
-		 */
+		** directories in higher level of filestructure if dot gets
+		** involved into path construction.  It's `while' used here instead
+		** of `if' for it's possible to have a hostname formed with two
+		** dots at the end of it.
+		*/
 		while (*cp1 == '.')
 			++cp1;
 		/* Copy a character from the hostname, or '_' if we ran out. */
@@ -1716,17 +1716,17 @@ static char *expand_symlinks(char *path, char **restP, int no_symlink_check, int
 
 	if (no_symlink_check) {
 		/* If we are chrooted, we can actually skip the symlink-expansion,
-		 ** since it's impossible to get out of the tree.  However, we still
-		 ** need to do the pathinfo check, and the existing symlink expansion
-		 ** code is a pretty reasonable way to do this.  So, what we do is
-		 ** a single stat() of the whole filename - if it exists, then we
-		 ** return it as is with nothing in restP.  If it doesn't exist, we
-		 ** fall through to the existing code.
-		 **
-		 ** One side-effect of this is that users can't symlink to central
-		 ** approved CGIs any more.  The workaround is to use the central
-		 ** URL for the CGI instead of a local symlinked one.
-		 */
+		** since it's impossible to get out of the tree.  However, we still
+		** need to do the pathinfo check, and the existing symlink expansion
+		** code is a pretty reasonable way to do this.  So, what we do is
+		** a single stat() of the whole filename - if it exists, then we
+		** return it as is with nothing in restP.  If it doesn't exist, we
+		** fall through to the existing code.
+		**
+		** One side-effect of this is that users can't symlink to central
+		** approved CGIs any more.  The workaround is to use the central
+		** URL for the CGI instead of a local symlinked one.
+		*/
 		struct stat sb;
 
 		if (stat(path, &sb) != -1) {
@@ -1769,8 +1769,8 @@ static char *expand_symlinks(char *path, char **restP, int no_symlink_check, int
 	/* While there are still components to check... */
 	while (restlen > 0) {
 		/* Save current checkedlen in case we get a symlink.  Save current
-		 ** restlen in case we get a non-existant component.
-		 */
+		** restlen in case we get a non-existant component.
+		*/
 		prevcheckedlen = checkedlen;
 		prevrestlen = restlen;
 
@@ -1874,8 +1874,8 @@ static char *expand_symlinks(char *path, char **restP, int no_symlink_check, int
 			r = rest;
 		} else {
 			/* There's nothing left in the filename, so the link contents
-			 ** becomes the rest.
-			 */
+			** becomes the rest.
+			*/
 			httpd_realloc_str(&rest, &maxrest, linklen);
 			(void)memmove(rest, link, strlen(link) + 1);
 			restlen = linklen;
@@ -2510,11 +2510,11 @@ int httpd_parse_request(httpd_conn *hc)
 		}
 
 		/* If the client wants to do keep-alives, it might also be doing
-		 ** pipelining.  There's no way for us to tell.  Since we don't
-		 ** implement keep-alives yet, if we close such a connection there
-		 ** might be unread pipelined requests waiting.  So, we have to
-		 ** do a lingering close.
-		 */
+		** pipelining.  There's no way for us to tell.  Since we don't
+		** implement keep-alives yet, if we close such a connection there
+		** might be unread pipelined requests waiting.  So, we have to
+		** do a lingering close.
+		*/
 		if (hc->keep_alive)
 			hc->should_linger = 1;
 	}
@@ -2543,13 +2543,13 @@ int httpd_parse_request(httpd_conn *hc)
 	**    list taken from Apache 1.3.19
 	*/
 	if (hc->do_keep_alive &&
-	     (strstr(hc->useragent, "Mozilla/2")  ||
-	      strstr(hc->useragent, "MSIE 4.0b2;")))
+	    (strstr(hc->useragent, "Mozilla/2")  ||
+	     strstr(hc->useragent, "MSIE 4.0b2;")))
 		hc->do_keep_alive = 0;
 
 	/* Ok, the request has been parsed.  Now we resolve stuff that
-	 ** may require the entire request.
-	 */
+	** may require the entire request.
+	*/
 
 	/* Copy original filename to expanded filename. */
 	httpd_realloc_str(&hc->expnfilename, &hc->maxexpnfilename, strlen(hc->origfilename));
@@ -2580,8 +2580,8 @@ int httpd_parse_request(httpd_conn *hc)
 	}
 
 	/* Expand all symbolic links in the filename.  This also gives us
-	 ** any trailing non-existing components, for pathinfo.
-	 */
+	** any trailing non-existing components, for pathinfo.
+	*/
 	cp = expand_symlinks(hc->expnfilename, &pi, hc->hs->no_symlink_check, hc->tildemapped);
 	if (!cp) {
 		httpd_send_err(hc, 500, err500title, "", err500form, hc->encodedurl);
@@ -2615,8 +2615,8 @@ int httpd_parse_request(httpd_conn *hc)
 	}
 
 	/* If the expanded filename is an absolute path, check that it's still
-	 ** within the current directory or the alternate directory.
-	 */
+	** within the current directory or the alternate directory.
+	*/
 	if (hc->expnfilename[0] == '/') {
 		if (strncmp(hc->expnfilename, hc->hs->cwd, strlen(hc->hs->cwd)) == 0) {
 			/* Elide the current directory. */
@@ -2835,8 +2835,8 @@ static void figure_mime(httpd_conn *hc)
 		ext = dot + 1;
 		ext_len = prev_dot - ext;
 		/* Search the encodings table.  Linear search is fine here, there
-		 ** are only a few entries.
-		 */
+		** are only a few entries.
+		*/
 		for (i = 0; i < n_enc_tab; ++i) {
 			if (ext_len == enc_tab[i].ext_len && strncasecmp(ext, enc_tab[i].ext, ext_len) == 0) {
 				if (n_me_indexes < sizeof(me_indexes) / sizeof(*me_indexes)) {
@@ -2867,7 +2867,7 @@ static void figure_mime(httpd_conn *hc)
 		}
 	}
 
- done:
+done:
 
 	/* The last thing we do is actually generate the mime-encoding header. */
 	hc->encodings[0] = '\0';
@@ -3350,9 +3350,9 @@ static char **make_argp(httpd_conn *hc)
 	char *cp2;
 
 	/* By allocating an arg slot for every character in the query, plus
-	 ** one for the filename and one for the NULL, we are guaranteed to
-	 ** have enough.  We could actually use strlen/2.
-	 */
+	** one for the filename and one for the NULL, we are guaranteed to
+	** have enough.  We could actually use strlen/2.
+	*/
 	argp = NEW(char *, strlen(hc->query) + 2);
 
 	if (!argp)
@@ -3366,10 +3366,10 @@ static char **make_argp(httpd_conn *hc)
 
 	argn = 1;
 	/* According to the CGI spec at http://hoohoo.ncsa.uiuc.edu/cgi/cl.html,
-	 ** "The server should search the query information for a non-encoded =
-	 ** character to determine if the command line is to be used, if it finds
-	 ** one, the command line is not to be used."
-	 */
+	** "The server should search the query information for a non-encoded =
+	** character to determine if the command line is to be used, if it finds
+	** one, the command line is not to be used."
+	*/
 	if (!strchr(hc->query, '=')) {
 		for (cp1 = cp2 = hc->query; *cp2 != '\0'; ++cp2) {
 			if (*cp2 == '+') {
@@ -3437,8 +3437,8 @@ static void post_post_garbage_hack(httpd_conn *hc)
 	char buf[2];
 
 	/* If we are in a sub-process, turn on no-delay mode in case we
-	 ** previously cleared it.
-	 */
+	** previously cleared it.
+	*/
 	if (sub_process)
 		httpd_set_ndelay(hc->conn_fd);
 	/* And read up to 2 bytes. */
@@ -3465,8 +3465,8 @@ static void cgi_interpose_output(httpd_conn *hc, int rfd)
 	char *cp;
 
 	/* Make sure the connection is in blocking mode.  It should already
-	 ** be blocking, but we might as well be sure.
-	 */
+	** be blocking, but we might as well be sure.
+	*/
 	httpd_clear_ndelay(hc->conn_fd);
 
 	/* Slurp in all headers. */
@@ -3498,9 +3498,9 @@ static void cgi_interpose_output(httpd_conn *hc, int rfd)
 		return;
 
 	/* Figure out the status.  Look for a Status: or Location: header;
-	 ** else if there's an HTTP header line, get it from there; else
-	 ** default to 200.
-	 */
+	** else if there's an HTTP header line, get it from there; else
+	** default to 200.
+	*/
 	status = 200;
 	if (strncmp(headers, "HTTP/", 5) == 0) {
 		cp = headers;
@@ -3592,37 +3592,37 @@ static void cgi_child(httpd_conn *hc)
 	char *directory;
 
 	/* Unset close-on-exec flag for this socket.  This actually shouldn't
-	 ** be necessary, according to POSIX a dup()'d file descriptor does
-	 ** *not* inherit the close-on-exec flag, its flag is always clear.
-	 ** However, Linux messes this up and does copy the flag to the
-	 ** dup()'d descriptor, so we have to clear it.  This could be
-	 ** ifdeffed for Linux only.
-	 */
+	** be necessary, according to POSIX a dup()'d file descriptor does
+	** *not* inherit the close-on-exec flag, its flag is always clear.
+	** However, Linux messes this up and does copy the flag to the
+	** dup()'d descriptor, so we have to clear it.  This could be
+	** ifdeffed for Linux only.
+	*/
 	(void)fcntl(hc->conn_fd, F_SETFD, 0);
 
 	/* Close the syslog descriptor so that the CGI program can't
-	 ** mess with it.  All other open descriptors should be either
-	 ** the listen socket(s), sockets from accept(), or the file-logging
-	 ** fd, and all of those are set to close-on-exec, so we don't
-	 ** have to close anything else.
-	 */
+	** mess with it.  All other open descriptors should be either
+	** the listen socket(s), sockets from accept(), or the file-logging
+	** fd, and all of those are set to close-on-exec, so we don't
+	** have to close anything else.
+	*/
 	closelog();
 
 	/* If the socket happens to be using one of the stdin/stdout/stderr
-	 ** descriptors, move it to another descriptor so that the dup2 calls
-	 ** below don't screw things up.  We arbitrarily pick fd 3 - if there
-	 ** was already something on it, we clobber it, but that doesn't matter
-	 ** since at this point the only fd of interest is the connection.
-	 ** All others will be closed on exec.
-	 */
+	** descriptors, move it to another descriptor so that the dup2 calls
+	** below don't screw things up.  We arbitrarily pick fd 3 - if there
+	** was already something on it, we clobber it, but that doesn't matter
+	** since at this point the only fd of interest is the connection.
+	** All others will be closed on exec.
+	*/
 	if (hc->conn_fd == STDIN_FILENO || hc->conn_fd == STDOUT_FILENO || hc->conn_fd == STDERR_FILENO) {
 		int newfd = dup2(hc->conn_fd, STDERR_FILENO + 1);
 
 		if (newfd >= 0)
 			hc->conn_fd = newfd;
 		/* If the dup2 fails, shrug.  We'll just take our chances.
-		 ** Shouldn't happen though.
-		 */
+		** Shouldn't happen though.
+		*/
 	}
 
 	/* Make the environment vector. */
@@ -3632,9 +3632,9 @@ static void cgi_child(httpd_conn *hc)
 	argp = make_argp(hc);
 
 	/* Set up stdin.  For POSTs we may have to set up a pipe from an
-	 ** interposer process, depending on if we've read some of the data
-	 ** into our buffer.
-	 */
+	** interposer process, depending on if we've read some of the data
+	** into our buffer.
+	*/
 	if (hc->method == METHOD_POST && hc->read_idx > hc->checked_idx) {
 		int p[2];
 
@@ -3671,8 +3671,8 @@ static void cgi_child(httpd_conn *hc)
 	}
 
 	/* Set up stdout/stderr.  If we're doing CGI header parsing,
-	 ** we need an output interposer too.
-	 */
+	** we need an output interposer too.
+	*/
 	if (strncmp(argp[0], "nph-", 4) != 0 && hc->mime_flag) {
 		int p[2];
 
@@ -3713,16 +3713,16 @@ static void cgi_child(httpd_conn *hc)
 	}
 
 	/* At this point we would like to set close-on-exec again for hc->conn_fd
-	 ** (see previous comments on Linux's broken behavior re: close-on-exec
-	 ** and dup.)  Unfortunately there seems to be another Linux problem, or
-	 ** perhaps a different aspect of the same problem - if we do this
-	 ** close-on-exec in Linux, the socket stays open but stderr gets
-	 ** closed - the last fd duped from the socket.  What a mess.  So we'll
-	 ** just leave the socket as is, which under other OSs means an extra
-	 ** file descriptor gets passed to the child process.  Since the child
-	 ** probably already has that file open via stdin stdout and/or stderr,
-	 ** this is not a problem.
-	 */
+	** (see previous comments on Linux's broken behavior re: close-on-exec
+	** and dup.)  Unfortunately there seems to be another Linux problem, or
+	** perhaps a different aspect of the same problem - if we do this
+	** close-on-exec in Linux, the socket stays open but stderr gets
+	** closed - the last fd duped from the socket.  What a mess.  So we'll
+	** just leave the socket as is, which under other OSs means an extra
+	** file descriptor gets passed to the child process.  Since the child
+	** probably already has that file open via stdin stdout and/or stderr,
+	** this is not a problem.
+	*/
 	/* fcntl(hc->conn_fd, F_SETFD, 1); */
 
 #ifdef CGI_NICE
@@ -3731,9 +3731,9 @@ static void cgi_child(httpd_conn *hc)
 #endif
 
 	/* Split the program into directory and binary, so we can chdir()
-	 ** to the program's own directory.  This isn't in the CGI 1.1
-	 ** spec, but it's what other HTTP servers do.
-	 */
+	** to the program's own directory.  This isn't in the CGI 1.1
+	** spec, but it's what other HTTP servers do.
+	*/
 	directory = strdup(hc->expnfilename);
 	if (!directory) {
 		binary = hc->expnfilename;	/* ignore errors */
@@ -3857,7 +3857,7 @@ static char *has_gzip(httpd_conn *hc)
 	if (!stat(dotgzfn, &st)) {
 		/* Is it world-readable or world-executable? and newer than original */
 		if (st.st_mode & (S_IROTH | S_IXOTH) && st.st_mtime >= hc->sb.st_mtime)
-                       serve_dotgz = 1;
+			serve_dotgz = 1;
 	}
 
 	/* can serve .gz file and there is no previous encodings */
@@ -3905,10 +3905,10 @@ static int really_start_request(httpd_conn *hc, struct timeval *nowP)
 	}
 
 	/* Is it world-readable or world-executable?  We check explicitly instead
-	 ** of just trying to open it, so that no one ever gets surprised by
-	 ** a file that's not set world-readable and yet somehow is
-	 ** readable by the HTTP server and therefore the *whole* world.
-	 */
+	** of just trying to open it, so that no one ever gets surprised by
+	** a file that's not set world-readable and yet somehow is
+	** readable by the HTTP server and therefore the *whole* world.
+	*/
 	if (!(hc->sb.st_mode & (S_IROTH | S_IXOTH))) {
 		syslog(LOG_INFO, "%s URL \"%s\" resolves to a non world-readable file", httpd_client(hc), hc->encodedurl);
 		httpd_send_err(hc, 403, err403title, "",
@@ -3926,9 +3926,9 @@ static int really_start_request(httpd_conn *hc, struct timeval *nowP)
 		}
 
 		/* Special handling for directory URLs that don't end in a slash.
-		 ** We send back an explicit redirect with the slash, because
-		 ** otherwise many clients can't build relative URLs properly.
-		 */
+		** We send back an explicit redirect with the slash, because
+		** otherwise many clients can't build relative URLs properly.
+		*/
 		if (strcmp(hc->origfilename, "") != 0 &&
 		    strcmp(hc->origfilename, ".") != 0 && hc->origfilename[strlen(hc->origfilename) - 1] != '/') {
 			send_dirredirect(hc);
@@ -3988,11 +3988,10 @@ static int really_start_request(httpd_conn *hc, struct timeval *nowP)
 		return -1;
 #endif /* GENERATE_INDEXES */
 
- got_one:	;
-
+	got_one:
 		/* Got an index file.  Expand symlinks again.  More pathinfo means
-		 ** something went wrong.
-		 */
+		** something went wrong.
+		*/
 		cp = expand_symlinks(indexname, &pi, hc->hs->no_symlink_check, hc->tildemapped);
 		if (!cp || pi[0] != '\0') {
 			httpd_send_err(hc, 500, err500title, "", err500form, hc->encodedurl);
@@ -4038,8 +4037,8 @@ static int really_start_request(httpd_conn *hc, struct timeval *nowP)
 			return -1;
 		}
 	} else if (expnlen >= sizeof(ACCESS_FILE) &&
-		  strcmp(&(hc->expnfilename[expnlen - sizeof(ACCESS_FILE) + 1]), ACCESS_FILE) == 0 &&
-		  hc->expnfilename[expnlen - sizeof(ACCESS_FILE)] == '/') {
+		   strcmp(&(hc->expnfilename[expnlen - sizeof(ACCESS_FILE) + 1]), ACCESS_FILE) == 0 &&
+		   hc->expnfilename[expnlen - sizeof(ACCESS_FILE)] == '/') {
 		syslog(LOG_NOTICE, "%.80s URL \"%.80s\" tried to retrieve an access file", httpd_client(hc), hc->encodedurl);
 		httpd_send_err(hc, 403, err403title, "",
 			       ERROR_FORM(err403form, "The requested URL '%.80s' is an access file, retrieving it is not permitted.\n"),
@@ -4101,9 +4100,9 @@ static int really_start_request(httpd_conn *hc, struct timeval *nowP)
 	}
 
 	/* It's not CGI.  If it's executable or there's pathinfo, someone's
-	 ** trying to either serve or run a non-CGI file as CGI.   Either case
-	 ** is prohibited.
-	 */
+	** trying to either serve or run a non-CGI file as CGI.   Either case
+	** is prohibited.
+	*/
 	if (hc->sb.st_mode & S_IXOTH) {
 		syslog(LOG_NOTICE, "%s URL \"%s\" is executable but isn't CGI", httpd_client(hc), hc->encodedurl);
 		httpd_send_err(hc, 403, err403title, "",
@@ -4171,10 +4170,10 @@ static void make_log_entry(httpd_conn *hc, struct timeval *nowP)
 		return;
 
 	/* This is straight CERN Combined Log Format - the only tweak
-	 ** being that if we're using syslog() we leave out the date, because
-	 ** syslogd puts it in.  The included syslogtocern script turns the
-	 ** results into true CERN format.
-	 */
+	** being that if we're using syslog() we leave out the date, because
+	** syslogd puts it in.  The included syslogtocern script turns the
+	** results into true CERN format.
+	*/
 
 	/* Format remote user. */
 	if (hc->remoteuser[0] != '\0')
@@ -4183,9 +4182,9 @@ static void make_log_entry(httpd_conn *hc, struct timeval *nowP)
 		ru = "-";
 
 	/* If we're vhosting, prepend the hostname to the url.  This is
-	 ** a little weird, perhaps writing separate log files for
-	 ** each vhost would make more sense.
-	 */
+	** a little weird, perhaps writing separate log files for
+	** each vhost would make more sense.
+	*/
 	if (hc->hs->vhost && !hc->tildemapped)
 		snprintf(url, sizeof(url), "/%.100s%.200s", get_hostname(hc), hc->encodedurl);
 	else
@@ -4193,7 +4192,7 @@ static void make_log_entry(httpd_conn *hc, struct timeval *nowP)
 
 	/* Format the bytes. */
 	if (hc->bytes_sent >= 0)
-		(void)snprintf(bytes, sizeof(bytes), "%lld", (int64_t) hc->bytes_sent);
+		(void)snprintf(bytes, sizeof(bytes), "%lld", (int64_t)hc->bytes_sent);
 	else
 		(void)strcpy(bytes, "-");
 
@@ -4276,17 +4275,17 @@ static int really_check_referer(httpd_conn *hc)
 			lp = hc->hostname;
 			if (!lp)
 				/* Oops, no hostname.  Maybe it's an old browser that
-				 ** doesn't send a Host: header.  We could figure out
-				 ** the default hostname for this IP address, but it's
-				 ** not worth it for the few requests like this.
-				 */
+				** doesn't send a Host: header.  We could figure out
+				** the default hostname for this IP address, but it's
+				** not worth it for the few requests like this.
+				*/
 				return 1;
 		}
 	}
 
 	/* If the referer host doesn't match the local host pattern, and
-	 ** the filename does match the url pattern, it's an illegal reference.
-	 */
+	** the filename does match the url pattern, it's an illegal reference.
+	*/
 	if (!match(lp, refhost) && match(hs->url_pattern, hc->origfilename))
 		return 0;
 
