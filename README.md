@@ -123,7 +123,9 @@ The most common options are available from the `merecat` command line
 and the `merecat.conf` configuration file.  Other, less common options,
 can be enabled using the `configure` script:
 
-    --enable-public-html   Allow $HOME/public_html as ~USERNAME/
+    --enable-htaccess      Enable .htaccess files for access control
+    --enable-htpasswd      Enable .htpasswd files for authentication
+    --enable-public-html   Enable $HOME/public_html as ~USERNAME/
     --enable-msie-padding  Enforce padding of httdp error messages
                            sent to Internet Explorer, otherwise it will
                            detect too short msg and display its own.
