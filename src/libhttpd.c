@@ -3998,7 +3998,8 @@ static int really_start_request(httpd_conn *hc, struct timeval *nowP)
 
 		/* Check for an index file. */
 		for (i = 0; i < NELEMS(index_names); ++i) {
-			httpd_realloc_str(&hc->indexname, &hc->maxindexname, expnlen + 1 + strlen(index_names[i]));
+			/* +2 = extra slash plus \0, strlen() returns length without \0 */
+			httpd_realloc_str(&hc->indexname, &hc->maxindexname, expnlen + 2 + strlen(index_names[i]));
 			strcpy(hc->indexname, hc->expnfilename);
 			indxlen = strlen(hc->indexname);
 			if (indxlen == 0 || hc->indexname[indxlen - 1] != '/')
