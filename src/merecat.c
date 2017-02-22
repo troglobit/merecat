@@ -1494,7 +1494,7 @@ int main(int argc, char **argv)
 	}
 
 	if (read_config(config)) {
-		fprintf(stderr, "%s: Failed reading config file '%s': %s\n", prognm, config, strerror(errno));
+		fprintf(stderr, "%s: Failed reading config file '%s'\n", prognm, config);
 		return 1;
 	}
 #endif
