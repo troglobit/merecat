@@ -213,8 +213,11 @@ int fdwatch_get_nfiles(void)
 	for (i = 0; i < nfiles; ++i)
 		fd_rw[i] = -1;
 
-	if (INIT(nfiles) == -1)
+	if (INIT(nfiles) == -1) {
+		free(fd_rw);
+		free(fd_data);
 		return -1;
+	}
 
 	return nfiles;
 }
