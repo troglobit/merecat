@@ -181,7 +181,7 @@ static int read_config(char *filename)
 		CFG_STR ("directory", dir, CFGF_NONE),
 		CFG_STR ("data-directory", data_dir, CFGF_NONE),
 		CFG_BOOL("global-passwd", do_global_passwd, CFGF_NONE),
-		CFG_BOOL("check-symlink", !no_symlink_check, CFGF_NONE),
+		CFG_BOOL("check-symlinks", !no_symlink_check, CFGF_NONE),
 		CFG_BOOL("check-referer", cfg_false, CFGF_NONE),
 		CFG_STR ("charset", charset, CFGF_NONE),
 		CFG_INT ("cgi-limit", CGI_LIMIT, CFGF_NONE),
@@ -229,7 +229,7 @@ static int read_config(char *filename)
 	dir = cfg_getstr(cfg, "directory");
 	data_dir = cfg_getstr(cfg, "data-directory");
 
-	if (cfg_getbool(cfg, "check-symlink"))
+	if (cfg_getbool(cfg, "check-symlinks"))
 		no_symlink_check = 0;
 
 	user = cfg_getstr(cfg, "username");
