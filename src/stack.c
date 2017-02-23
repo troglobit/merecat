@@ -41,7 +41,7 @@ static char *addr2line(char *addr)
 
 	readlink("/proc/self/exe", exec, sizeof(exec));
 	tmp = tmpnam(NULL);
-	snprintf(buf, sizeof(buf), "addr2line -e %s %s > %s", addr, exec, tmp);
+	snprintf(buf, sizeof(buf), "addr2line -e %s %s > %s", exec, addr, tmp);
 	system(buf);
 
 	fp = fopen(tmp, "r");
