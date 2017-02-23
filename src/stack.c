@@ -29,16 +29,19 @@
 #include <stdlib.h>
 #include <string.h>
 #include <syslog.h>
+#include <unistd.h>		/* readlink() */
 #include <execinfo.h>		/* backtrace() */
 
 static char *addr2line(char *addr)
 {
 	FILE *fp;
 	char *tmp;
+	char exec[256];
 	static char buf[256];
 
+	readlink("/proc/self/exe", exec, sizeof(exec));
 	tmp = tmpnam(NULL);
-	snprintf(buf, sizeof(buf), "addr2line -e ./src/merecat %s > %s", addr, tmp);
+	snprintf(buf, sizeof(buf), "addr2line -e %s %s > %s", addr, exec, tmp);
 	system(buf);
 
 	fp = fopen(tmp, "r");
