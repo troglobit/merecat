@@ -38,7 +38,7 @@ static char *addr2line(char *addr)
 	static char buf[256];
 
 	tmp = tmpnam(NULL);
-	snprintf(buf, sizeof(buf), "addr2line -e ../src/merecat %s > %s", addr, tmp);
+	snprintf(buf, sizeof(buf), "addr2line -e ./src/merecat %s > %s", addr, tmp);
 	system(buf);
 
 	fp = fopen(tmp, "r");
