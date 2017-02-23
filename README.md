@@ -138,7 +138,8 @@ very useful comments as well.
 Origin & References
 -------------------
 
-Merecat is a fork of [sthttpd][], which in turn is a fork of the
+Merecat is a stiched up fork of [sthttpd][] with lots of lost patches
+found lying around the web.  The sthttpd project is a fork from the
 original [thttpd][] -- the tiny/turbo/throttling HTTP server.
 
 * [thttpd][] was written by Jef Poskanzer <mailto:jef@mail.acme.com>
