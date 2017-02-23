@@ -3658,14 +3658,6 @@ static void cgi_child(httpd_conn *hc)
 	*/
 	fcntl(hc->conn_fd, F_SETFD, 0);
 
-	/* Close the syslog descriptor so that the CGI program can't
-	** mess with it.  All other open descriptors should be either
-	** the listen socket(s), sockets from accept(), or the file-logging
-	** fd, and all of those are set to close-on-exec, so we don't
-	** have to close anything else.
-	*/
-	closelog();
-
 	/* If the connection happens to be using one of the stdio
 	** descriptors move it to another descriptor so that the
 	** dup2() calls below don't screw things up.
@@ -3804,6 +3796,14 @@ static void cgi_child(httpd_conn *hc)
 
 	/* Default behavior for SIGPIPE. */
 	signal(SIGPIPE, SIG_DFL);
+
+	/* Close the syslog descriptor so that the CGI program can't
+	** mess with it.  All other open descriptors should be either
+	** the listen socket(s), sockets from accept(), or the file-logging
+	** fd, and all of those are set to close-on-exec, so we don't
+	** have to close anything else.
+	*/
+	closelog();
 
 	/* Run the program. */
 	execve(binary, argp, envp);
