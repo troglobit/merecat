@@ -3666,20 +3666,17 @@ static void cgi_child(httpd_conn *hc)
 	*/
 	closelog();
 
-	/* If the socket happens to be using one of the stdin/stdout/stderr
-	** descriptors, move it to another descriptor so that the dup2 calls
-	** below don't screw things up.  We arbitrarily pick fd 3 - if there
-	** was already something on it, we clobber it, but that doesn't matter
-	** since at this point the only fd of interest is the connection.
-	** All others will be closed on exec.
+	/* If the connection happens to be using one of the stdio
+	** descriptors move it to another descriptor so that the
+	** dup2() calls below don't screw things up.
 	*/
 	if (hc->conn_fd == STDIN_FILENO || hc->conn_fd == STDOUT_FILENO || hc->conn_fd == STDERR_FILENO) {
-		int newfd = dup2(hc->conn_fd, STDERR_FILENO + 1);
+		int newfd = dup(hc->conn_fd);
 
 		if (newfd >= 0)
 			hc->conn_fd = newfd;
-		/* If the dup2 fails, shrug.  We'll just take our chances.
-		** Shouldn't happen though.
+		/* If the dup() fails, shrug.  We'll just take our
+		** chances.  Shouldn't happen though.
 		*/
 	}
 
