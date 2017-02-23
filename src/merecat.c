@@ -747,7 +747,6 @@ static void clear_connection(connecttab *c, struct timeval *tvP)
 			fdwatch_del_fd(c->hc->conn_fd);
 
 		c->conn_state = CNST_LINGERING;
-		fdwatch_del_fd(c->hc->conn_fd);
 		shutdown(c->hc->conn_fd, SHUT_WR);
 		fdwatch_add_fd(c->hc->conn_fd, c, FDW_READ);
 
