@@ -3808,8 +3808,8 @@ static void cgi_child(httpd_conn *hc)
 	/* Run the program. */
 	execve(binary, argp, envp);
 
-	/* Something went wrong. */
-	syslog(LOG_ERR, "execve %s: %s", hc->expnfilename, strerror(errno));
+	/* Something went wrong, in a chroot() we may not get this syslog() msg. */
+	syslog(LOG_ERR, "execve %s(%s): %s", binary, hc->expnfilename, strerror(errno));
 	httpd_send_err(hc, 500, err500title, "", err500form, hc->encodedurl);
 	httpd_write_response(hc);
 	exit(1);
