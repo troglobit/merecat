@@ -56,6 +56,9 @@ end:
 	return buf;
 }
 
+/*
+ * Build with: ./configure CFLAGS="-g -Og -rdynamic"
+ */
 void stack_trace(void)
 {
 	void *trace[16];
