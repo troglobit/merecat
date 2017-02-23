@@ -1,6 +1,6 @@
 /* timers.c - simple timer routines
 **
-** Copyright © 1995,1998,2000 by Jef Poskanzer <jef@mail.acme.com>.
+** Copyright (C) 1995-2015  Jef Poskanzer <jef@mail.acme.com>
 ** All rights reserved.
 **
 ** Redistribution and use in source and binary forms, with or without

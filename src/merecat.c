@@ -1,6 +1,6 @@
 /* Simple, small and fast HTTP server
 **
-** Copyright © 1995,1998,1999,2000,2001,2015 by Jef Poskanzer <jef@mail.acme.com>
+** Copyright (C) 1995-2015  Jef Poskanzer <jef@mail.acme.com>
 ** All rights reserved.
 **
 ** Redistribution and use in source and binary forms, with or without
