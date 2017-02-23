@@ -6,7 +6,7 @@ merecat_SOURCES     = merecat.c		merecat.h	\
 		      libhttpd.c	libhttpd.h	\
 		      md5.c 		md5.h		\
 		      mmc.c 		mmc.h		\
-		      pidfile.c				\
+		      pidfile.c		stack.c		\
 		      timers.c		timers.h	\
 		      tdate_parse.c	tdate_parse.h	\
 		      mime_encodings.h	mime_types.h
