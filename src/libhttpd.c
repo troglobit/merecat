@@ -3149,7 +3149,7 @@ static int child_ls_read_names(httpd_conn *hc, DIR *dirp, FILE *fp, int onlydir)
 		defang(nameptrs[i], buf, sizeof(buf));
 		fprintf(fp,
 			" <tr>\n"
-			"  <td class=\"icon\"><img src=\"%s\" alt=\"%s\"></td>\n"
+			"  <td class=\"icon\"><img src=\"%s\" alt=\"%s\" width=\"20\" height=\"22\"></td>\n"
 			"  <td><a href=\"/%s%s\">%s</a></td>\n"
 			"  <td class=\"right\">%s</td>\n"
 			"  <td>%s</td>\n"
