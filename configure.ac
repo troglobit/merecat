@@ -86,7 +86,7 @@ AS_IF([test "x$with_config" != "xno"], [
 	PKG_CHECK_MODULES([confuse], [libconfuse >= 2.7])])
 
 AS_IF([test "x$with_zlib" != "xno"], [
-	PKG_CHECK_MODULES([zlib], [zlib >= 1.2.7])
+	PKG_CHECK_MODULES([zlib], [zlib >= 1.2.3.4])
 	AC_CHECK_HEADERS([zlib.h])])
 
 # Check where to install the systemd .service file
