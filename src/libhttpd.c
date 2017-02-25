@@ -3965,7 +3965,7 @@ done:
 	/* no zlib */
 	if (!hc->has_deflate)
 		hc->compression_type = COMPRESSION_NONE;
-x	/* don't try to compress non-text files unless it's javascript */
+	/* don't try to compress non-text files unless it's javascript */
 	else if (strncmp(hc->type, "text/", 5) && strcmp(hc->type, "application/javascript"))
 		hc->compression_type = COMPRESSION_NONE;
         /* don't try to compress really small things */
