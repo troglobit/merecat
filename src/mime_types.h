@@ -171,6 +171,7 @@
 { "texinfo", 0, "application/x-texinfo", 0 },
 { "tif", 0, "image/tiff", 0 },
 { "tiff", 0, "image/tiff", 0 },
+{ "torrent", 0, "application/x-bittorrent", 0 },
 { "tr", 0, "application/x-troff", 0 },
 { "tsp", 0, "application/dsptype", 0 },
 { "tsv", 0, "text/tab-separated-values; charset=%s", 0 },

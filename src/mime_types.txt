@@ -176,6 +176,7 @@ texi	application/x-texinfo
 texinfo	application/x-texinfo
 tif	image/tiff
 tiff	image/tiff
+torrent	application/x-bittorrent
 tr	application/x-troff
 tsp	application/dsptype
 tsv	text/tab-separated-values; charset=%s
