@@ -31,13 +31,13 @@ AC_ARG_ENABLE(htpasswd,
 AC_ARG_ENABLE(msie-padding,
         AS_HELP_STRING([--enable-msie-padding], [Add padding to error messages for Internet Explorer]))
 
+AC_ARG_WITH([systemd],
+     [AS_HELP_STRING([--with-systemd=DIR], [Directory for systemd service files, default: auto])],
+     [with_systemd=auto])
+
 AC_ARG_WITH([config],
         AS_HELP_STRING([--without-config], [Disable /etc/merecat.conf support using libConfuse]),
 	[], [with_config=yes])
-
-AC_ARG_WITH([systemd],
-     [AS_HELP_STRING([--with-systemd=DIR], [Directory for systemd service files])],,
-     [with_systemd=auto])
 
 AC_ARG_WITH([zlib],
         AS_HELP_STRING([--without-zlib], [Disable mod_deflate (gzip) using zlib]),
