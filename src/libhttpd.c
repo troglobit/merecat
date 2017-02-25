@@ -3894,13 +3894,19 @@ static int is_cgi(httpd_conn *hc)
 	return 0;
 }
 
-static char *has_gzip(httpd_conn *hc)
+/*
+** Adds Vary: Accept-Encoding to relevant files.  For details, see
+** https://www.maxcdn.com/blog/accept-encoding-its-vary-important/
+** TODO: Refactor, too much focus on finding .gz files
+*/
+static char *mod_headers(httpd_conn *hc)
 {
 	int serve_dotgz = 0;
 	char *fn = NULL;
-	size_t len;
+	char *header = "";
+	char *match[] = { ".js", ".css", ".xml", ".gz", ".html" };
+	size_t i, len;
 	struct stat st;
-	static char *header = "";
 
 	if (!hc->dotgz)
 		goto done;
@@ -3919,22 +3925,27 @@ static char *has_gzip(httpd_conn *hc)
 
 	/* can serve .gz file and there is no previous encodings */
 	if (serve_dotgz && hc->encodings[0] == 0) {
-		header = "Vary: Accept-Encoding\r\n";
-
 		httpd_realloc_str(&hc->expnfilename, &hc->maxexpnfilename, strlen(fn) + 1);
 		strncpy(hc->expnfilename, fn, hc->maxexpnfilename);
 		hc->sb.st_size = st.st_size;
 
 		httpd_realloc_str(&hc->encodings, &hc->maxencodings, 5);
 		strncpy(hc->encodings, "gzip", hc->maxencodings);
-	} else {
-		header = "";
 	}
 
 	free(fn);
 done:
-	if (strstr(hc->encodings, "gzip"))
-		header = "Vary: Accept-Encoding\r\n";
+
+	fn = strrchr(hc->expnfilename, '.');
+	if (fn) {
+		for (i = 0; i < NELEMS(match); i++) {
+			if (strcmp(fn, match[i]))
+				continue;
+
+			header = "Vary: Accept-Encoding\r\n";
+			break;
+		}
+	}
 
 	return header;
 }
@@ -4191,13 +4202,13 @@ static int really_start_request(httpd_conn *hc, struct timeval *nowP)
 	figure_mime(hc);
 
 	if (hc->method == METHOD_HEAD) {
-		char *extra = has_gzip(hc);
+		char *extra = mod_headers(hc);
 
 		send_mime(hc, 200, ok200title, hc->encodings, extra, hc->type, hc->sb.st_size, hc->sb.st_mtime);
 	} else if (hc->if_modified_since != (time_t)-1 && hc->if_modified_since >= hc->sb.st_mtime) {
 		send_mime(hc, 304, err304title, hc->encodings, "", hc->type, (off_t) - 1, hc->sb.st_mtime);
 	} else {
-		char *extra = has_gzip(hc);
+		char *extra = mod_headers(hc);
 
 		hc->file_address = mmc_map(hc->expnfilename, &(hc->sb), nowP);
 		if (!hc->file_address) {
