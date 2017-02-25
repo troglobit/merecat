@@ -4,6 +4,8 @@
 
 Look into integrating HTTPS support using Libre/OpenSSL and GnuTLS
 
+Look into compressing CGI and ls() output using fmemopen()
+
 IPv6 not working right.
 
 Problem with ACME News downloads.  PATH_INFO interferes with the authorization.
