@@ -159,8 +159,8 @@ typedef struct {
 	int should_linger;
 	struct stat sb;
 	int conn_fd;
+	int compression_type;
 	char *file_address;
-	int dotgz;
 } httpd_conn;
 
 /* Methods. */
@@ -183,6 +183,9 @@ typedef struct {
 #define CHST_CRLFCR 10
 #define CHST_BOGUS 11
 
+/* For content-encoding: gzip */
+#define COMPRESSION_NONE 0
+#define COMPRESSION_GZIP 1
 
 /* Initializes.  Does the socket(), bind(), and listen().   Returns an
 ** httpd_server* which includes a socket fd that you can select() on.

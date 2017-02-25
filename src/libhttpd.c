@@ -197,7 +197,6 @@ static size_t sockaddr_len(httpd_sockaddr *saP);
 static long long atoll(const char *str);
 #endif
 
-
 /* This global keeps track of whether we are in the main process or a
 ** sub-process.  The reason is that httpd_write_response() can get called
 ** in either context; when it is called from the main process it must use
@@ -598,6 +597,23 @@ void httpd_clear_ndelay(int fd)
 	}
 }
 
+static int content_encoding(httpd_conn *hc, char *encodings, char *buf, size_t len)
+{
+	int gz, ret = 0, addgz = 0, hasenc = 0;
+
+	gz = hc->compression_type == COMPRESSION_GZIP;
+	if (encodings && encodings[0]) {
+		hasenc = 1;
+		addgz  = gz && !strstr(encodings, "gzip");
+	}
+
+	if (hasenc)
+		ret = snprintf(buf, len, "Content-Encoding: %s%s\r\n", encodings, addgz ? ", gzip" : "");
+	else if (gz)
+		ret = snprintf(buf, len, "Content-Encoding: gzip\r\n");
+
+	return ret;
+}
 
 static void
 send_mime(httpd_conn *hc, int status, char *title, char *encodings, const char *extraheads, const char *type, off_t length, time_t mod)
@@ -608,6 +624,9 @@ send_mime(httpd_conn *hc, int status, char *title, char *encodings, const char *
 	char buf[1000];
 	int partial_content;
 	int s100;
+
+	if (status != 200)
+		hc->compression_type = COMPRESSION_NONE;
 
 	hc->status = status;
 	hc->bytes_to_send = length;
@@ -623,6 +642,7 @@ send_mime(httpd_conn *hc, int status, char *title, char *encodings, const char *
 			partial_content = 1;
 			hc->status = status = 206;
 			title = ok206title;
+			hc->compression_type = COMPRESSION_NONE;  /* probably some way to get around this... */
 		} else {
 			partial_content = 0;
 			hc->got_range = 0;
@@ -653,8 +673,15 @@ send_mime(httpd_conn *hc, int status, char *title, char *encodings, const char *
 				 (int64_t)length, (int64_t)(hc->last_byte_index - hc->first_byte_index + 1));
 			add_response(hc, buf);
 		} else if (length >= 0) {
-			snprintf(buf, sizeof(buf), "Content-Length: %" PRId64 "\r\n", (int64_t)length);
-			add_response(hc, buf);
+			/*
+			 * Avoid sending Content-Length on content we
+			 * deflate or have .gz files of already.  In the
+			 * former case we don't know the length yet.
+			 */
+			if (hc->compression_type == COMPRESSION_NONE) {
+				snprintf(buf, sizeof(buf), "Content-Length: %" PRId64 "\r\n", (int64_t)length);
+				add_response(hc, buf);
+			}
 		} else {
 			hc->do_keep_alive = 0;
 		}
@@ -662,10 +689,8 @@ send_mime(httpd_conn *hc, int status, char *title, char *encodings, const char *
 		snprintf(buf, sizeof(buf), "Content-Type: %s\r\n", fixed_type);
 		add_response(hc, buf);
 
-		if (encodings[0] != '\0') {
-			snprintf(buf, sizeof(buf), "Content-Encoding: %s\r\n", encodings);
+		if (content_encoding(hc, encodings, buf, sizeof(buf)))
 			add_response(hc, buf);
-		}
 
 		s100 = status / 100;
 		if (s100 != 2 && s100 != 3) {
@@ -1975,7 +2000,7 @@ void httpd_init_conn_mem(httpd_conn *hc)
 	httpd_realloc_str(&hc->origfilename, &hc->maxorigfilename, 1);
 	httpd_realloc_str(&hc->indexname,  &hc->maxindexname, 1);
 	httpd_realloc_str(&hc->expnfilename, &hc->maxexpnfilename, 0);
-	httpd_realloc_str(&hc->encodings, &hc->maxencodings, 0);
+	httpd_realloc_str(&hc->encodings, &hc->maxencodings, 1);
 	httpd_realloc_str(&hc->pathinfo, &hc->maxpathinfo, 0);
 	httpd_realloc_str(&hc->query, &hc->maxquery, 0);
 	httpd_realloc_str(&hc->accept, &hc->maxaccept, 0);
@@ -2057,7 +2082,7 @@ void httpd_init_conn_content(httpd_conn *hc)
 	hc->keep_alive = 0;
 	hc->should_linger = 0;
 	hc->file_address = NULL;
-	hc->dotgz = 0;
+	hc->compression_type = COMPRESSION_NONE;
 }
 
 
@@ -2608,7 +2633,7 @@ int httpd_parse_request(httpd_conn *hc)
 				qval = strtof(q + 2, 0);
 
 			if (!q || c < q || ((!c || q < c) && qval > 0.0f))
-				hc->dotgz = 1;
+				hc->compression_type = COMPRESSION_GZIP;
 		}
 	}
 
@@ -3210,6 +3235,8 @@ static int ls(httpd_conn *hc)
 	int r;
 	DIR *dirp;
 	ClientData client_data;
+
+	hc->compression_type = COMPRESSION_NONE;
 
 	dirp = opendir(hc->expnfilename);
 	if (dirp == (DIR *) 0) {
@@ -3908,7 +3935,14 @@ static char *mod_headers(httpd_conn *hc)
 	size_t i, len;
 	struct stat st;
 
-	if (!hc->dotgz)
+	/* don't try to compress non-text files */
+	if (strncmp(hc->type, "text/", 5))
+		hc->compression_type = COMPRESSION_NONE;
+        /* don't try to compress really small things */
+	else if (hc->sb.st_size < 256)
+		hc->compression_type = COMPRESSION_NONE;
+
+	if (hc->compression_type != COMPRESSION_GZIP)
 		goto done;
 
 	/* construct .gz filename, remember NUL */
@@ -3928,7 +3962,7 @@ static char *mod_headers(httpd_conn *hc)
 		httpd_realloc_str(&hc->expnfilename, &hc->maxexpnfilename, strlen(fn) + 1);
 		strncpy(hc->expnfilename, fn, hc->maxexpnfilename);
 		hc->sb.st_size = st.st_size;
-
+		hc->compression_type = COMPRESSION_NONE; /* Compressed already, do not call zlib */
 		httpd_realloc_str(&hc->encodings, &hc->maxencodings, 5);
 		strncpy(hc->encodings, "gzip", hc->maxencodings);
 	}

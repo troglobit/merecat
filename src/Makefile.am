@@ -14,7 +14,7 @@ merecat_CFLAGS      = -W -Wall -Wextra -Wno-unused-result -Wno-unused-parameter
 merecat_CFLAGS     += -std=gnu99 $(confuse_CFLAGS)
 merecat_CPPFLAGS    = -D_POSIX_SOURCE -D_BSD_SOURCE -D_GNU_SOURCE -D_DEFAULT_SOURCE
 merecat_CPPFLAGS   += -DCONFDIR='"$(sysconfdir)"' -DLOCALSTATEDIR='"$(localstatedir)"'
-merecat_LDADD       = libmatch.a $(confuse_LIBS)
+merecat_LDADD       = libmatch.a $(confuse_LIBS) -lz
 
 htpasswd_CFLAGS      = -W -Wall -Wextra -Wno-unused-result -Wno-unused-parameter
 htpasswd_CPPFLAGS   = -DWEBDIR='"$(WEBDIR)"'

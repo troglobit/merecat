@@ -59,6 +59,8 @@
 #define CONF_FILE_OPT ""
 #endif
 
+#include <zlib.h>
+
 #include "fdwatch.h"
 #include "libhttpd.h"
 #include "match.h"
@@ -75,6 +77,10 @@
 	sa.sa_handler   = cb;		\
 	sigemptyset(&sa.sa_mask);	\
 	sigaction(signo, &sa, NULL)
+
+/* For content-encoding: gzip */
+#define ZLIB_OUTPUT_BUF_SIZE 262136
+#define DEFAULT_COMPRESSION  Z_DEFAULT_COMPRESSION
 
 /* Instead of non-portable __progname */
 char        *prognm;
@@ -101,6 +107,7 @@ static char *hostname          = NULL;
 static char *user              = DEFAULT_USER;    /* Usually www-data or nobody */
 static char *charset           = DEFAULT_CHARSET;
 static int   max_age           = DEFAULT_MAX_AGE;
+static int   compression_level = DEFAULT_COMPRESSION; /* For content-encoding: gzip */
 
 
 typedef struct {
@@ -130,6 +137,10 @@ typedef struct {
 	off_t bytes;
 	off_t end_byte_index;
 	off_t next_byte_index;
+
+	z_stream zs;
+	int zs_state;
+	void *zs_output_head;
 } connecttab;
 static connecttab *connects;
 static int num_connects, max_connects, first_free_connect;
@@ -179,6 +190,7 @@ static int read_config(char *filename)
 	cfg_opt_t opts[] = {
 		CFG_INT ("port", port, CFGF_NONE),
 		CFG_BOOL("chroot", do_chroot, CFGF_NONE),
+		CFG_INT ("compression-level", compression_level, CFGF_NONE),
 		CFG_STR ("directory", dir, CFGF_NONE),
 		CFG_STR ("data-directory", data_dir, CFGF_NONE),
 		CFG_BOOL("global-passwd", do_global_passwd, CFGF_NONE),
@@ -248,6 +260,12 @@ static int read_config(char *filename)
 
 	charset = cfg_getstr(cfg, "charset");
 	max_age = cfg_getint(cfg, "max-age");
+
+	compression_level = cfg_getint(cfg, "compression-level");
+	if (compression_level < Z_DEFAULT_COMPRESSION)
+		compression_level = Z_DEFAULT_COMPRESSION;
+	if (compression_level > Z_BEST_COMPRESSION)
+		compression_level = Z_BEST_COMPRESSION;
 
 	return 0;
 error:
@@ -963,6 +981,56 @@ static void handle_read(connecttab *c, struct timeval *tvP)
 	c->started_at = tvP->tv_sec;
 	c->wouldblock_delay = 0;
 
+	if (hc->compression_type != COMPRESSION_NONE) {
+		unsigned long a;
+
+		/* setup default zlib memory allocation routines */
+		c->zs.zalloc = Z_NULL;
+		c->zs.zfree  = Z_NULL;
+		c->zs.opaque = Z_NULL;
+
+		/* setup zlib input file to mmap'ed location */
+		c->zs.next_in  = c->hc->file_address;
+		c->zs.avail_in = c->hc->sb.st_size;
+
+		/* allocate memory for output buffer, if it's not already allocated */
+		if (!c->zs_output_head) {
+			c->zs_output_head = malloc(ZLIB_OUTPUT_BUF_SIZE + 8);
+			if (!c->zs_output_head) {
+				syslog(LOG_CRIT, "out of memory allocating deflate buffer");
+				exit(1);
+			}
+		}
+
+		if (hc->compression_type == COMPRESSION_GZIP) {
+			/* add gzip header to output file */
+			sprintf(c->zs_output_head, "%c%c%c%c%c%c%c%c%c%c",
+				0x1f,
+				0x8b,
+				Z_DEFLATED,
+				0 /*flags*/,
+				&c->hc->sb.st_mtime, /* XXX: use a more transportable implementation! */
+				&c->hc->sb.st_mtime + 1,
+				&c->hc->sb.st_mtime + 2,
+				&c->hc->sb.st_mtime + 3,
+				0 /*xflags*/,
+				0x03);
+
+			c->zs.next_out  = c->zs_output_head + 10 ;
+			c->zs.avail_out = ZLIB_OUTPUT_BUF_SIZE - 10;
+		}
+
+		/* call the initialization for zlib with negative window
+		** size to omit the "deflate" prefix
+		*/
+		c->zs_state = deflateInit2(&c->zs, compression_level, Z_DEFLATED, -15, 8, Z_DEFAULT_STRATEGY);
+
+		if (c->zs_state != Z_OK) {
+			syslog(LOG_CRIT, "zlib deflateInit2() failed!");
+			exit(1);
+		}
+	}
+
 	fdwatch_del_fd(hc->conn_fd);
 	fdwatch_add_fd(hc->conn_fd, c, FDW_WRITE);
 }
@@ -983,22 +1051,60 @@ static void handle_send(connecttab *c, struct timeval *tvP)
 	else
 		max_bytes = c->max_limit / 4;	/* send at most 1/4 seconds worth */
 
-	/* Do we need to write the headers first? */
-	if (hc->responselen == 0) {
-		/* No, just write the file. */
-		sz = write(hc->conn_fd, &(hc->file_address[c->next_byte_index]),
-			   MIN(c->end_byte_index - c->next_byte_index, (off_t)max_bytes));
+	if (hc->compression_type == COMPRESSION_NONE) {
+		/* Do we need to write the headers first? */
+		if (hc->responselen == 0) {
+			/* No, just write the file. */
+			sz = write(hc->conn_fd, &(hc->file_address[c->next_byte_index]),
+				   MIN(c->end_byte_index - c->next_byte_index, (off_t)max_bytes));
+		} else {
+			/* Yes.  We'll combine headers and file into a single writev(),
+			** hoping that this generates a single packet.
+			*/
+			struct iovec iv[2];
+
+			iv[0].iov_base = hc->response;
+			iv[0].iov_len = hc->responselen;
+			iv[1].iov_base = &(hc->file_address[c->next_byte_index]);
+			iv[1].iov_len = MIN(c->end_byte_index - c->next_byte_index, (off_t)max_bytes);
+			sz = writev(hc->conn_fd, iv, 2);
+		}
 	} else {
-		/* Yes.  We'll combine headers and file into a single writev(),
-		 ** hoping that this generates a single packet.
-		 */
+		int iv_count;
 		struct iovec iv[2];
 
-		iv[0].iov_base = hc->response;
-		iv[0].iov_len = hc->responselen;
-		iv[1].iov_base = &(hc->file_address[c->next_byte_index]);
-		iv[1].iov_len = MIN(c->end_byte_index - c->next_byte_index, (off_t)max_bytes);
-		sz = writev(hc->conn_fd, iv, 2);
+		/* call deflate only if necessary */
+		if ((c->zs_state == Z_OK) && (c->zs.avail_out > 0)) {
+			c->zs_state = deflate(&c->zs, Z_FINISH);
+
+			/* when zlib claims to be done, add the suffix info */
+			if (c->zs_state == Z_STREAM_END) {
+				uLong crc = crc32(0L, Z_NULL, 0);
+
+				/* crc32 must not be converted into network byte order */
+				crc = crc32(crc, c->hc->file_address, c->hc->sb.st_size);
+				memcpy(c->zs.next_out, &crc, sizeof(uLong));
+				memcpy(c->zs.next_out + 4, &(hc->sb.st_size), 4);
+				c->zs.next_out += 8;
+			}
+		}
+
+		/* Do we need to write the headers first? */
+		iv_count = 1;
+		iv[0].iov_base = c->zs_output_head;
+		iv[0].iov_len = MIN((void *)c->zs.next_out - (void *)c->zs_output_head, max_bytes);
+
+		if (hc->responselen != 0) {
+			/* Yes.  We'll combine headers and file into a single writev(),
+			** hoping that this generates a single packet.
+			*/
+			iv_count = 2;
+			iv[0].iov_base = hc->response;
+			iv[0].iov_len = hc->responselen;
+			iv[1].iov_base = c->zs_output_head;
+			iv[1].iov_len = MIN((void *)c->zs.next_out - (void *)c->zs_output_head,	max_bytes);
+		}
+		sz = writev(hc->conn_fd, iv, iv_count);
 	}
 
 	if (sz < 0 && errno == EINTR) {
@@ -1077,10 +1183,26 @@ static void handle_send(connecttab *c, struct timeval *tvP)
 		throttles[c->tnums[tind]].bytes_since_avg += sz;
 
 	/* Are we done? */
-	if (c->next_byte_index >= c->end_byte_index) {
-		/* This connection is finished! */
-		finish_connection(c, tvP);
-		return;
+	if (c->hc->compression_type == COMPRESSION_NONE) {
+		if (c->next_byte_index >= c->end_byte_index) {
+			/* This connection is finished! */
+			finish_connection(c, tvP);
+			return;
+		}
+	} else {
+		if ((c->zs_state == Z_STREAM_END) && (c->zs_output_head + sz == c->zs.next_out)) {
+			/* This conection is finished! */
+			clear_connection( c, tvP );
+			return;
+		} else if (sz > 0) {
+			/* move data to beginning of zlib output buffer
+			** and set up pointers so next zlib output goes
+			** to where we left off */
+			/* this can be optimized by using a looping buffer thing */
+			memcpy(c->zs_output_head, c->zs_output_head + sz, ZLIB_OUTPUT_BUF_SIZE - sz + 8);
+			c->zs.next_out -= sz;
+			c->zs.avail_out = sz;
+		}
 	}
 
 	/* Tune the (blockheaded) wouldblock delay. */
