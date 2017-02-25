@@ -3935,13 +3935,6 @@ static char *mod_headers(httpd_conn *hc)
 	size_t i, len;
 	struct stat st;
 
-	/* don't try to compress non-text files */
-	if (strncmp(hc->type, "text/", 5))
-		hc->compression_type = COMPRESSION_NONE;
-        /* don't try to compress really small things */
-	else if (hc->sb.st_size < 256)
-		hc->compression_type = COMPRESSION_NONE;
-
 	if (hc->compression_type != COMPRESSION_GZIP)
 		goto done;
 
@@ -3969,9 +3962,18 @@ static char *mod_headers(httpd_conn *hc)
 
 	free(fn);
 done:
+	/* no zlib */
+	if (!hc->has_deflate)
+		hc->compression_type = COMPRESSION_NONE;
+	/* don't try to compress non-text files */
+	else if (strncmp(hc->type, "text/", 5))
+		hc->compression_type = COMPRESSION_NONE;
+        /* don't try to compress really small things */
+	else if (hc->sb.st_size < 256)
+		hc->compression_type = COMPRESSION_NONE;
 
 	fn = strrchr(hc->expnfilename, '.');
-	if (fn) {
+	if (fn || strstr(hc->encodings, "gzip")) {
 		for (i = 0; i < NELEMS(match); i++) {
 			if (strcmp(fn, match[i]))
 				continue;

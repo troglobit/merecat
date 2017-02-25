@@ -59,7 +59,9 @@
 #define CONF_FILE_OPT ""
 #endif
 
+#ifdef HAVE_ZLIB_H
 #include <zlib.h>
+#endif
 
 #include "fdwatch.h"
 #include "libhttpd.h"
@@ -79,8 +81,12 @@
 	sigaction(signo, &sa, NULL)
 
 /* For content-encoding: gzip */
+#ifdef HAVE_ZLIB_H
 #define ZLIB_OUTPUT_BUF_SIZE 262136
 #define DEFAULT_COMPRESSION  Z_DEFAULT_COMPRESSION
+#else
+#define DEFAULT_COMPRESSION  0
+#endif
 
 /* Instead of non-portable __progname */
 char        *prognm;
@@ -138,9 +144,11 @@ typedef struct {
 	off_t end_byte_index;
 	off_t next_byte_index;
 
+#ifdef HAVE_ZLIB_H
 	z_stream zs;
 	int zs_state;
 	void *zs_output_head;
+#endif
 } connecttab;
 static connecttab *connects;
 static int num_connects, max_connects, first_free_connect;
@@ -261,11 +269,13 @@ static int read_config(char *filename)
 	charset = cfg_getstr(cfg, "charset");
 	max_age = cfg_getint(cfg, "max-age");
 
+#ifdef HAVE_ZLIB_H
 	compression_level = cfg_getint(cfg, "compression-level");
 	if (compression_level < Z_DEFAULT_COMPRESSION)
 		compression_level = Z_DEFAULT_COMPRESSION;
 	if (compression_level > Z_BEST_COMPRESSION)
 		compression_level = Z_BEST_COMPRESSION;
+#endif
 
 	return 0;
 error:
@@ -927,6 +937,13 @@ static void handle_read(connecttab *c, struct timeval *tvP)
 		return;
 	}
 
+	/* Must tell libhttpd if we can deflate files */
+#ifdef HAVE_ZLIB_H
+	hc->has_deflate = compression_level != 0;
+#else
+	hc->has_deflate = 0;
+#endif
+
 	/* Yes.  Try parsing and resolving it. */
 	if (httpd_parse_request(hc) < 0) {
 		finish_connection(c, tvP);
@@ -981,6 +998,7 @@ static void handle_read(connecttab *c, struct timeval *tvP)
 	c->started_at = tvP->tv_sec;
 	c->wouldblock_delay = 0;
 
+#ifdef HAVE_ZLIB_H
 	if (hc->compression_type != COMPRESSION_NONE) {
 		unsigned long a;
 
@@ -1024,12 +1042,12 @@ static void handle_read(connecttab *c, struct timeval *tvP)
 		** size to omit the "deflate" prefix
 		*/
 		c->zs_state = deflateInit2(&c->zs, compression_level, Z_DEFLATED, -15, 8, Z_DEFAULT_STRATEGY);
-
 		if (c->zs_state != Z_OK) {
 			syslog(LOG_CRIT, "zlib deflateInit2() failed!");
 			exit(1);
 		}
 	}
+#endif /* HAVE_ZLIB_H */
 
 	fdwatch_del_fd(hc->conn_fd);
 	fdwatch_add_fd(hc->conn_fd, c, FDW_WRITE);
@@ -1039,7 +1057,7 @@ static void handle_read(connecttab *c, struct timeval *tvP)
 static void handle_send(connecttab *c, struct timeval *tvP)
 {
 	size_t max_bytes;
-	ssize_t sz;
+	ssize_t sz = -1;
 	int coast;
 	ClientData client_data;
 	time_t elapsed;
@@ -1069,6 +1087,7 @@ static void handle_send(connecttab *c, struct timeval *tvP)
 			iv[1].iov_len = MIN(c->end_byte_index - c->next_byte_index, (off_t)max_bytes);
 			sz = writev(hc->conn_fd, iv, 2);
 		}
+#ifdef HAVE_ZLIB_H
 	} else {
 		int iv_count;
 		struct iovec iv[2];
@@ -1105,6 +1124,7 @@ static void handle_send(connecttab *c, struct timeval *tvP)
 			iv[1].iov_len = MIN((void *)c->zs.next_out - (void *)c->zs_output_head,	max_bytes);
 		}
 		sz = writev(hc->conn_fd, iv, iv_count);
+#endif /* HAVE_ZLIB_H */
 	}
 
 	if (sz < 0 && errno == EINTR) {
@@ -1189,6 +1209,7 @@ static void handle_send(connecttab *c, struct timeval *tvP)
 			finish_connection(c, tvP);
 			return;
 		}
+#ifdef HAVE_ZLIB_H
 	} else {
 		if ((c->zs_state == Z_STREAM_END) && (c->zs_output_head + sz == c->zs.next_out)) {
 			/* This conection is finished! */
@@ -1203,6 +1224,7 @@ static void handle_send(connecttab *c, struct timeval *tvP)
 			c->zs.next_out -= sz;
 			c->zs.avail_out = sz;
 		}
+#endif /* HAVE_ZLIB_H */
 	}
 
 	/* Tune the (blockheaded) wouldblock delay. */

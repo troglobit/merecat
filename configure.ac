@@ -39,6 +39,10 @@ AC_ARG_WITH([systemd],
      [AS_HELP_STRING([--with-systemd=DIR], [Directory for systemd service files])],,
      [with_systemd=auto])
 
+AC_ARG_WITH([zlib],
+        AS_HELP_STRING([--without-zlib], [Disable mod_deflate (gzip) using zlib]),
+	[], [with_zlib=yes])
+
 # Checks for header files.
 AC_CHECK_HEADERS([arpa/inet.h fcntl.h grp.h memory.h netdb.h netinet/in.h osreldate.h paths.h poll.h stdlib.h string.h sys/devpoll.h sys/event.h sys/param.h sys/poll.h sys/socket.h sys/time.h syslog.h unistd.h])
 AC_HEADER_TIME
@@ -80,6 +84,10 @@ AS_IF([test "x${WEBDIR}" = "x"], [
 AS_IF([test "x$with_config" != "xno"], [
 	AC_DEFINE([HAVE_LIBCONFUSE], [1], [Build with support for /etc/merecat.conf])
 	PKG_CHECK_MODULES([confuse], [libconfuse >= 2.7])])
+
+AS_IF([test "x$with_zlib" != "xno"], [
+	PKG_CHECK_MODULES([zlib], [zlib >= 1.2.7])
+	AC_CHECK_HEADERS([zlib.h])])
 
 # Check where to install the systemd .service file
 AS_IF([test "x$with_systemd" = "xyes" -o "x$with_systemd" = "xauto"], [

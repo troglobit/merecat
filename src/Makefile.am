@@ -11,10 +11,10 @@ merecat_SOURCES     = merecat.c		merecat.h	\
 		      tdate_parse.c	tdate_parse.h	\
 		      mime_encodings.h	mime_types.h
 merecat_CFLAGS      = -W -Wall -Wextra -Wno-unused-result -Wno-unused-parameter
-merecat_CFLAGS     += -std=gnu99 $(confuse_CFLAGS)
+merecat_CFLAGS     += -std=gnu99 $(confuse_CFLAGS) $(zlib_CFLAGS)
 merecat_CPPFLAGS    = -D_POSIX_SOURCE -D_BSD_SOURCE -D_GNU_SOURCE -D_DEFAULT_SOURCE
 merecat_CPPFLAGS   += -DCONFDIR='"$(sysconfdir)"' -DLOCALSTATEDIR='"$(localstatedir)"'
-merecat_LDADD       = libmatch.a $(confuse_LIBS) -lz
+merecat_LDADD       = libmatch.a $(confuse_LIBS) $(zlib_LIBS)
 
 htpasswd_CFLAGS      = -W -Wall -Wextra -Wno-unused-result -Wno-unused-parameter
 htpasswd_CPPFLAGS   = -DWEBDIR='"$(WEBDIR)"'

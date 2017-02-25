@@ -159,6 +159,7 @@ typedef struct {
 	int should_linger;
 	struct stat sb;
 	int conn_fd;
+	int has_deflate;	/* Built with zlib:deflate() and enabled */
 	int compression_type;
 	char *file_address;
 } httpd_conn;
