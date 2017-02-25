@@ -228,6 +228,18 @@ is given as argument.  Chrooting is a security measure and means that
 .Nm
 cannot access files outside it, unless files are bind mounted, or
 similar into the chroot.  Disabled by default.
+.It Cm compression-level = Ar -1..9
+Control the compression level of the built-in Apache-like mod_deflate.
+The default value is -1, which gives a reasonable compromize between
+speed and compression.  To disable compression set this to
+.Ar 0
+and to get maximum compression,
+.Ar 9 .
+.Pp
+The default setting,
+.Ar -1 ,
+means all "text/*" MIME type files, larger than 256 bytes, are
+compressed before sending to the client.
 .It Cm directory = Ar DIR
 If no WEBDIR is given on the command line this option can be used to
 change the web server document root.  Defaults to the current directory.
