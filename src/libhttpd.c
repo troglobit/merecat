@@ -3096,7 +3096,7 @@ static int child_ls_read_names(httpd_conn *hc, DIR *dirp, FILE *fp, int onlydir)
 
 			fprintf(fp,
 				" <tr>\n"
-				"  <td class=\"icon\"><img src=\"/icons/back.gif\" alt=\"&#8617;\"></td>\n"
+				"  <td class=\"icon\"><img src=\"/icons/back.gif\" alt=\"&#8617;\" width=\"20\" height=\"22\"></td>\n"
 				"  <td><a href=\"..\">Parent Directory</a></td>\n"
 				"  <td class=\"right\">&nbsp;</td>\n"
 				"  <td>&nbsp;</td>\n"
@@ -3206,7 +3206,7 @@ static int child_ls(httpd_conn *hc, DIR *dirp)
 		"<div id=\"table\">"
 		"<table width=\"100%%\">\n"
 		" <tr>"
-		"  <th class=\"icon\" style=\"width:20px;\"><img src=\"/icons/blank.gif\" alt=\"&#8195;\"></th>\n"
+		"  <th class=\"icon\" style=\"width:20px;\"><img src=\"/icons/blank.gif\" alt=\"&#8195;\" width=\"20\" height=\"22\"></th>\n"
 		"  <th style=\"width:35em;\">Name</th>\n"
 		"  <th class=\"right\" style=\"width: 3em;\">Size</th>\n"
 		"  <th style=\"width: 7em;\">Last modified</th>\n"
