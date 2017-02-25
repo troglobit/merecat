@@ -67,7 +67,7 @@
 { "jpe", 0, "image/jpeg", 0 },
 { "jpeg", 0, "image/jpeg", 0 },
 { "jpg", 0, "image/jpeg", 0 },
-{ "js", 0, "application/x-javascript", 0 },
+{ "js", 0, "application/javascript", 0 },
 { "kar", 0, "audio/midi", 0 },
 { "kml", 0, "application/vnd.google-earth.kml+xml", 0 },
 { "kmz", 0, "application/vnd.google-earth.kmz", 0 },
