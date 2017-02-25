@@ -683,7 +683,8 @@ send_mime(httpd_conn *hc, int status, char *title, char *encodings, const char *
 				add_response(hc, buf);
 			}
 		} else {
-			hc->do_keep_alive = 0;
+// Experimental: Allow keep-alive also for dir listings etc.
+//			hc->do_keep_alive = 0;
 		}
 
 		snprintf(buf, sizeof(buf), "Content-Type: %s\r\n", fixed_type);
