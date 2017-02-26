@@ -1575,11 +1575,8 @@ static int vhost_map(httpd_conn *hc)
 {
 	httpd_sockaddr sa;
 	socklen_t sz;
-	static char *tempfilename;
-	static size_t maxtempfilename = 0;
-	char *cp1;
-	int len;
-
+	char *cp1, *temp;
+	size_t len;
 #ifdef VHOST_DIRLEVELS
 	int i;
 	char *cp2;
@@ -1640,10 +1637,9 @@ static int vhost_map(httpd_conn *hc)
 #endif /* VHOST_DIRLEVELS */
 
 	/* Prepend hostdir to the filename. */
-	len = strlen(hc->expnfilename);
-	httpd_realloc_str(&tempfilename, &maxtempfilename, len);
-	strcpy(tempfilename, hc->expnfilename);
-	httpd_realloc_str(&hc->expnfilename, &hc->maxexpnfilename, strlen(hc->hostdir) + 1 + len);
+	len  = strlen(hc->expnfilename);
+	temp = strdup(hc->expnfilename);
+	httpd_realloc_str(&hc->expnfilename, &hc->maxexpnfilename, strlen(hc->hostdir) + 2 + len);
 	strcpy(hc->expnfilename, hc->hostdir);
 
 	/* Skip any port number */
@@ -1652,7 +1648,8 @@ static int vhost_map(httpd_conn *hc)
 		*cp1 = 0;
 
 	strcat(hc->expnfilename, "/");
-	strcat(hc->expnfilename, tempfilename);
+	strcat(hc->expnfilename, temp);
+	free(temp);
 
 	return 1;
 }
