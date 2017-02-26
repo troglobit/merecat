@@ -28,6 +28,9 @@
 #ifndef _MMC_H_
 #define _MMC_H_
 
+/* Checks if filename is a built-in icon */
+extern int mmc_icon_check(char *filename, struct stat *st);
+
 /* Returns an mmap()ed area for the given file, or (void*) 0 on errors.
 ** If you have a stat buffer on the file, pass it in, otherwise pass 0.
 ** Same for the current time.

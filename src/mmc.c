@@ -111,10 +111,100 @@ static int add_hash(Map *m);
 static Map *find_hash(ino_t ino, dev_t dev, off_t size, time_t ctime);
 static unsigned int hash(ino_t ino, dev_t dev, off_t size, time_t ctime);
 
+#include "base64.h"
+
+struct {
+	char *name;
+	char *buf;
+} icons[] = {
+	{
+		"icons/back.gif",
+		"R0lGODlhFAAWAMIAAP///8z//5mZmWZmZjMzMwAAAAAAAAAAACH+TlRoaXMgYXJ0IGlzIGluIHRo"
+		"ZSBwdWJsaWMgZG9tYWluLiBLZXZpbiBIdWdoZXMsIGtldmluaEBlaXQuY29tLCBTZXB0ZW1iZXIg"
+		"MTk5NQAh+QQBAAABACwAAAAAFAAWAAADSxi63P4jEPJqEDNTu6LO3PVpnDdOFnaCkHQGBTcqRRxu"
+		"WG0v+5LrNUZQ8QPqeMakkaZsFihOpyDajMCoOoJAGNVWkt7QVfzokc+LBAA7"
+	},
+	{
+		"icons/blank.gif",
+		"R0lGODlhFAAWAKEAAP///8z//wAAAAAAACH+TlRoaXMgYXJ0IGlzIGluIHRoZSBwdWJsaWMgZG9t"
+		"YWluLiBLZXZpbiBIdWdoZXMsIGtldmluaEBlaXQuY29tLCBTZXB0ZW1iZXIgMTk5NQAh+QQBAAAB"
+		"ACwAAAAAFAAWAAACE4yPqcvtD6OctNqLs968+w+GSQEAOw=="
+	},
+	{
+		"icons/folder.gif",
+		"R0lGODlhFAAWAMIAAP/////Mmcz//5lmMzMzMwAAAAAAAAAAACH+TlRoaXMgYXJ0IGlzIGluIHRo"
+		"ZSBwdWJsaWMgZG9tYWluLiBLZXZpbiBIdWdoZXMsIGtldmluaEBlaXQuY29tLCBTZXB0ZW1iZXIg"
+		"MTk5NQAh+QQBAAACACwAAAAAFAAWAAADVCi63P4wyklZufjOErrvRcR9ZKYpxUB6aokGQyzHKxyO"
+		"9RoTV54PPJyPBewNSUXhcWc8soJOIjTaSVJhVphWxd3CeILUbDwmgMPmtHrNIyxM8Iw7AQA7"
+	},
+	{
+		"icons/generic.gif",
+		"R0lGODlhFAAWAMIAAP///8z//5mZmTMzMwAAAAAAAAAAAAAAACH+TlRoaXMgYXJ0IGlzIGluIHRo"
+		"ZSBwdWJsaWMgZG9tYWluLiBLZXZpbiBIdWdoZXMsIGtldmluaEBlaXQuY29tLCBTZXB0ZW1iZXIg"
+		"MTk5NQAh+QQBAAABACwAAAAAFAAWAAADUDi6vPEwDECrnSO+aTvPEddVIriN1wWJKDG48IlSRG0T"
+		"8kwJvIBLOkvvxwoCfDnjkaisIIHNZdL4LAarUSm0iY12uUwvcdArm3mvyG3N/iUAADs="
+	}
+};
+
+static struct stat icost;
+static int  cico = -1;
+static unsigned char icon[512];	/* Only small icons allowed atm */
+
+int mmc_icon_check(char *filename, struct stat *st)
+{
+	char *ptr;
+	size_t i;
+
+	cico = -1;
+	ptr = strstr(filename, "icons/");
+	if (!ptr)
+		return 0;
+
+	for (i = 0; i < NELEMS(icons); i++) {
+		off_t len;
+
+		if (strcmp(ptr, icons[i].name))
+			continue;
+
+		len = b64_decode(icons[i].buf, icon, sizeof(icon));
+		if (len <= 0)
+			break;
+
+		memset(&icost, 0, sizeof(icost));
+		icost.st_size = len;
+		icost.st_ctim.tv_sec = 18446744073359756536UL;
+		if (st)
+			memcpy(st, &icost, sizeof(icost));
+
+		cico = i;
+		return 1;
+	}
+
+	return 0;
+}
+
+/* Check if this is a small icon we have built-in */
+static off_t mmc_icon_open(char *filename, char **buf, struct stat *st)
+{
+	int found = 1;
+
+	if (cico < 0 || cico > (int)NELEMS(icons) || strcmp(icons[cico].name, filename))
+		found = mmc_icon_check(filename, st);
+
+	if (!found)
+		return -1;
+
+	*buf = (char *)icon;
+	*st = icost;
+
+	return 0;
+}
+
 
 void *mmc_map(char *filename, struct stat *sbP, struct timeval *nowP)
 {
 	time_t now;
+	char *buf = NULL;
 	struct stat sb;
 	Map *m;
 	int fd;
@@ -153,8 +243,10 @@ void *mmc_map(char *filename, struct stat *sbP, struct timeval *nowP)
 	/* Open the file. */
 	fd = open(filename, O_RDONLY);
 	if (fd < 0) {
-		syslog(LOG_ERR, "open: %s", strerror(errno));
-		return NULL;
+		if (mmc_icon_open(filename, &buf, &sb)) {
+			syslog(LOG_ERR, "open: %s", strerror(errno));
+			return NULL;
+		}
 	}
 
 	/* Find a free Map entry or make a new one. */
@@ -165,7 +257,8 @@ void *mmc_map(char *filename, struct stat *sbP, struct timeval *nowP)
 	} else {
 		m = (Map *)malloc(sizeof(Map));
 		if (!m) {
-			close(fd);
+			if (!buf)
+				close(fd);
 			syslog(LOG_ERR, "out of memory allocating a Map");
 
 			return NULL;
@@ -190,6 +283,17 @@ void *mmc_map(char *filename, struct stat *sbP, struct timeval *nowP)
 	} else {
 		size_t size_size = (size_t)m->size;	/* loses on files >2GB */
 
+		if (buf) {
+			m->addr = malloc(size_size);
+			if (!m->addr) {
+				syslog(LOG_ERR, "%s: %s", __func__, strerror(errno));
+				free(m);
+				--alloc_count;
+				return NULL;
+			}
+			memcpy(m->addr, buf, size_size);
+			goto cont;
+		}
 #ifdef HAVE_MMAP
 		/* Map the file into memory. */
 		m->addr = mmap(0, size_size, PROT_READ, MAP_PRIVATE, fd, 0);
@@ -241,7 +345,7 @@ void *mmc_map(char *filename, struct stat *sbP, struct timeval *nowP)
 #endif /* HAVE_MMAP */
 	}
 	close(fd);
-
+cont:
 	/* Put the Map into the hash table. */
 	if (add_hash(m) < 0) {
 		syslog(LOG_ERR, "add_hash() failure");

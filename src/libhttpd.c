@@ -3919,6 +3919,7 @@ static int really_start_request(httpd_conn *hc, struct timeval *nowP)
 	char *dirname = NULL;
 	size_t maxdirname = 0;
 #endif
+	int is_icon;
 	char *cp, *pi;
 	static const char *index_names[] = { INDEX_NAMES };
 	size_t expnlen, indxlen, i;
@@ -3928,6 +3929,13 @@ static int really_start_request(httpd_conn *hc, struct timeval *nowP)
 	if (hc->method != METHOD_GET && hc->method != METHOD_HEAD && hc->method != METHOD_POST) {
 		httpd_send_err(hc, 501, err501title, "", err501form, httpd_method_str(hc->method));
 		return -1;
+	}
+
+	is_icon = mmc_icon_check(hc->pathinfo, &hc->sb);
+	if (is_icon) {
+		strcpy(hc->expnfilename, hc->pathinfo);
+		strcpy(hc->pathinfo, "");
+		goto sneaky;
 	}
 
 	/* Stat the file. */
@@ -4119,6 +4127,7 @@ static int really_start_request(httpd_conn *hc, struct timeval *nowP)
 	}
 #endif /* AUTH_FILE */
 
+sneaky:
 	/* Referer check. */
 	if (!check_referer(hc))
 		return -1;
@@ -4174,7 +4183,10 @@ static int really_start_request(httpd_conn *hc, struct timeval *nowP)
 
 		hc->file_address = mmc_map(hc->expnfilename, &(hc->sb), nowP);
 		if (!hc->file_address) {
-			httpd_send_err(hc, 500, err500title, "", err500form, hc->encodedurl);
+			if (is_icon)
+				httpd_send_err(hc, 404, err404title, "", err404form, hc->encodedurl);
+			else
+				httpd_send_err(hc, 500, err500title, "", err500form, hc->encodedurl);
 			return -1;
 		}
 
