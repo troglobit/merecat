@@ -232,6 +232,7 @@ void *mmc_map(char *filename, struct stat *sbP, struct timeval *nowP)
 		if (httpd_read_fully(fd, m->addr, size_size) != m->size) {
 			syslog(LOG_ERR, "read: %s", strerror(errno));
 			close(fd);
+			free(m->addr);
 			free(m);
 			--alloc_count;
 
@@ -244,6 +245,9 @@ void *mmc_map(char *filename, struct stat *sbP, struct timeval *nowP)
 	/* Put the Map into the hash table. */
 	if (add_hash(m) < 0) {
 		syslog(LOG_ERR, "add_hash() failure");
+#ifndef HAVE_MMAP
+		free(m->addr);
+#endif
 		free(m);
 		--alloc_count;
 
