@@ -146,8 +146,8 @@ typedef struct {
 
 #ifdef HAVE_ZLIB_H
 	z_stream zs;
-	int zs_state;
-	void *zs_output_head;
+	int      zs_state;
+	void    *zs_output_head;
 #endif
 } connecttab;
 static connecttab *connects;
@@ -682,6 +682,9 @@ static void really_clear_connection(connecttab *c, struct timeval *tvP)
 		c->linger_timer = 0;
 	}
 
+#ifdef HAVE_ZLIB_H
+	deflateEnd(c->zs);
+#endif
 	c->conn_state = CNST_FREE;
 	c->next_free_connect = first_free_connect;
 	first_free_connect = c - connects;	/* division by sizeof is implied */
