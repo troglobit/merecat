@@ -683,7 +683,10 @@ static void really_clear_connection(connecttab *c, struct timeval *tvP)
 	}
 
 #ifdef HAVE_ZLIB_H
-	free(c->zs_output_head);
+	if (c->zs_output_head) {
+		free(c->zs_output_head);
+		c->zs_output_head = NULL;
+	}
 	deflateEnd(&c->zs);
 #endif
 	c->conn_state = CNST_FREE;
