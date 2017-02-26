@@ -1586,11 +1586,11 @@ static int vhost_map(httpd_conn *hc)
 #endif
 
 	/* Figure out the virtual hostname. */
-	if (hc->reqhost[0] != '\0')
+	if (hc->reqhost[0] != '\0') {
 		hc->hostname = hc->reqhost;
-	else if (hc->hdrhost[0] != '\0')
+	} else if (hc->hdrhost[0] != '\0') {
 		hc->hostname = hc->hdrhost;
-	else {
+	} else {
 		sz = sizeof(sa);
 		if (getsockname(hc->conn_fd, &sa.sa, &sz) < 0) {
 			syslog(LOG_ERR, "getsockname: %s", strerror(errno));
@@ -1613,6 +1613,7 @@ static int vhost_map(httpd_conn *hc)
 		cp1 = &hc->hostname[4];
 	else
 		cp1 = hc->hostname;
+
 	for (cp2 = hc->hostdir, i = 0; i < VHOST_DIRLEVELS; ++i) {
 		/* Skip dots in the hostname.  If we don't, then we get vhost
 		** directories in higher level of filestructure if dot gets
@@ -1622,11 +1623,13 @@ static int vhost_map(httpd_conn *hc)
 		*/
 		while (*cp1 == '.')
 			++cp1;
+
 		/* Copy a character from the hostname, or '_' if we ran out. */
 		if (*cp1 != '\0')
 			*cp2++ = *cp1++;
 		else
 			*cp2++ = '_';
+
 		/* Copy a slash. */
 		*cp2++ = '/';
 	}
@@ -1642,6 +1645,12 @@ static int vhost_map(httpd_conn *hc)
 	strcpy(tempfilename, hc->expnfilename);
 	httpd_realloc_str(&hc->expnfilename, &hc->maxexpnfilename, strlen(hc->hostdir) + 1 + len);
 	strcpy(hc->expnfilename, hc->hostdir);
+
+	/* Skip any port number */
+	cp1 = strrchr(hc->expnfilename, ':');
+	if (cp1)
+		*cp1 = 0;
+
 	strcat(hc->expnfilename, "/");
 	strcat(hc->expnfilename, tempfilename);
 
