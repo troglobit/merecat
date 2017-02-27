@@ -19,6 +19,9 @@ AC_CHECK_LIB(crypt, crypt)
 AC_CHECK_LIB(rt, clock_gettime)
 AC_CHECK_LIB(resolv, hstrerror)
 
+AC_ARG_ENABLE(builtin-icons,
+        AS_HELP_STRING([--enable-builtin-icons], [Enable built-in icons for dir listings]))
+
 AC_ARG_ENABLE(public-html,
         AS_HELP_STRING([--enable-public-html], [Enable ~user/public_html in non-chrooted setups]))
 
@@ -64,6 +67,9 @@ AC_FUNC_LSTAT_FOLLOWS_SLASHED_SYMLINK
 AC_FUNC_MMAP
 AC_FUNC_WAIT3
 AC_CHECK_FUNCS([alarm atoll clock_gettime daemon dup2 gai_strerror getcwd getaddrinfo gethostbyname gethostname getnameinfo getpass gettimeofday hstrerror inet_ntoa kqueue malloc memmove memset mkdir munmap poll select setlogin setsid sigaction socket strcasecmp strchr strcspn strdup strerror strncasecmp strpbrk strrchr strspn strstr tzset snprintf waitpid])
+
+AS_IF([test "x$enable_builtin_icons" = "xyes"], [
+        AC_DEFINE(BUILTIN_ICONS, [1], [Enables built-in icons for dir listings])])
 
 AS_IF([test "x$enable_public_html" = "xyes"], [
         AC_DEFINE_UNQUOTED(TILDE_MAP_2, "public_html", [Enables ~user/public_html])])

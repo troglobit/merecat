@@ -111,6 +111,7 @@ static int add_hash(Map *m);
 static Map *find_hash(ino_t ino, dev_t dev, off_t size, time_t ctime);
 static unsigned int hash(ino_t ino, dev_t dev, off_t size, time_t ctime);
 
+#ifdef BUILTIN_ICONS
 #include "base64.h"
 
 struct {
@@ -199,7 +200,16 @@ static off_t mmc_icon_open(char *filename, char **buf, struct stat *st)
 
 	return 0;
 }
-
+#else /* BUILTIN_ICONS */
+int mmc_icon_check(char *filename, struct stat *st)
+{
+	return 0;
+}
+static off_t mmc_icon_open(char *filename, char **buf, struct stat *st)
+{
+	return -1;
+}
+#endif /* BUILTIN_ICONS */
 
 void *mmc_map(char *filename, struct stat *sbP, struct timeval *nowP)
 {
