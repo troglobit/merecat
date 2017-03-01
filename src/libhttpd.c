@@ -127,7 +127,7 @@ extern char *crypt(const char *key, const char *setting);
 /* Forwards. */
 static void check_options(void);
 static void free_httpd_server(httpd_server *hs);
-static int initialize_listen_socket(httpd_sockaddr *saP);
+static int initialize_listen_socket(httpd_sockaddr *hsa);
 static void add_response(httpd_conn *hc, const char *str);
 static void send_mime(httpd_conn *hc, int status, char *title, char *encodings, const char *extraheads, const char *type, off_t length,
 		      time_t mod);
@@ -161,15 +161,15 @@ static int tilde_map_1(httpd_conn *hc);
 static int tilde_map_2(httpd_conn *hc);
 #endif
 static int vhost_map(httpd_conn *hc);
-static char *expand_symlinks(char *path, char **restP, int no_symlink_check, int tildemapped);
+static char *expand_symlinks(char *path, char **trailer, int no_symlink_check, int tildemapped);
 static char *bufgets(httpd_conn *hc);
 static void de_dotdot(char *file);
 static void init_mime(void);
 static void figure_mime(httpd_conn *hc);
 
 #ifdef CGI_TIMELIMIT
-static void cgi_kill2(ClientData client_data, struct timeval *nowP);
-static void cgi_kill(ClientData client_data, struct timeval *nowP);
+static void cgi_kill2(ClientData client_data, struct timeval *now);
+static void cgi_kill(ClientData client_data, struct timeval *now);
 #endif
 #ifdef GENERATE_INDEXES
 static int ls(httpd_conn *hc);
@@ -186,12 +186,12 @@ static void post_post_garbage_hack(httpd_conn *hc);
 static void cgi_interpose_output(httpd_conn *hc, int rfd);
 static void cgi_child(httpd_conn *hc);
 static int cgi(httpd_conn *hc);
-static int really_start_request(httpd_conn *hc, struct timeval *nowP);
+static int really_start_request(httpd_conn *hc, struct timeval *now);
 static void make_log_entry(httpd_conn *hc);
 static int check_referer(httpd_conn *hc);
 static int really_check_referer(httpd_conn *hc);
-static int sockaddr_check(httpd_sockaddr *saP);
-static size_t sockaddr_len(httpd_sockaddr *saP);
+static int sockaddr_check(httpd_sockaddr *hsa);
+static size_t sockaddr_len(httpd_sockaddr *hsa);
 
 #ifndef HAVE_ATOLL
 static long long atoll(const char *str);
@@ -235,7 +235,7 @@ static void free_httpd_server(httpd_server *hs)
 }
 
 
-httpd_server *httpd_init(char *hostname, httpd_sockaddr *sa4P, httpd_sockaddr *sa6P,
+httpd_server *httpd_init(char *hostname, httpd_sockaddr *hsav4, httpd_sockaddr *hsav6,
 			 unsigned short port, char *cgi_pattern, int cgi_limit, char *charset,
 			 int max_age, char *cwd, int no_log,
 			 int no_symlink_check, int vhost, int global_passwd, char *url_pattern,
@@ -344,14 +344,14 @@ httpd_server *httpd_init(char *hostname, httpd_sockaddr *sa4P, httpd_sockaddr *s
 	** like some other systems, it has magical v6 sockets that also listen for
 	** v4, but in Linux if you bind a v4 socket first then the v6 bind fails.
 	*/
-	if (!sa6P)
+	if (!hsav6)
 		hs->listen6_fd = -1;
 	else
-		hs->listen6_fd = initialize_listen_socket(sa6P);
-	if (!sa4P)
+		hs->listen6_fd = initialize_listen_socket(hsav6);
+	if (!hsav4)
 		hs->listen4_fd = -1;
 	else
-		hs->listen4_fd = initialize_listen_socket(sa4P);
+		hs->listen4_fd = initialize_listen_socket(hsav4);
 
 	/* If we didn't get any valid sockets, fail. */
 	if (hs->listen4_fd == -1 && hs->listen6_fd == -1) {
@@ -366,27 +366,27 @@ httpd_server *httpd_init(char *hostname, httpd_sockaddr *sa4P, httpd_sockaddr *s
 		syslog(LOG_NOTICE, "%s starting on port %d", PACKAGE_STRING, hs->port);
 	else
 		syslog(LOG_NOTICE, "%s starting on %s, port %d", PACKAGE_STRING,
-		       httpd_ntoa(hs->listen4_fd != -1 ? sa4P : sa6P), (int)hs->port);
+		       httpd_ntoa(hs->listen4_fd != -1 ? hsav4 : hsav6), (int)hs->port);
 
 	return hs;
 }
 
 
-static int initialize_listen_socket(httpd_sockaddr *saP)
+static int initialize_listen_socket(httpd_sockaddr *hsa)
 {
 	int listen_fd;
 	int flags;
 
 	/* Check sockaddr. */
-	if (!sockaddr_check(saP)) {
+	if (!sockaddr_check(hsa)) {
 		syslog(LOG_CRIT, "unknown sockaddr family on listen socket");
 		return -1;
 	}
 
 	/* Create socket. */
-	listen_fd = socket(saP->sa.sa_family, SOCK_STREAM, 0);
+	listen_fd = socket(hsa->sa.sa_family, SOCK_STREAM, 0);
 	if (listen_fd < 0) {
-		syslog(LOG_CRIT, "socket %s: %s", httpd_ntoa(saP), strerror(errno));
+		syslog(LOG_CRIT, "socket %s: %s", httpd_ntoa(hsa), strerror(errno));
 		return -1;
 	}
 	fcntl(listen_fd, F_SETFD, 1);
@@ -397,8 +397,8 @@ static int initialize_listen_socket(httpd_sockaddr *saP)
 	SETSOCKOPT(listen_fd, SOL_SOCKET, SO_REUSEPORT);
 #endif
 	/* Bind to it. */
-	if (bind(listen_fd, &saP->sa, sockaddr_len(saP)) < 0) {
-		syslog(LOG_CRIT, "bind %s: %s", httpd_ntoa(saP), strerror(errno));
+	if (bind(listen_fd, &hsa->sa, sockaddr_len(hsa)) < 0) {
+		syslog(LOG_CRIT, "bind %s: %s", httpd_ntoa(hsa), strerror(errno));
 		close(listen_fd);
 		return -1;
 	}
@@ -744,25 +744,26 @@ send_mime(httpd_conn *hc, int status, char *title, char *encodings, const char *
 static int str_alloc_count = 0;
 static size_t str_alloc_size = 0;
 
-void httpd_realloc_str(char **strP, size_t *maxsizeP, size_t size)
+void httpd_realloc_str(char **str, size_t *curr_len, size_t new_len)
 {
-	if (*maxsizeP == 0) {
-		*maxsizeP = MAX(200, size + 100);
-		*strP = NEW(char, *maxsizeP + 1);
+	if (*curr_len == 0) {
+		*curr_len = MAX(200, new_len + 100);
+		*str = NEW(char, *curr_len + 1);
 
 		++str_alloc_count;
-		str_alloc_size += *maxsizeP;
-	} else if (size > *maxsizeP) {
-		str_alloc_size -= *maxsizeP;
-		*maxsizeP = MAX(*maxsizeP * 2, size * 5 / 4);
-		*strP = RENEW(*strP, char, *maxsizeP + 1);
+		str_alloc_size += *curr_len;
+	} else if (new_len > *curr_len) {
+		str_alloc_size -= *curr_len;
+		*curr_len = MAX(*curr_len * 2, new_len * 5 / 4);
+		*str = RENEW(*str, char, *curr_len + 1);
 
-		str_alloc_size += *maxsizeP;
-	} else
+		str_alloc_size += *curr_len;
+	} else {
 		return;
+	}
 
-	if (!*strP) {
-		syslog(LOG_ERR, "out of memory reallocating a string to %zu bytes", *maxsizeP);
+	if (!*str) {
+		syslog(LOG_ERR, "out of memory reallocating a string to %zu bytes", *curr_len);
 		exit(1);
 	}
 }
@@ -1655,15 +1656,15 @@ static int vhost_map(httpd_conn *hc)
 }
 
 
-/* Expands all symlinks in the given filename, eliding ..'s and leading /'s.
-** Returns the expanded path (pointer to static string), or (char*) 0 on
-** errors.  Also returns, in the string pointed to by restP, any trailing
-** parts of the path that don't exist.
+/* Expands all symlinks in the given filename, eliding ..'s and leading
+** /'s.  Returns the expanded path (pointer to static string), or NULL
+** on errors.  Also returns, in the string pointed to by trailer, any
+** trailing parts of the path that don't exist.
 **
 ** This is a fairly nice little routine.  It handles any size filenames
 ** without excessive mallocs.
 */
-static char *expand_symlinks(char *path, char **restP, int no_symlink_check, int tildemapped)
+static char *expand_symlinks(char *path, char **trailer, int no_symlink_check, int tildemapped)
 {
 	static char *checked;
 	static char *rest;
@@ -1682,7 +1683,7 @@ static char *expand_symlinks(char *path, char **restP, int no_symlink_check, int
 		** need to do the pathinfo check, and the existing symlink expansion
 		** code is a pretty reasonable way to do this.  So, what we do is
 		** a single stat() of the whole filename - if it exists, then we
-		** return it as is with nothing in restP.  If it doesn't exist, we
+		** return it as is with nothing in trailer.  If it doesn't exist, we
 		** fall through to the existing code.
 		**
 		** One side-effect of this is that users can't symlink to central
@@ -1704,7 +1705,7 @@ static char *expand_symlinks(char *path, char **restP, int no_symlink_check, int
 
 			httpd_realloc_str(&rest, &maxrest, 0);
 			rest[0] = '\0';
-			*restP = rest;
+			*trailer = rest;
 
 			return checked;
 		}
@@ -1802,7 +1803,7 @@ static char *expand_symlinks(char *path, char **restP, int no_symlink_check, int
 
 			if (errno == EACCES || errno == ENOENT || errno == ENOTDIR) {
 				/* That last component was bogus.  Restore and return. */
-				*restP = r - (prevrestlen - restlen);
+				*trailer = r - (prevrestlen - restlen);
 				if (prevcheckedlen == 0)
 					strcpy(checked, ".");
 				else
@@ -1855,8 +1856,7 @@ static char *expand_symlinks(char *path, char **restP, int no_symlink_check, int
 		}
 	}
 
-	/* OK. */
-	*restP = r;
+	*trailer = r;
 	if (checked[0] == '\0')
 		strcpy(checked, ".");
 
@@ -2872,7 +2872,7 @@ done:
 
 
 #ifdef CGI_TIMELIMIT
-static void cgi_kill2(ClientData client_data, struct timeval *nowP)
+static void cgi_kill2(ClientData client_data, struct timeval *now)
 {
 	pid_t pid;
 
@@ -2881,7 +2881,7 @@ static void cgi_kill2(ClientData client_data, struct timeval *nowP)
 		syslog(LOG_ERR, "hard-killed CGI process %d", pid);
 }
 
-static void cgi_kill(ClientData client_data, struct timeval *nowP)
+static void cgi_kill(ClientData client_data, struct timeval *now)
 {
 	pid_t pid;
 
@@ -2889,7 +2889,7 @@ static void cgi_kill(ClientData client_data, struct timeval *nowP)
 	if (kill(pid, SIGINT) == 0) {
 		syslog(LOG_ERR, "killed CGI process %d", pid);
 		/* In case this isn't enough, schedule an uncatchable kill. */
-		if (!tmr_create(nowP, cgi_kill2, client_data, 5 * 1000L, 0)) {
+		if (!tmr_create(now, cgi_kill2, client_data, 5 * 1000L, 0)) {
 			syslog(LOG_CRIT, "tmr_create(cgi_kill2) failed");
 			exit(1);
 		}
@@ -3912,7 +3912,7 @@ done:
 	return header;
 }
 
-static int really_start_request(httpd_conn *hc, struct timeval *nowP)
+static int really_start_request(httpd_conn *hc, struct timeval *now)
 {
 #if defined(AUTH_FILE) || defined(ACCESS_FILE)
 	int rc;
@@ -4181,7 +4181,7 @@ sneaky:
 	} else {
 		char *extra = mod_headers(hc);
 
-		hc->file_address = mmc_map(hc->expnfilename, &(hc->sb), nowP);
+		hc->file_address = mmc_map(hc->expnfilename, &(hc->sb), now);
 		if (!hc->file_address) {
 			if (is_icon)
 				httpd_send_err(hc, 404, err404title, "", err404form, hc->encodedurl);
@@ -4197,12 +4197,12 @@ sneaky:
 }
 
 
-int httpd_start_request(httpd_conn *hc, struct timeval *nowP)
+int httpd_start_request(httpd_conn *hc, struct timeval *now)
 {
 	int r;
 
 	/* Really start the request. */
-	r = really_start_request(hc, nowP);
+	r = really_start_request(hc, now);
 
 	/* And return the status. */
 	return r;
@@ -4343,22 +4343,22 @@ static int really_check_referer(httpd_conn *hc)
 }
 
 
-char *httpd_ntoa(httpd_sockaddr *saP)
+char *httpd_ntoa(httpd_sockaddr *hsa)
 {
 #ifdef USE_IPV6
 	static char str[200];
 
-	if (getnameinfo(&saP->sa, sockaddr_len(saP), str, sizeof(str), 0, 0, NI_NUMERICHOST) != 0) {
+	if (getnameinfo(&hsa->sa, sockaddr_len(hsa), str, sizeof(str), 0, 0, NI_NUMERICHOST) != 0) {
 		str[0] = '?';
 		str[1] = '\0';
-	} else if (IN6_IS_ADDR_V4MAPPED(&saP->sa_in6.sin6_addr) && strncmp(str, "::ffff:", 7) == 0) {
+	} else if (IN6_IS_ADDR_V4MAPPED(&hsa->sa_in6.sin6_addr) && strncmp(str, "::ffff:", 7) == 0) {
 		/* Elide IPv6ish prefix for IPv4 addresses. */
 		memmove(str, &str[7], strlen(str) - 6);
 	}
 
 	return str;
 #else
-	return inet_ntoa(saP->sa_in.sin_addr);
+	return inet_ntoa(hsa->sa_in.sin_addr);
 #endif
 }
 
@@ -4367,9 +4367,9 @@ char *httpd_client(httpd_conn *hc)
 	return hc->client_addr.real_ip;
 }
 
-static int sockaddr_check(httpd_sockaddr *saP)
+static int sockaddr_check(httpd_sockaddr *hsa)
 {
-	switch (saP->sa.sa_family) {
+	switch (hsa->sa.sa_family) {
 	case AF_INET:
 		return 1;
 
@@ -4384,9 +4384,9 @@ static int sockaddr_check(httpd_sockaddr *saP)
 }
 
 
-static size_t sockaddr_len(httpd_sockaddr *saP)
+static size_t sockaddr_len(httpd_sockaddr *hsa)
 {
-	switch (saP->sa.sa_family) {
+	switch (hsa->sa.sa_family) {
 	case AF_INET:
 		return sizeof(struct sockaddr_in);
 

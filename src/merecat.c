@@ -361,7 +361,7 @@ static void lookup_hostname(httpd_sockaddr *sa4P, size_t sa4_len, int *gotv4P, h
 
 	freeaddrinfo(ai);
 
-#else				/* USE_IPV6 */
+#else /* USE_IPV6 */
 
 	struct hostent *he;
 
@@ -393,7 +393,7 @@ static void lookup_hostname(httpd_sockaddr *sa4P, size_t sa4_len, int *gotv4P, h
 	sa4P->sa_in.sin_port = htons(port);
 	*gotv4P = 1;
 
-#endif				/* USE_IPV6 */
+#endif /* USE_IPV6 */
 }
 
 

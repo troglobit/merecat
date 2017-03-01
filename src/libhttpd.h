@@ -26,8 +26,8 @@
 ** SUCH DAMAGE.
 */
 
-#ifndef _LIBHTTPD_H_
-#define _LIBHTTPD_H_
+#ifndef LIBHTTPD_H_
+#define LIBHTTPD_H_
 
 #include <sys/types.h>
 #include <sys/time.h>
@@ -192,7 +192,7 @@ typedef struct {
 ** httpd_server* which includes a socket fd that you can select() on.
 ** Return (httpd_server*) 0 on error.
 */
-extern httpd_server *httpd_init(char *hostname, httpd_sockaddr *sa4P, httpd_sockaddr *sa6P,
+extern httpd_server *httpd_init(char *hostname, httpd_sockaddr *hsav4, httpd_sockaddr *hsav6,
 				unsigned short port, char *cgi_pattern, int cgi_limit, char *charset,
 				int max_age, char *cwd, int no_log,
 				int no_symlink_check, int vhost, int global_passwd, char *url_pattern,
@@ -251,7 +251,7 @@ extern int httpd_parse_request(httpd_conn *hc);
 **
 ** Returns -1 on error.
 */
-extern int httpd_start_request(httpd_conn *hc, struct timeval *nowP);
+extern int httpd_start_request(httpd_conn *hc, struct timeval *now);
 
 /* Actually sends any buffered response text. */
 extern void httpd_write_response(httpd_conn *hc);
@@ -261,7 +261,7 @@ extern void httpd_write_response(httpd_conn *hc);
 ** parent process - the connection will stay open in the child.
 ** If you don't have a current timeval handy just pass in 0.
 */
-extern void httpd_close_conn(httpd_conn *hc, struct timeval *nowP);
+extern void httpd_close_conn(httpd_conn *hc, struct timeval *now);
 
 /* Call this to de-initialize a connection struct and *really* free the
 ** mallocced strings.
@@ -286,10 +286,10 @@ extern char *httpd_err503form;
 extern char *httpd_method_str(int method);
 
 /* Reallocate a string. */
-extern void httpd_realloc_str(char **strP, size_t *maxsizeP, size_t size);
+extern void httpd_realloc_str(char **str, size_t *curr_len, size_t new_len);
 
 /* Format a network socket to a string representation. */
-extern char *httpd_ntoa(httpd_sockaddr *saP);
+extern char *httpd_ntoa(httpd_sockaddr *hsa);
 
 /* Set NDELAY mode on a socket. */
 extern void httpd_set_ndelay(int fd);
@@ -306,4 +306,4 @@ extern size_t httpd_write_fully(int fd, const void *buf, size_t nbytes);
 /* Generate debugging statistics syslog message. */
 extern void httpd_logstats(long secs);
 
-#endif				/* _LIBHTTPD_H_ */
+#endif /* LIBHTTPD_H_ */
