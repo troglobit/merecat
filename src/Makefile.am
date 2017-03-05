@@ -3,6 +3,7 @@ sbin_PROGRAMS       = merecat htpasswd
 SYMLINK             = in.httpd httpd
 merecat_SOURCES     = base64.c		base64.h	\
 		      fdwatch.c		fdwatch.h	\
+		      file.c		file.h		\
 		      libhttpd.c	libhttpd.h	\
 		      md5.c 		md5.h		\
 		      merecat.c		merecat.h	\

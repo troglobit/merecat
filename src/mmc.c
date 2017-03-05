@@ -51,6 +51,7 @@
 #include <sys/mman.h>
 #endif				/* HAVE_MMAP */
 
+#include "file.h"
 #include "libhttpd.h"
 #include "mmc.h"
 
@@ -343,7 +344,7 @@ void *mmc_map(char *filename, struct stat *sbP, struct timeval *nowP)
 			return NULL;
 		}
 
-		if (httpd_read_fully(fd, m->addr, size_size) != m->size) {
+		if (file_read(fd, m->addr, size_size) != m->size) {
 			syslog(LOG_ERR, "read: %s", strerror(errno));
 			close(fd);
 			free(m->addr);

@@ -77,6 +77,7 @@ extern char *crypt(const char *key, const char *setting);
 
 /* Local headers */
 #include "base64.h"
+#include "file.h"
 #include "libhttpd.h"
 #include "match.h"
 #include "md5.h"
@@ -3417,7 +3418,7 @@ static void cgi_interpose_input(httpd_conn *hc, int wfd)
 
 	c = hc->read_idx - hc->checked_idx;
 	if (c > 0) {
-		if (httpd_write_fully(wfd, &(hc->read_buf[hc->checked_idx]), c) != c)
+		if ((size_t)file_write(wfd, &(hc->read_buf[hc->checked_idx]), c) != c)
 			return;
 	}
 	while (c < hc->contentlength) {
@@ -3426,9 +3427,11 @@ static void cgi_interpose_input(httpd_conn *hc, int wfd)
 			sleep(1);
 			continue;
 		}
+
 		if (r <= 0)
 			return;
-		if (httpd_write_fully(wfd, buf, r) != (size_t)r)
+
+		if (file_write(wfd, buf, r) != r)
 			return;
 		c += r;
 	}
@@ -3486,12 +3489,7 @@ static void cgi_interpose_output(httpd_conn *hc, int rfd)
 	httpd_realloc_str(&headers, &headers_size, 500);
 	headers_len = 0;
 	for (;;) {
-		r = read(rfd, buf, sizeof(buf));
-		if (r < 0 && (errno == EINTR || errno == EAGAIN || errno == EWOULDBLOCK)) {
-			sleep(1);
-			continue;
-		}
-
+		r = file_read(rfd, buf, sizeof(buf));
 		if (r <= 0) {
 			br = &(headers[headers_len]);
 			break;
@@ -3577,12 +3575,7 @@ static void cgi_interpose_output(httpd_conn *hc, int rfd)
 
 	/* Echo the rest of the output. */
 	for (;;) {
-		r = read(rfd, buf, sizeof(buf));
-		if (r < 0 && (errno == EINTR || errno == EAGAIN || errno == EWOULDBLOCK)) {
-			sleep(1);
-			continue;
-		}
-
+		r = file_read(rfd, buf, sizeof(buf));
 		if (r <= 0)
 			break;
 
