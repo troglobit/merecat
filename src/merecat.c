@@ -805,7 +805,7 @@ static void clear_connection(connecttab *c, struct timeval *tvP)
 static void finish_connection(connecttab *c, struct timeval *tvP)
 {
 	/* If we haven't actually sent the buffered response yet, do so now. */
-	httpd_write_response(c->hc);
+	httpd_send_response(c->hc);
 
 	/* And clear. */
 	clear_connection(c, tvP);

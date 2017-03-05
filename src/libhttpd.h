@@ -254,7 +254,7 @@ extern int httpd_parse_request(httpd_conn *hc);
 extern int httpd_start_request(httpd_conn *hc, struct timeval *now);
 
 /* Actually sends any buffered response text. */
-extern void httpd_write_response(httpd_conn *hc);
+extern void httpd_send_response(httpd_conn *hc);
 
 /* Call this to close down a connection and free the data.  A fine point,
 ** if you fork() with a connection open you should still call this in the

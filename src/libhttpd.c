@@ -199,7 +199,7 @@ static long long atoll(const char *str);
 #endif
 
 /* This global keeps track of whether we are in the main process or a
-** sub-process.  The reason is that httpd_write_response() can get called
+** sub-process.  The reason is that httpd_send_response() can get called
 ** in either context; when it is called from the main process it must use
 ** non-blocking I/O to avoid stalling the server, but when it is called
 ** from a sub-process it wants to use blocking I/O so that the whole
@@ -556,7 +556,7 @@ const char *httpd_css_default(void)
 }
 
 /* Send the buffered response. */
-void httpd_write_response(httpd_conn *hc)
+void httpd_send_response(httpd_conn *hc)
 {
 	/* If we are in a sub-process, turn off no-delay mode. */
 	if (sub_process)
@@ -3097,7 +3097,7 @@ static int child_ls(httpd_conn *hc, DIR *dirp)
 	sub_process = 1;
 	httpd_unlisten(hc->hs);
 	send_mime(hc, 200, ok200title, "", "", "text/html; charset=%s", (off_t) - 1, hc->sb.st_mtime);
-	httpd_write_response(hc);
+	httpd_send_response(hc);
 
 #ifdef CGI_NICE
 	/* Set priority. */
@@ -3113,7 +3113,7 @@ static int child_ls(httpd_conn *hc, DIR *dirp)
 	if (!fp) {
 		syslog(LOG_ERR, "fdopen: %s", strerror(errno));
 		httpd_send_err(hc, 500, err500title, "", err500form, hc->encodedurl);
-		httpd_write_response(hc);
+		httpd_send_response(hc);
 		closedir(dirp);
 		return 1;
 	}
@@ -3635,14 +3635,14 @@ static void cgi_child(httpd_conn *hc)
 		if (pipe(p) < 0) {
 			syslog(LOG_ERR, "pipe: %s", strerror(errno));
 			httpd_send_err(hc, 500, err500title, "", err500form, hc->encodedurl);
-			httpd_write_response(hc);
+			httpd_send_response(hc);
 			exit(1);
 		}
 		r = fork();
 		if (r < 0) {
 			syslog(LOG_ERR, "fork: %s", strerror(errno));
 			httpd_send_err(hc, 500, err500title, "", err500form, hc->encodedurl);
-			httpd_write_response(hc);
+			httpd_send_response(hc);
 			exit(1);
 		}
 		if (r == 0) {
@@ -3673,14 +3673,14 @@ static void cgi_child(httpd_conn *hc)
 		if (pipe(p) < 0) {
 			syslog(LOG_ERR, "pipe: %s", strerror(errno));
 			httpd_send_err(hc, 500, err500title, "", err500form, hc->encodedurl);
-			httpd_write_response(hc);
+			httpd_send_response(hc);
 			exit(1);
 		}
 		r = fork();
 		if (r < 0) {
 			syslog(LOG_ERR, "fork: %s", strerror(errno));
 			httpd_send_err(hc, 500, err500title, "", err500form, hc->encodedurl);
-			httpd_write_response(hc);
+			httpd_send_response(hc);
 			exit(1);
 		}
 		if (r == 0) {
@@ -3758,7 +3758,7 @@ static void cgi_child(httpd_conn *hc)
 	/* Something went wrong, in a chroot() we may not get this syslog() msg. */
 	syslog(LOG_ERR, "execve %s(%s): %s", binary, hc->expnfilename, strerror(errno));
 	httpd_send_err(hc, 500, err500title, "", err500form, hc->encodedurl);
-	httpd_write_response(hc);
+	httpd_send_response(hc);
 	exit(1);
 }
 
