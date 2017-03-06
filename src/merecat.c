@@ -686,8 +686,8 @@ static void really_clear_connection(connecttab *c, struct timeval *tvP)
 	if (c->zs_output_head) {
 		free(c->zs_output_head);
 		c->zs_output_head = NULL;
+		deflateEnd(&c->zs);
 	}
-	deflateEnd(&c->zs);
 #endif
 	c->conn_state = CNST_FREE;
 	c->next_free_connect = first_free_connect;
@@ -1015,7 +1015,7 @@ static void handle_read(connecttab *c, struct timeval *tvP)
 		c->zs.opaque = Z_NULL;
 
 		/* setup zlib input file to mmap'ed location */
-		c->zs.next_in  = c->hc->file_address;
+		c->zs.next_in  = (Bytef *)c->hc->file_address;
 		c->zs.avail_in = c->hc->sb.st_size;
 
 		/* allocate memory for output buffer, if it's not already allocated */
@@ -1030,14 +1030,17 @@ static void handle_read(connecttab *c, struct timeval *tvP)
 		if (hc->compression_type == COMPRESSION_GZIP) {
 			/* add gzip header to output file */
 			sprintf(c->zs_output_head, "%c%c%c%c%c%c%c%c%c%c",
-				0x1f,
-				0x8b,
+				0x1f, 0x8b,
 				Z_DEFLATED,
 				0 /*flags*/,
+#if 0 /* Ugly first version, seems to be optional */
 				&c->hc->sb.st_mtime, /* XXX: use a more transportable implementation! */
 				&c->hc->sb.st_mtime + 1,
 				&c->hc->sb.st_mtime + 2,
 				&c->hc->sb.st_mtime + 3,
+#else
+				0, 0, 0, 0,
+#endif
 				0 /*xflags*/,
 				0x03);
 
@@ -1108,7 +1111,7 @@ static void handle_send(connecttab *c, struct timeval *tvP)
 				uLong crc = crc32(0L, Z_NULL, 0);
 
 				/* crc32 must not be converted into network byte order */
-				crc = crc32(crc, c->hc->file_address, c->hc->sb.st_size);
+				crc = crc32(crc, (Bytef *)c->hc->file_address, c->hc->sb.st_size);
 				memcpy(c->zs.next_out, &crc, sizeof(uLong));
 				memcpy(c->zs.next_out + 4, &(hc->sb.st_size), 4);
 				c->zs.next_out += 8;
@@ -1118,7 +1121,7 @@ static void handle_send(connecttab *c, struct timeval *tvP)
 		/* Do we need to write the headers first? */
 		iv_count = 1;
 		iv[0].iov_base = c->zs_output_head;
-		iv[0].iov_len = MIN((void *)c->zs.next_out - (void *)c->zs_output_head, max_bytes);
+		iv[0].iov_len = c->zs.next_out - (Bytef *)c->zs_output_head;
 
 		if (hc->responselen != 0) {
 			/* Yes.  We'll combine headers and file into a single writev(),
@@ -1126,9 +1129,9 @@ static void handle_send(connecttab *c, struct timeval *tvP)
 			*/
 			iv_count = 2;
 			iv[0].iov_base = hc->response;
-			iv[0].iov_len = hc->responselen;
+			iv[0].iov_len  = hc->responselen;
 			iv[1].iov_base = c->zs_output_head;
-			iv[1].iov_len = MIN((void *)c->zs.next_out - (void *)c->zs_output_head,	max_bytes);
+			iv[1].iov_len  = c->zs.next_out - (Bytef *)c->zs_output_head;
 		}
 		sz = writev(hc->conn_fd, iv, iv_count);
 #endif /* HAVE_ZLIB_H */
@@ -1888,6 +1891,9 @@ int main(int argc, char **argv)
 		connects[cnum].conn_state = CNST_FREE;
 		connects[cnum].next_free_connect = cnum + 1;
 		connects[cnum].hc = NULL;
+#ifdef HAVE_ZLIB_H
+		connects[cnum].zs_output_head = NULL;
+#endif
 	}
 	connects[max_connects - 1].next_free_connect = -1;	/* end of link list */
 	first_free_connect = 0;
