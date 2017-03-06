@@ -1223,7 +1223,7 @@ static void handle_send(connecttab *c, struct timeval *tvP)
 	} else {
 		if ((c->zs_state == Z_STREAM_END) && (c->zs_output_head + sz == c->zs.next_out)) {
 			/* This conection is finished! */
-			clear_connection( c, tvP );
+			clear_connection(c, tvP);
 			return;
 		} else if (sz > 0) {
 			/* move data to beginning of zlib output buffer
