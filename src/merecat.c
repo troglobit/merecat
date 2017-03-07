@@ -1166,7 +1166,6 @@ static void handle_send(connecttab *c, struct timeval *tvP)
 			syslog(LOG_CRIT, "tmr_create(wakeup_connection) failed");
 			exit(1);
 		}
-		clear_connection(c, tvP);
 		return;
 	}
 
