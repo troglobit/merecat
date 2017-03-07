@@ -2007,6 +2007,7 @@ void httpd_init_conn_content(httpd_conn *hc)
 	hc->first_byte_index = 0;
 	hc->last_byte_index = -1;
 	hc->keep_alive = 0;
+	hc->do_keep_alive = 0;
 	hc->should_linger = 0;
 	hc->file_address = NULL;
 	hc->compression_type = COMPRESSION_NONE;
