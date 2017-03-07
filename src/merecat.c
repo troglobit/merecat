@@ -747,6 +747,10 @@ static void clear_connection(connecttab *c, struct timeval *tvP)
 	}
 
 	if (c->hc->do_keep_alive) {
+		if (c->conn_state != CNST_PAUSING)
+			fdwatch_del_fd(c->hc->conn_fd);
+		fdwatch_add_fd(c->hc->conn_fd, c, FDW_READ);
+
 		c->conn_state = CNST_READING;
 		c->next_byte_index = 0;
 
@@ -766,9 +770,6 @@ static void clear_connection(connecttab *c, struct timeval *tvP)
 		/* reinitialize httpd_conn */
 		httpd_init_conn_mem(c->hc);
 		httpd_init_conn_content(c->hc);
-
-		fdwatch_del_fd(c->hc->conn_fd);
-		fdwatch_add_fd(c->hc->conn_fd, c, FDW_READ);
 
 		/* Reset the connection file descriptor to no-delay mode. */
 		httpd_set_ndelay(c->hc->conn_fd);
