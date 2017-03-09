@@ -237,8 +237,8 @@ static void free_httpd_server(httpd_server *hs)
 
 
 httpd_server *httpd_init(char *hostname, httpd_sockaddr *hsav4, httpd_sockaddr *hsav6,
-			 unsigned short port, char *cgi_pattern, int cgi_limit, char *charset,
-			 int max_age, char *cwd, int no_log,
+			 unsigned short port, void *ssl_ctx, char *cgi_pattern, int cgi_limit,
+			 char *charset, int max_age, char *cwd, int no_log,
 			 int no_symlink_check, int vhost, int global_passwd, char *url_pattern,
 			 char *local_pattern, int no_empty_referers, int list_dotfiles)
 {
@@ -284,6 +284,8 @@ httpd_server *httpd_init(char *hostname, httpd_sockaddr *hsav4, httpd_sockaddr *
 	}
 
 	hs->port = port;
+	hs->ctx = ssl_ctx;
+
 	if (!cgi_pattern) {
 		hs->cgi_pattern = NULL;
 	} else {
@@ -372,6 +374,60 @@ httpd_server *httpd_init(char *hostname, httpd_sockaddr *hsav4, httpd_sockaddr *
 	return hs;
 }
 
+void *httpd_ssl_init(char *cert, char *key)
+{
+	SSL_CTX *ctx;
+
+	SSL_load_error_strings();
+	OpenSSL_add_ssl_algorithms();
+
+	ctx = SSL_CTX_new(SSLv23_server_method());
+	if (!ctx)
+		goto error;
+
+	/* Enable bug workarounds. */
+	SSL_CTX_set_options(ctx, SSL_OP_ALL);
+
+	/* Disable insecure SSL/TLS versions. */
+	SSL_CTX_set_options(ctx, SSL_OP_NO_SSLv2); /* DROWN */
+	SSL_CTX_set_options(ctx, SSL_OP_NO_SSLv3); /* POODLE */
+	SSL_CTX_set_options(ctx, SSL_OP_NO_TLSv1); /* BEAST */
+
+	SSL_CTX_set_ecdh_auto(ctx, 1);
+
+ 	SSL_CTX_set_default_verify_paths(ctx);
+ 	SSL_CTX_set_verify(ctx, SSL_VERIFY_NONE, NULL);
+
+	if (SSL_CTX_use_certificate_file(ctx, cert, SSL_FILETYPE_PEM) < 0)
+		goto error;
+
+	if (SSL_CTX_use_PrivateKey_file(ctx, key, SSL_FILETYPE_PEM) < 0 )
+		goto error;
+
+	return ctx;
+error:
+	ERR_print_errors_fp(stderr);
+	return NULL;
+}
+
+void httpd_ssl_exit(httpd_server *hs)
+{
+	if (hs->ctx) {
+		SSL_COMP_free_compression_methods();
+		SSL_CTX_free(hs->ctx);
+		hs->ctx = NULL;
+
+		ENGINE_cleanup();
+		ERR_free_strings();
+		ERR_remove_state(0);
+		EVP_cleanup();
+		CRYPTO_cleanup_all_ex_data();
+		CONF_modules_free();
+		CONF_modules_unload(1);
+		COMP_zlib_cleanup();
+	}
+}
+
 
 static int initialize_listen_socket(httpd_sockaddr *hsa)
 {
@@ -446,6 +502,7 @@ static int initialize_listen_socket(httpd_sockaddr *hsa)
 
 void httpd_exit(httpd_server *hs)
 {
+	httpd_ssl_exit(hs);
 	httpd_unlisten(hs);
 	free_httpd_server(hs);
 }
@@ -565,7 +622,7 @@ void httpd_send_response(httpd_conn *hc)
 	/* Send the response, if necessary. */
 	if (hc->responselen > 0) {
 		make_log_entry(hc);
-		httpd_write_fully(hc->conn_fd, hc->response, hc->responselen);
+		httpd_write(hc, hc->response, hc->responselen);
 		hc->responselen = 0;
 	}
 }
@@ -1873,6 +1930,10 @@ void httpd_close_conn(httpd_conn *hc, struct timeval *now)
 	}
 
 	if (hc->conn_fd >= 0) {
+		if (hc->ssl) {
+			SSL_free(hc->ssl);
+			hc->ssl = NULL;
+		}
 		close(hc->conn_fd);
 		hc->conn_fd = -1;
 	}
@@ -1908,6 +1969,8 @@ void httpd_destroy_conn(httpd_conn *hc)
 		free(hc->prevuser);
 		free(hc->prevcryp);
 #endif
+		if (hc->ssl)
+			SSL_shutdown(hc->ssl);
 		hc->initialized = 0;
 	}
 }
@@ -2053,6 +2116,21 @@ int httpd_get_conn(httpd_server *hs, int listen_fd, httpd_conn *hc)
 	real_ip = httpd_ntoa(&hc->client_addr);
 	memset(hc->client_addr.real_ip, 0, sizeof(hc->client_addr.real_ip));
 	strncpy(hc->client_addr.real_ip, real_ip, sizeof(hc->client_addr.real_ip));
+
+	hc->ssl = NULL;
+	if (hs->ctx) {
+		hc->ssl = SSL_new(hs->ctx);
+		if (!hc->ssl) {
+			syslog(LOG_CRIT, "Failed creating new SSL connection");
+			return GC_FAIL;
+		}
+
+		SSL_set_fd(hc->ssl, hc->conn_fd);
+		if (SSL_accept(hc->ssl) <= 0) {
+			SSL_free(hc->ssl);
+			return GC_FAIL;
+		}
+	}
 
 	httpd_init_conn_content(hc);
 
@@ -3423,7 +3501,7 @@ static void cgi_interpose_input(httpd_conn *hc, int wfd)
 			return;
 	}
 	while (c < hc->contentlength) {
-		r = read(hc->conn_fd, buf, MIN(sizeof(buf), hc->contentlength - c));
+		r = httpd_read(hc, buf, MIN(sizeof(buf), hc->contentlength - c));
 		if (r < 0 && (errno == EINTR || errno == EAGAIN)) {
 			sleep(1);
 			continue;
@@ -3457,8 +3535,9 @@ static void post_post_garbage_hack(httpd_conn *hc)
 	*/
 	if (sub_process)
 		httpd_set_ndelay(hc->conn_fd);
+
 	/* And read up to 2 bytes. */
-	read(hc->conn_fd, buf, sizeof(buf));
+	httpd_read(hc, buf, sizeof(buf));
 }
 
 
@@ -3471,7 +3550,7 @@ static void post_post_garbage_hack(httpd_conn *hc)
 */
 static void cgi_interpose_output(httpd_conn *hc, int rfd)
 {
-	int r;
+	ssize_t r;
 	char buf[1024];
 	size_t headers_size, headers_len;
 	char *headers;
@@ -3569,10 +3648,10 @@ static void cgi_interpose_output(httpd_conn *hc, int rfd)
 	}
 
 	snprintf(buf, sizeof(buf), "HTTP/1.0 %d %s\r\n", status, title);
-	httpd_write_fully(hc->conn_fd, buf, strlen(buf));
+	httpd_write(hc, buf, strlen(buf));
 
 	/* Write the saved headers. */
-	httpd_write_fully(hc->conn_fd, headers, headers_len);
+	httpd_write(hc, headers, headers_len);
 
 	/* Echo the rest of the output. */
 	for (;;) {
@@ -3580,7 +3659,7 @@ static void cgi_interpose_output(httpd_conn *hc, int rfd)
 		if (r <= 0)
 			break;
 
-		if (httpd_write_fully(hc->conn_fd, buf, r) != (size_t)r)
+		if (httpd_write(hc, buf, r) != r)
 			break;
 	}
 
@@ -4432,52 +4511,73 @@ static long long atoll(const char *str)
 
 
 /* Read the requested buffer completely, accounting for interruptions. */
-int httpd_read_fully(int fd, void *buf, size_t nbytes)
+ssize_t httpd_read(httpd_conn *hc, void *buf, size_t len)
 {
-	size_t nread;
+	if (hc->ssl)
+		return SSL_read(hc->ssl, buf, len);
 
-	nread = 0;
-	while (nread < nbytes) {
-		int r;
-
-		r = read(fd, (char *)buf + nread, nbytes - nread);
-		if (r < 0 && (errno == EINTR || errno == EAGAIN)) {
-			sleep(1);
-			continue;
-		}
-		if (r < 0)
-			return r;
-		if (r == 0)
-			break;
-		nread += r;
-	}
-
-	return nread;
+	/* Yes, it's a regular read() here, not file_read() */
+	return read(hc->conn_fd, buf, len);
 }
 
 
 /* Write the requested buffer completely, accounting for interruptions. */
-size_t httpd_write_fully(int fd, const void *buf, size_t nbytes)
+ssize_t httpd_write(httpd_conn *hc, void *buf, size_t len)
 {
-	size_t nwritten;
+	if (hc->ssl)
+		return SSL_write(hc->ssl, buf, len);
 
-	nwritten = 0;
-	while (nwritten < nbytes) {
-		int r;
+	return file_write(hc->conn_fd, buf, len);
+}
 
-		r = write(fd, (char *)buf + nwritten, nbytes - nwritten);
-		if (r < 0 && (errno == EINTR || errno == EAGAIN)) {
-			sleep(1);
-			continue;
+ssize_t httpd_writev(httpd_conn *hc, struct iovec *iov, size_t num)
+{
+	if (hc->ssl) {
+		char *buf;
+		size_t i, pos = 0, len = 0;
+		ssize_t rc;
+
+		for (i = 0; i < num; i++)
+			len += iov[i].iov_len;
+
+		buf = malloc(len);
+		for (i = 0; i < num; i++) {
+			memcpy(&buf[pos], iov[i].iov_base, iov[i].iov_len);
+			pos += iov[i].iov_len;
 		}
-		if (r < 0)
-			return r;
-		if (r == 0)
-			break;
-		nwritten += r;
+
+		rc = SSL_write(hc->ssl, buf, len);
+		if (rc < 0 && BIO_should_retry(SSL_get_wbio(hc->ssl))) {
+			usleep(100000);
+			rc = SSL_write(hc->ssl, buf, len);
+		}
+
+		free(buf);
+		if (rc <= 0) {
+			rc = SSL_get_error(hc->ssl, rc);
+			switch (rc)
+			{
+			case SSL_ERROR_WANT_WRITE:
+				errno = EAGAIN;
+				break;
+
+			case SSL_ERROR_SYSCALL:
+				/* errno set already */
+				break;
+
+			default:
+				errno = EINVAL;
+				break;
+			}
+
+			/* Signal error to callee, like writev() */
+			rc = -1;
+		}
+
+		return rc;
 	}
 
-	return nwritten;
+	return writev(hc->conn_fd, iov, num);
 }
 
 

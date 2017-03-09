@@ -98,6 +98,9 @@ static unsigned short port     = DEFAULT_PORT;    /* SERVER_PORT_DEFAULT */
 static char *dir               = NULL;            /* SERVER_DIR_DEFUALT: /var/www */
 static char *data_dir          = NULL;
 static int   do_chroot         = 0;
+static int   do_ssl            = 0;
+static char *certfile          = NULL;
+static char *keyfile           = NULL;
 static int   no_log            = 0;
 static int   no_symlink_check  = 1;
 static int   do_vhost          = 0;
@@ -214,6 +217,9 @@ static int read_config(char *filename)
 		CFG_STR ("username", user, CFGF_NONE),
 		CFG_STR ("hostname", hostname, CFGF_NONE),
 		CFG_BOOL("virtual-host", do_vhost, CFGF_NONE),
+		CFG_BOOL("ssl", do_ssl, CFGF_NONE),
+		CFG_STR ("certfile", certfile, CFGF_NONE),
+		CFG_STR ("keyfile", keyfile, CFGF_NONE),
 		CFG_END()
 	};
 
@@ -268,6 +274,16 @@ static int read_config(char *filename)
 
 	charset = cfg_getstr(cfg, "charset");
 	max_age = cfg_getint(cfg, "max-age");
+
+	do_ssl = cfg_getbool(cfg, "ssl");
+	if (do_ssl) {
+		certfile = cfg_getstr(cfg, "certfile");
+		keyfile  = cfg_getstr(cfg, "keyfile");
+		if (!certfile || !keyfile) {
+			syslog(LOG_ERR, "Missing SSL certificate file(s)");
+			goto error;
+		}
+	}
 
 #ifdef HAVE_ZLIB_H
 	compression_level = cfg_getint(cfg, "compression-level");
@@ -905,7 +921,7 @@ static void handle_read(connecttab *c, struct timeval *tvP)
 	}
 
 	/* Read some more bytes. */
-	sz = read(hc->conn_fd, &(hc->read_buf[hc->read_idx]), hc->read_size - hc->read_idx);
+	sz = httpd_read(hc, &(hc->read_buf[hc->read_idx]), hc->read_size - hc->read_idx);
 	if (sz == 0) {
 		if (!hc->do_keep_alive)
 			httpd_send_err(hc, 400, httpd_err400title, "", httpd_err400form, "");
@@ -1084,8 +1100,8 @@ static void handle_send(connecttab *c, struct timeval *tvP)
 		/* Do we need to write the headers first? */
 		if (hc->responselen == 0) {
 			/* No, just write the file. */
-			sz = write(hc->conn_fd, &(hc->file_address[c->next_byte_index]),
-				   MIN(c->end_byte_index - c->next_byte_index, (off_t)max_bytes));
+			sz = httpd_write(hc, &(hc->file_address[c->next_byte_index]),
+					 MIN(c->end_byte_index - c->next_byte_index, (off_t)max_bytes));
 		} else {
 			/* Yes.  We'll combine headers and file into a single writev(),
 			** hoping that this generates a single packet.
@@ -1096,7 +1112,7 @@ static void handle_send(connecttab *c, struct timeval *tvP)
 			iv[0].iov_len = hc->responselen;
 			iv[1].iov_base = &(hc->file_address[c->next_byte_index]);
 			iv[1].iov_len = MIN(c->end_byte_index - c->next_byte_index, (off_t)max_bytes);
-			sz = writev(hc->conn_fd, iv, 2);
+			sz = httpd_writev(hc, iv, 2);
 		}
 #ifdef HAVE_ZLIB_H
 	} else {
@@ -1134,7 +1150,7 @@ static void handle_send(connecttab *c, struct timeval *tvP)
 			iv[1].iov_base = c->zs_output_head;
 			iv[1].iov_len  = c->zs.next_out - (Bytef *)c->zs_output_head;
 		}
-		sz = writev(hc->conn_fd, iv, iv_count);
+		sz = httpd_writev(hc, iv, iv_count);
 #endif /* HAVE_ZLIB_H */
 	}
 
@@ -1276,7 +1292,7 @@ static void handle_linger(connecttab *c, struct timeval *tvP)
 	** or EOF ends things, otherwise we go until a timeout.
 	 */
 	do {
-		r = read(c->hc->conn_fd, buf, sizeof(buf));
+		r = httpd_read(c->hc, buf, sizeof(buf));
 		if (r < 0 && (errno == EINTR || errno == EAGAIN || errno == EWOULDBLOCK))
 			return;
 	} while (r > 0);
@@ -1553,6 +1569,7 @@ int main(int argc, char **argv)
 	int gotv4, gotv6;
 	struct timeval tv;
 	struct sigaction sa;
+	void *ctx = NULL;
 
 	ident = prognm = progname(argv[0]);
 	while ((c = getopt(argc, argv, CONF_FILE_OPT "c:d:ghI:l:np:P:rsu:vV")) != EOF) {
@@ -1683,6 +1700,15 @@ int main(int argc, char **argv)
 		gid = pwd->pw_gid;
 	}
 
+	/* Initialize SSL library and load cert files before we chroot */
+	if (do_ssl) {
+		ctx = httpd_ssl_init(certfile, keyfile);
+		if (!ctx) {
+			syslog(LOG_ERR, "Failed initializing SSL");
+			exit(1);
+		}
+	}
+
 	/* Switch directories if requested. */
 	if (dir) {
 		if (chdir(dir) < 0) {
@@ -1806,8 +1832,8 @@ int main(int argc, char **argv)
 	/* Initialize the HTTP layer.  Got to do this before giving up root,
 	 ** so that we can bind to a privileged port.
 	 */
-	hs = httpd_init(hostname, gotv4 ? &sa4 : NULL, gotv6 ? &sa6 : NULL,
-			port, cgi_pattern, cgi_limit, charset, max_age, path, no_log,
+	hs = httpd_init(hostname, gotv4 ? &sa4 : NULL, gotv6 ? &sa6 : NULL, port, ctx,
+			cgi_pattern, cgi_limit, charset, max_age, path, no_log,
 			no_symlink_check, do_vhost, do_global_passwd, url_pattern, local_pattern,
 			no_empty_referers, list_dotfiles);
 	if (!hs)

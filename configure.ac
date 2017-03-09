@@ -95,6 +95,19 @@ AS_IF([test "x$with_zlib" != "xno"], [
 	PKG_CHECK_MODULES([zlib], [zlib >= 1.2.3.4])
 	AC_CHECK_HEADERS([zlib.h])])
 
+PKG_CHECK_MODULES([OpenSSL], [openssl])
+LDFLAGS="$LDFLAGS $OpenSSL_LIBS"
+CPPFLAGS="$CPPFLAGS $OpenSSL_CFLAGS"
+AC_CHECK_LIB([crypto], [EVP_EncryptInit], [],
+	AC_MSG_ERROR([*** Crypto library (OpenSSL) not found!]))
+AC_CHECK_LIB([ssl], [SSL_library_init], [],
+	AC_CHECK_LIB([ssl], [OPENSSL_init_ssl], [],
+	AC_MSG_ERROR([*** SSL library (OpenSSL) not found!])))
+AC_CHECK_HEADERS([openssl/crypto.h openssl/x509.h openssl/pem.h openssl/ssl.h openssl/tls1.h openssl/err.h], [],
+	AC_MSG_ERROR([*** Cannot find required header files!]), [
+#include <openssl/conf.h>
+])
+
 # Check where to install the systemd .service file
 AS_IF([test "x$with_systemd" = "xyes" -o "x$with_systemd" = "xauto"], [
      def_systemd=$($PKG_CONFIG --variable=systemdsystemunitdir systemd)

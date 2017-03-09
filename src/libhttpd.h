@@ -37,6 +37,18 @@
 #include <arpa/inet.h>
 #include <netdb.h>
 
+#include <openssl/ssl.h>
+#include <openssl/err.h>
+#include <openssl/x509.h>
+#include <openssl/x509v3.h>
+#include <openssl/x509_vfy.h>
+#include <openssl/pem.h>
+#include <openssl/crypto.h>
+#include <openssl/engine.h>
+#include <openssl/evp.h>
+#include <openssl/rand.h>
+
+
 #if defined(AF_INET6) && defined(IN6_IS_ADDR_V4MAPPED)
 #define USE_IPV6
 #endif
@@ -91,6 +103,8 @@ typedef struct {
 	char *local_pattern;
 	int no_empty_referers;
 	int list_dotfiles;
+
+	SSL_CTX *ctx;
 } httpd_server;
 
 /* A connection. */
@@ -162,6 +176,8 @@ typedef struct {
 	int has_deflate;	/* Built with zlib:deflate() and enabled */
 	int compression_type;
 	char *file_address;
+
+	SSL *ssl;
 } httpd_conn;
 
 /* Methods. */
@@ -193,13 +209,19 @@ typedef struct {
 ** Return (httpd_server*) 0 on error.
 */
 extern httpd_server *httpd_init(char *hostname, httpd_sockaddr *hsav4, httpd_sockaddr *hsav6,
-				unsigned short port, char *cgi_pattern, int cgi_limit, char *charset,
-				int max_age, char *cwd, int no_log,
+				unsigned short port, void *ssl_ctx, char *cgi_pattern, int cgi_limit,
+				char *charset, int max_age, char *cwd, int no_log,
 				int no_symlink_check, int vhost, int global_passwd, char *url_pattern,
 				char *local_pattern, int no_empty_referers, int list_dotfiles);
 
 /* Call to shut down. */
 extern void httpd_exit(httpd_server *hs);
+
+/* Initialize SSL and load certificate and key file */
+void *httpd_ssl_init(char *cert, char *key);
+
+/* Unload SSL, called automatically at httpd_exit() */
+void httpd_ssl_exit(httpd_server *hs);
 
 /* Call to unlisten/close socket(s) listening for new connections. */
 extern void httpd_unlisten(httpd_server *hs);
@@ -298,10 +320,11 @@ extern void httpd_set_ndelay(int fd);
 extern void httpd_clear_ndelay(int fd);
 
 /* Read the requested buffer completely, accounting for interruptions. */
-extern int httpd_read_fully(int fd, void *buf, size_t nbytes);
+extern ssize_t httpd_read(httpd_conn *hc, void *buf, size_t len);
 
 /* Write the requested buffer completely, accounting for interruptions. */
-extern size_t httpd_write_fully(int fd, const void *buf, size_t nbytes);
+extern ssize_t httpd_write(httpd_conn *hc, void *buf, size_t len);
+extern ssize_t httpd_writev(httpd_conn *hc, struct iovec *iov, size_t num);
 
 /* Generate debugging statistics syslog message. */
 extern void httpd_logstats(long secs);
