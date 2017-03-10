@@ -42,6 +42,10 @@ AC_ARG_WITH([config],
         AS_HELP_STRING([--without-config], [Disable /etc/merecat.conf support using libConfuse]),
 	[], [with_config=yes])
 
+AC_ARG_WITH(ssl,
+        AS_HELP_STRING([--without-ssl], [Disable HTTPS support, default: enabled]),
+        [], [with_ssl=yes])
+
 AC_ARG_WITH([zlib],
         AS_HELP_STRING([--without-zlib], [Disable mod_deflate (gzip) using zlib]),
 	[], [with_zlib=yes])
@@ -91,42 +95,44 @@ AS_IF([test "x$with_config" != "xno"], [
 	AC_DEFINE([HAVE_LIBCONFUSE], [1], [Build with support for /etc/merecat.conf])
 	PKG_CHECK_MODULES([confuse], [libconfuse >= 2.7])])
 
+AS_IF([test "x$with_ssl" != "xno"], [
+	PKG_CHECK_MODULES([OpenSSL], [openssl])
+	LDFLAGS="$LDFLAGS $OpenSSL_LIBS"
+	CPPFLAGS="$CPPFLAGS $OpenSSL_CFLAGS"
+	AC_CHECK_LIB([crypto], [EVP_EncryptInit], [],
+		AC_MSG_ERROR([*** Crypto library (OpenSSL) not found!]))
+	AC_CHECK_LIB([ssl], [SSL_library_init], [],
+		AC_CHECK_LIB([ssl], [OPENSSL_init_ssl], [],
+		AC_MSG_ERROR([*** SSL library (OpenSSL) not found!])))
+	AC_CHECK_HEADERS([openssl/crypto.h openssl/x509.h openssl/pem.h openssl/ssl.h openssl/tls1.h openssl/err.h], [],
+		AC_MSG_ERROR([*** Cannot find required header files!]), [
+			#include <openssl/conf.h>
+		])
+	AC_CHECK_DECLS([SSL_COMP_free_compression_methods,SSL_CTX_set_ecdh_auto], [], [], [
+		#ifdef HAVE_OPENSSL_ERR_H
+		#include <openssl/err.h>
+		#endif
+
+		#ifdef HAVE_OPENSSL_RAND_H
+		#include <openssl/rand.h>
+		#endif
+
+		#ifdef HAVE_OPENSSL_CONF_H
+		#include <openssl/conf.h>
+		#endif
+
+		#ifdef HAVE_OPENSSL_ENGINE_H
+		#include <openssl/engine.h>
+		#endif
+		#include <openssl/ssl.h>
+		#include <openssl/evp.h>
+	])
+	AC_DEFINE([ENABLE_SSL], [1], [Enable HTTPS support])
+])
+
 AS_IF([test "x$with_zlib" != "xno"], [
 	PKG_CHECK_MODULES([zlib], [zlib >= 1.2.3.4])
 	AC_CHECK_HEADERS([zlib.h])])
-
-PKG_CHECK_MODULES([OpenSSL], [openssl])
-LDFLAGS="$LDFLAGS $OpenSSL_LIBS"
-CPPFLAGS="$CPPFLAGS $OpenSSL_CFLAGS"
-AC_CHECK_LIB([crypto], [EVP_EncryptInit], [],
-	AC_MSG_ERROR([*** Crypto library (OpenSSL) not found!]))
-AC_CHECK_LIB([ssl], [SSL_library_init], [],
-	AC_CHECK_LIB([ssl], [OPENSSL_init_ssl], [],
-	AC_MSG_ERROR([*** SSL library (OpenSSL) not found!])))
-AC_CHECK_HEADERS([openssl/crypto.h openssl/x509.h openssl/pem.h openssl/ssl.h openssl/tls1.h openssl/err.h], [],
-	AC_MSG_ERROR([*** Cannot find required header files!]), [
-#include <openssl/conf.h>
-])
-AC_CHECK_DECLS([SSL_COMP_free_compression_methods,SSL_CTX_set_ecdh_auto], [], [], [
-AC_INCLUDES_DEFAULT
-#ifdef HAVE_OPENSSL_ERR_H
-#include <openssl/err.h>
-#endif
-
-#ifdef HAVE_OPENSSL_RAND_H
-#include <openssl/rand.h>
-#endif
-
-#ifdef HAVE_OPENSSL_CONF_H
-#include <openssl/conf.h>
-#endif
-
-#ifdef HAVE_OPENSSL_ENGINE_H
-#include <openssl/engine.h>
-#endif
-#include <openssl/ssl.h>
-#include <openssl/evp.h>
-])
 
 # Check where to install the systemd .service file
 AS_IF([test "x$with_systemd" = "xyes" -o "x$with_systemd" = "xauto"], [

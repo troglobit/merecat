@@ -376,6 +376,7 @@ httpd_server *httpd_init(char *hostname, httpd_sockaddr *hsav4, httpd_sockaddr *
 
 void *httpd_ssl_init(char *cert, char *key)
 {
+#ifdef ENABLE_SSL
 	SSL_CTX *ctx;
 
 	SSL_load_error_strings();
@@ -409,11 +410,13 @@ void *httpd_ssl_init(char *cert, char *key)
 	return ctx;
 error:
 	ERR_print_errors_fp(stderr);
+#endif
 	return NULL;
 }
 
 void httpd_ssl_exit(httpd_server *hs)
 {
+#ifdef ENABLE_SSL
 	if (hs->ctx) {
 #if HAVE_DECL_SSL_COMP_FREE_COMPRESSION_METHODS
 		SSL_COMP_free_compression_methods();
@@ -430,6 +433,7 @@ void httpd_ssl_exit(httpd_server *hs)
 		CONF_modules_unload(1);
 		COMP_zlib_cleanup();
 	}
+#endif
 }
 
 
@@ -1934,10 +1938,12 @@ void httpd_close_conn(httpd_conn *hc, struct timeval *now)
 	}
 
 	if (hc->conn_fd >= 0) {
+#ifdef ENABLE_SSL
 		if (hc->ssl) {
 			SSL_free(hc->ssl);
 			hc->ssl = NULL;
 		}
+#endif
 		close(hc->conn_fd);
 		hc->conn_fd = -1;
 	}
@@ -1973,8 +1979,10 @@ void httpd_destroy_conn(httpd_conn *hc)
 		free(hc->prevuser);
 		free(hc->prevcryp);
 #endif
+#ifdef ENABLE_SSL
 		if (hc->ssl)
 			SSL_shutdown(hc->ssl);
+#endif
 		hc->initialized = 0;
 	}
 }
@@ -2122,6 +2130,7 @@ int httpd_get_conn(httpd_server *hs, int listen_fd, httpd_conn *hc)
 	strncpy(hc->client_addr.real_ip, real_ip, sizeof(hc->client_addr.real_ip));
 
 	hc->ssl = NULL;
+#ifdef ENABLE_SSL
 	if (hs->ctx) {
 		hc->ssl = SSL_new(hs->ctx);
 		if (!hc->ssl) {
@@ -2135,7 +2144,7 @@ int httpd_get_conn(httpd_server *hs, int listen_fd, httpd_conn *hc)
 			return GC_FAIL;
 		}
 	}
-
+#endif
 	httpd_init_conn_content(hc);
 
 	return GC_OK;
@@ -4517,9 +4526,10 @@ static long long atoll(const char *str)
 /* Read the requested buffer completely, accounting for interruptions. */
 ssize_t httpd_read(httpd_conn *hc, void *buf, size_t len)
 {
+#ifdef ENABLE_SSL
 	if (hc->ssl)
 		return SSL_read(hc->ssl, buf, len);
-
+#endif
 	/* Yes, it's a regular read() here, not file_read() */
 	return read(hc->conn_fd, buf, len);
 }
@@ -4528,14 +4538,16 @@ ssize_t httpd_read(httpd_conn *hc, void *buf, size_t len)
 /* Write the requested buffer completely, accounting for interruptions. */
 ssize_t httpd_write(httpd_conn *hc, void *buf, size_t len)
 {
+#ifdef ENABLE_SSL
 	if (hc->ssl)
 		return SSL_write(hc->ssl, buf, len);
-
+#endif
 	return file_write(hc->conn_fd, buf, len);
 }
 
 ssize_t httpd_writev(httpd_conn *hc, struct iovec *iov, size_t num)
 {
+#ifdef ENABLE_SSL
 	if (hc->ssl) {
 		char *buf;
 		size_t i, pos = 0, len = 0;
@@ -4580,7 +4592,7 @@ ssize_t httpd_writev(httpd_conn *hc, struct iovec *iov, size_t num)
 
 		return rc;
 	}
-
+#endif
 	return writev(hc->conn_fd, iov, num);
 }
 

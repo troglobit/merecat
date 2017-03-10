@@ -37,6 +37,7 @@
 #include <arpa/inet.h>
 #include <netdb.h>
 
+#ifdef ENABLE_SSL
 #include <openssl/ssl.h>
 #include <openssl/err.h>
 #include <openssl/x509.h>
@@ -47,7 +48,7 @@
 #include <openssl/engine.h>
 #include <openssl/evp.h>
 #include <openssl/rand.h>
-
+#endif
 
 #if defined(AF_INET6) && defined(IN6_IS_ADDR_V4MAPPED)
 #define USE_IPV6
@@ -104,7 +105,7 @@ typedef struct {
 	int no_empty_referers;
 	int list_dotfiles;
 
-	SSL_CTX *ctx;
+	void *ctx;		/* Opaque SSL_CTX* */
 } httpd_server;
 
 /* A connection. */
@@ -177,7 +178,7 @@ typedef struct {
 	int compression_type;
 	char *file_address;
 
-	SSL *ssl;
+	void *ssl;		/* Opaque SSL* */
 } httpd_conn;
 
 /* Methods. */
