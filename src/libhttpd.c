@@ -393,7 +393,7 @@ void *httpd_ssl_init(char *cert, char *key)
 	SSL_CTX_set_options(ctx, SSL_OP_NO_SSLv3); /* POODLE */
 	SSL_CTX_set_options(ctx, SSL_OP_NO_TLSv1); /* BEAST */
 
-#ifdef HAVE_DECL_SSL_CTX_SET_ECDH_AUTO
+#if HAVE_DECL_SSL_CTX_SET_ECDH_AUTO
 	SSL_CTX_set_ecdh_auto(ctx, 1);
 #endif
 
@@ -415,7 +415,7 @@ error:
 void httpd_ssl_exit(httpd_server *hs)
 {
 	if (hs->ctx) {
-#ifdef HAVE_DECL_SSL_COMP_FREE_COMPRESSION_METHODS
+#if HAVE_DECL_SSL_COMP_FREE_COMPRESSION_METHODS
 		SSL_COMP_free_compression_methods();
 #endif
 		SSL_CTX_free(hs->ctx);
