@@ -277,6 +277,10 @@ static int read_config(char *filename)
 
 	do_ssl = cfg_getbool(cfg, "ssl");
 	if (do_ssl) {
+#ifndef ENABLE_SSL
+		syslog(LOG_ERR, "%s is not built with HTTPS support", PACKAGE_NAME);
+		goto error;
+#endif
 		certfile = cfg_getstr(cfg, "certfile");
 		keyfile  = cfg_getstr(cfg, "keyfile");
 		if (!certfile || !keyfile) {
