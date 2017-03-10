@@ -21,7 +21,7 @@ addons:
 script:
   - ./autogen.sh
   - ./configure --prefix=/tmp
-  - make V=1
+  - make V=1 || cat config.h
   - make install-strip
   - make check
   - tree /tmp
