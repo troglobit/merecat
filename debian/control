@@ -13,10 +13,11 @@ Provides: httpd, httpd-cgi
 Conflicts: apache2-utils
 Recommends: libcgi-pm-perl
 Suggests: libcgi-fast-perl
-Description: Simple, small, and fast HTTP server
- Merecat is a simple, small, and fast web server based on Jef Poskanzer's
- thttpd.  It supports all  basic features required for most use-cases.
- The most prominent feature is probably its URL-traffic-based throttling.
+Description: Embedded web server
+ Merecat is a simple web server based on Jef Poskanzer's thttpd.
+ It supports all basic features required for most use-cases. The
+ most prominent features are probably HTTPS, using OpenSSL, and
+ the URL-traffic-based throttling.
  .
- With its small footprint it is very suitable for small and embedded
+ Its small footprint makes it is suitable for small and embedded
  systems, even those smaller than a Raspberry Pi.

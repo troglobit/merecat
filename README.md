@@ -1,5 +1,5 @@
-Merecat httpd ∴ Small Simple Speedy Server
-==========================================
+Merecat ∴ Embedded Web Server
+=============================
 [![Travis Status][]][Travis]
 
 <img align="right" width="500" src="www/img/merecat.jpg">
