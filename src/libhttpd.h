@@ -37,19 +37,6 @@
 #include <arpa/inet.h>
 #include <netdb.h>
 
-#ifdef ENABLE_SSL
-#include <openssl/ssl.h>
-#include <openssl/err.h>
-#include <openssl/x509.h>
-#include <openssl/x509v3.h>
-#include <openssl/x509_vfy.h>
-#include <openssl/pem.h>
-#include <openssl/crypto.h>
-#include <openssl/engine.h>
-#include <openssl/evp.h>
-#include <openssl/rand.h>
-#endif
-
 #if defined(AF_INET6) && defined(IN6_IS_ADDR_V4MAPPED)
 #define USE_IPV6
 #endif
@@ -217,12 +204,6 @@ extern httpd_server *httpd_init(char *hostname, httpd_sockaddr *hsav4, httpd_soc
 
 /* Call to shut down. */
 extern void httpd_exit(httpd_server *hs);
-
-/* Initialize SSL and load certificate and key file */
-void *httpd_ssl_init(char *cert, char *key);
-
-/* Unload SSL, called automatically at httpd_exit() */
-void httpd_ssl_exit(httpd_server *hs);
 
 /* Call to unlisten/close socket(s) listening for new connections. */
 extern void httpd_unlisten(httpd_server *hs);

@@ -129,6 +129,7 @@ AS_IF([test "x$with_ssl" != "xno"], [
 	])
 	AC_DEFINE([ENABLE_SSL], [1], [Enable HTTPS support])
 ])
+AM_CONDITIONAL([ENABLE_SSL], test "x$with_ssl" = "xyes")
 
 AS_IF([test "x$with_zlib" != "xno"], [
 	PKG_CHECK_MODULES([zlib], [zlib >= 1.2.3.4])

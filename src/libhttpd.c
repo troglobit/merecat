@@ -81,9 +81,10 @@ extern char *crypt(const char *key, const char *setting);
 #include "libhttpd.h"
 #include "match.h"
 #include "md5.h"
-#include "mmc.h"
-#include "tdate_parse.h"
 #include "merecat.h"
+#include "mmc.h"
+#include "ssl.h"
+#include "tdate_parse.h"
 #include "timers.h"
 
 #ifdef SHOW_SERVER_VERSION
@@ -372,68 +373,6 @@ httpd_server *httpd_init(char *hostname, httpd_sockaddr *hsav4, httpd_sockaddr *
 		       httpd_ntoa(hs->listen4_fd != -1 ? hsav4 : hsav6), (int)hs->port);
 
 	return hs;
-}
-
-void *httpd_ssl_init(char *cert, char *key)
-{
-#ifdef ENABLE_SSL
-	SSL_CTX *ctx;
-
-	SSL_load_error_strings();
-	OpenSSL_add_ssl_algorithms();
-
-	ctx = SSL_CTX_new(SSLv23_server_method());
-	if (!ctx)
-		goto error;
-
-	/* Enable bug workarounds. */
-	SSL_CTX_set_options(ctx, SSL_OP_ALL);
-
-	/* Disable insecure SSL/TLS versions. */
-	SSL_CTX_set_options(ctx, SSL_OP_NO_SSLv2); /* DROWN */
-	SSL_CTX_set_options(ctx, SSL_OP_NO_SSLv3); /* POODLE */
-	SSL_CTX_set_options(ctx, SSL_OP_NO_TLSv1); /* BEAST */
-
-#if HAVE_DECL_SSL_CTX_SET_ECDH_AUTO
-	SSL_CTX_set_ecdh_auto(ctx, 1);
-#endif
-
- 	SSL_CTX_set_default_verify_paths(ctx);
- 	SSL_CTX_set_verify(ctx, SSL_VERIFY_NONE, NULL);
-
-	if (SSL_CTX_use_certificate_file(ctx, cert, SSL_FILETYPE_PEM) < 0)
-		goto error;
-
-	if (SSL_CTX_use_PrivateKey_file(ctx, key, SSL_FILETYPE_PEM) < 0 )
-		goto error;
-
-	return ctx;
-error:
-	ERR_print_errors_fp(stderr);
-#endif
-	return NULL;
-}
-
-void httpd_ssl_exit(httpd_server *hs)
-{
-#ifdef ENABLE_SSL
-	if (hs->ctx) {
-#if HAVE_DECL_SSL_COMP_FREE_COMPRESSION_METHODS
-		SSL_COMP_free_compression_methods();
-#endif
-		SSL_CTX_free(hs->ctx);
-		hs->ctx = NULL;
-
-		ENGINE_cleanup();
-		ERR_free_strings();
-		ERR_remove_state(0);
-		EVP_cleanup();
-		CRYPTO_cleanup_all_ex_data();
-		CONF_modules_free();
-		CONF_modules_unload(1);
-		COMP_zlib_cleanup();
-	}
-#endif
 }
 
 
@@ -1938,13 +1877,7 @@ void httpd_close_conn(httpd_conn *hc, struct timeval *now)
 	}
 
 	if (hc->conn_fd >= 0) {
-#ifdef ENABLE_SSL
-		if (hc->ssl) {
-			SSL_free(hc->ssl);
-			hc->ssl = NULL;
-		}
-#endif
-		close(hc->conn_fd);
+		httpd_ssl_close(hc);
 		hc->conn_fd = -1;
 	}
 }
@@ -1979,10 +1912,7 @@ void httpd_destroy_conn(httpd_conn *hc)
 		free(hc->prevuser);
 		free(hc->prevcryp);
 #endif
-#ifdef ENABLE_SSL
-		if (hc->ssl)
-			SSL_shutdown(hc->ssl);
-#endif
+		httpd_ssl_shutdown(hc);
 		hc->initialized = 0;
 	}
 }
@@ -2129,22 +2059,10 @@ int httpd_get_conn(httpd_server *hs, int listen_fd, httpd_conn *hc)
 	memset(hc->client_addr.real_ip, 0, sizeof(hc->client_addr.real_ip));
 	strncpy(hc->client_addr.real_ip, real_ip, sizeof(hc->client_addr.real_ip));
 
-	hc->ssl = NULL;
-#ifdef ENABLE_SSL
-	if (hs->ctx) {
-		hc->ssl = SSL_new(hs->ctx);
-		if (!hc->ssl) {
-			syslog(LOG_CRIT, "Failed creating new SSL connection");
-			return GC_FAIL;
-		}
-
-		SSL_set_fd(hc->ssl, hc->conn_fd);
-		if (SSL_accept(hc->ssl) <= 0) {
-			SSL_free(hc->ssl);
-			return GC_FAIL;
-		}
+	if (httpd_ssl_open(hc)) {
+		syslog(LOG_CRIT, "Failed creating new SSL connection");
+		return GC_FAIL;
 	}
-#endif
 	httpd_init_conn_content(hc);
 
 	return GC_OK;
@@ -4526,74 +4444,19 @@ static long long atoll(const char *str)
 /* Read the requested buffer completely, accounting for interruptions. */
 ssize_t httpd_read(httpd_conn *hc, void *buf, size_t len)
 {
-#ifdef ENABLE_SSL
-	if (hc->ssl)
-		return SSL_read(hc->ssl, buf, len);
-#endif
-	/* Yes, it's a regular read() here, not file_read() */
-	return read(hc->conn_fd, buf, len);
+	return httpd_ssl_read(hc, buf, len);
 }
 
 
 /* Write the requested buffer completely, accounting for interruptions. */
 ssize_t httpd_write(httpd_conn *hc, void *buf, size_t len)
 {
-#ifdef ENABLE_SSL
-	if (hc->ssl)
-		return SSL_write(hc->ssl, buf, len);
-#endif
-	return file_write(hc->conn_fd, buf, len);
+	return httpd_ssl_write(hc, buf, len);
 }
 
 ssize_t httpd_writev(httpd_conn *hc, struct iovec *iov, size_t num)
 {
-#ifdef ENABLE_SSL
-	if (hc->ssl) {
-		char *buf;
-		size_t i, pos = 0, len = 0;
-		ssize_t rc;
-
-		for (i = 0; i < num; i++)
-			len += iov[i].iov_len;
-
-		buf = malloc(len);
-		for (i = 0; i < num; i++) {
-			memcpy(&buf[pos], iov[i].iov_base, iov[i].iov_len);
-			pos += iov[i].iov_len;
-		}
-
-		rc = SSL_write(hc->ssl, buf, len);
-		if (rc < 0 && BIO_should_retry(SSL_get_wbio(hc->ssl))) {
-			usleep(100000);
-			rc = SSL_write(hc->ssl, buf, len);
-		}
-
-		free(buf);
-		if (rc <= 0) {
-			rc = SSL_get_error(hc->ssl, rc);
-			switch (rc)
-			{
-			case SSL_ERROR_WANT_WRITE:
-				errno = EAGAIN;
-				break;
-
-			case SSL_ERROR_SYSCALL:
-				/* errno set already */
-				break;
-
-			default:
-				errno = EINVAL;
-				break;
-			}
-
-			/* Signal error to callee, like writev() */
-			rc = -1;
-		}
-
-		return rc;
-	}
-#endif
-	return writev(hc->conn_fd, iov, num);
+	return httpd_ssl_writev(hc, iov, num);
 }
 
 

@@ -68,6 +68,7 @@
 #include "match.h"
 #include "mmc.h"
 #include "merecat.h"
+#include "ssl.h"
 #include "timers.h"
 
 #ifndef SHUT_WR
