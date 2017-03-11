@@ -1522,7 +1522,7 @@ static int usage(int code)
 	       "  -I IDENT   Identity to use in log messages, defaults to program name\n"
 	       "  -l LEVEL   Set log level: none, err, info, notice*, debug\n"
 	       "  -n         Run in foreground, do not detach from controlling terminal\n"
-	       "  -p PORT    Port to listen to, default 80\n"
+	       "  -p PORT    Port to listen to, default 80, or 443 if HTTPS is enabled\n"
 	       "  -P PIDFN   Absolute path to PID file.  Default uses IDENT, /run/merecat.pid\n"
 	       "  -r         Chroot into WEBROOT\n"
 	       "  -s         Check symlinks so they don't point outside WEBROOT\n"
