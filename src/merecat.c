@@ -54,9 +54,6 @@
 
 #ifdef HAVE_LIBCONFUSE
 #include <confuse.h>
-#define CONF_FILE_OPT "f:"
-#else
-#define CONF_FILE_OPT ""
 #endif
 
 #ifdef HAVE_ZLIB_H
@@ -1583,13 +1580,16 @@ int main(int argc, char **argv)
 	void *ctx = NULL;
 
 	ident = prognm = progname(argv[0]);
-	while ((c = getopt(argc, argv, CONF_FILE_OPT "c:d:ghI:l:np:P:rsu:vV")) != EOF) {
+	while ((c = getopt(argc, argv, "c:d:f:ghI:l:np:P:rsu:vV")) != EOF) {
 		switch (c) {
-#ifdef HAVE_LIBCONFUSE
 		case 'f':
+#ifndef HAVE_LIBCONFUSE
+			syslog(LOG_ERR, "%s is not built with .conf file support", PACKAGE_NAME);
+			return 1;
+#endif
 			config = optarg;
 			break;
-#endif
+
 		case 'c':
 			cgi_pattern = optarg;
 			break;
