@@ -95,7 +95,7 @@ char        *ident;		/* Used for logging */
 
 static int   background        = 1;
 static int   loglevel          = LOG_NOTICE;
-static unsigned short port     = DEFAULT_PORT;    /* SERVER_PORT_DEFAULT */
+static unsigned short port     = 0;
 static char *dir               = NULL;            /* SERVER_DIR_DEFUALT: /var/www */
 static char *data_dir          = NULL;
 static int   do_chroot         = 0;
@@ -288,6 +288,12 @@ static int read_config(char *filename)
 			syslog(LOG_ERR, "Missing SSL certificate file(s)");
 			goto error;
 		}
+
+		if (!port)
+			port = DEFAULT_HTTPS_PORT;
+	} else {
+		if (!port)
+			port = DEFAULT_HTTP_PORT;
 	}
 
 #ifdef HAVE_ZLIB_H

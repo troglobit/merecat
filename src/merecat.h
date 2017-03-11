@@ -337,9 +337,11 @@
 */
 #define CGI_BYTECOUNT 25000
 
-/* CONFIGURE: The default port to listen on.  80 is the standard HTTP port.
+/* CONFIGURE: The default port to listen on.  80 is the standard HTTP
+ * port and 443 the standard HTTPS port.
 */
-#define DEFAULT_PORT 80
+#define DEFAULT_HTTP_PORT  80
+#define DEFAULT_HTTPS_PORT 443
 
 /* CONFIGURE: A list of index filenames to check.  The files are searched
 ** for in this order.

@@ -267,7 +267,8 @@ header to be returned with all responses.  An equivalent
 header is also generated.  The default is no Cache-Control or Expires
 headers, which is just fine for most sites.
 .It Cm port = Ar PORT
-The web server Internet port to listen to, default 80.
+The web server Internet port to listen to, defaults to 80, or 443 when
+HTTPS is enabled, below.
 .It Cm url-pattern = Qq Ar PATTERN
 Used with
 .Cm check-referer ,
@@ -279,8 +280,7 @@ which usually is defined on all UNIX systems.
 Enable virtual hosting, disabled by default.  For more information on
 this, see below.
 .It Cm ssl = Ar <true | false>
-Enable HTTPS, disabled by default.  Remember to change the port setting
-to 443 above.
+Enable HTTPS, disabled by default.
 .It Cm certfile = Ar /path/to/cert.pem
 Public part of HTTPS certificate, required for HTTPS.
 .It Cm keyfile = Ar /path/to/key.pem
