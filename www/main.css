@@ -43,16 +43,6 @@ dl.config dd {
     text-align: justify;
 }
 
-#right {
-    float: right;
-    width:  48%;
-}
-
-#left {
-    float: left;
-    width:  48%;
-}
-
 #header {
   text-align: center;
 }
@@ -62,28 +52,62 @@ dl.config dd {
   clear: both;
 }
 
-#leftcontent {
-    padding-right: 1.5em;
+@media screen and (max-width: 1023px) {
+    #wrapper {
+	width:      640px;
+	text-align: left;
+
+	padding:  0.5em;
+	margin:   0.5em auto;
+
+	border-radius: 10px;
+	border:        1px solid #c8c5c2;
+
+	background-color: white;
+    }
+    #right {
+    }
+    #left {
+    }
+    #leftcontent {
+    }
+    #rightcontent {
+    }
 }
 
-#rightcontent {
-    padding-left:  1.5em;
-}
+@media screen and (min-width: 1024px) {
+    #wrapper {
+	width:      1024px;
+	text-align: left;
 
-#wrapper {
-    background-color: white;
-    width:      1024px;
-    text-align: left;
+	position: absolute;
+	top:      0;
+	left:     0;
+	right:    0;
+	padding:  2em;
+	margin:   4em auto;
 
-    position: absolute;
-    top:      0;
-    left:     0;
-    right:    0;
-    padding:  2em;
-    margin:   4em auto;
+	border-radius: 10px;
+	border:        1px solid #c8c5c2;
 
-    border-radius: 10px;
-    border:        1px solid #c8c5c2;
+	background-color: white;
+    }
 
-    background-color: white;
+    #right {
+	float: right;
+	width:  48%;
+    }
+
+    #left {
+	float: left;
+	width:  48%;
+    }
+
+    #leftcontent {
+	padding-right: 1.5em;
+    }
+
+    #rightcontent {
+	padding-left:  1.5em;
+    }
 }
