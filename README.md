@@ -9,10 +9,15 @@ actual web serving purposes.  It is however not a real [Meerkat][],
 merely yet another copycat, forked from the great [thttpd][] created by
 Jef&nbsp;Poskanzer.
 
-The limited feature set makes it very quick.  Virtual hosts and the
-URL-traffic-based throttling are just about its only features.  This
-small footprint makes Merecat very suitable for small and embedded
-systems, even those smaller than a Raspberry Pi.
+The limited feature set makes it very quick.  This small footprint makes
+Merecat suitable for small and embedded systems, even those smaller than
+a Raspberry Pi:
+
+- Virtual hosts
+- URL-traffic-based throttling
+- HTTP/1.1 Keep-alive
+- Built-in gzip deflate using zlib
+- HTTPS support using OpenSSL
 
 For questions see the included `merecat(8)` man page or the [FAQ][].
 
@@ -129,6 +134,9 @@ can be enabled using the `configure` script:
     --enable-msie-padding  Enforce padding of httdp error messages
                            sent to Internet Explorer, otherwise it will
                            detect too short msg and display its own.
+    --without-config       Disable /etc/merecat.conf support using libConfuse
+    --without-ssl          Disable HTTPS support, default: enabled
+    --without-zlib         Disable mod_deflate (gzip) using zlib
 
 The source file `merecat.h` has even more features that can be tweaked,
 some of those are mentioned in the man page, but the header file has
@@ -142,8 +150,8 @@ Merecat is a stiched up fork of [sthttpd][] with lots of lost patches
 found lying around the web.  The sthttpd project is a fork from the
 original [thttpd][] -- the tiny/turbo/throttling HTTP server.
 
-* [thttpd][] was written by Jef Poskanzer <mailto:jef@mail.acme.com>
-* [sthttpd][] was created by Anthony G. Basile <mailto:blueness@gentoo.org>
+* [thttpd][] was created by Jef Poskanzer <mailto:jef@mail.acme.com>
+* [sthttpd][] was spawned by Anthony G. Basile <mailto:blueness@gentoo.org>
 * [Merecat][] is maintained by Joachim Nilsson <mailto:troglobit@gmail.com>
 
 [Merecat]:       http://merecat.troglobit.com
