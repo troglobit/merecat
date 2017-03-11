@@ -1055,7 +1055,7 @@ static void handle_read(connecttab *c, struct timeval *tvP)
 				0x1f, 0x8b,
 				Z_DEFLATED,
 				0 /*flags*/,
-#if 0 /* Ugly first version, seems to be optional */
+#if 0 /* Seems to be optional according to https://tools.ietf.org/html/rfc1952 */
 				&c->hc->sb.st_mtime, /* XXX: use a more transportable implementation! */
 				&c->hc->sb.st_mtime + 1,
 				&c->hc->sb.st_mtime + 2,
