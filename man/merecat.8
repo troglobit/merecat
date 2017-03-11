@@ -278,6 +278,13 @@ which usually is defined on all UNIX systems.
 .It Cm virtual-host = Ar <true | false>
 Enable virtual hosting, disabled by default.  For more information on
 this, see below.
+.It Cm ssl = Ar <true | false>
+Enable HTTPS, disabled by default.  Remember to change the port setting
+to 443 above.
+.It Cm certfile = Ar /path/to/cert.pem
+Public part of HTTPS certificate, required for HTTPS.
+.It Cm keyfile = Ar /path/to/key.pem
+Private key of HTTPS certificate, required for HTTPS.
 .El
 .Sh "CHROOT"
 chroot() is a system call that restricts the program's view of the
