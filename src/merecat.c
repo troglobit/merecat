@@ -285,12 +285,6 @@ static int read_config(char *filename)
 			syslog(LOG_ERR, "Missing SSL certificate file(s)");
 			goto error;
 		}
-
-		if (!port)
-			port = DEFAULT_HTTPS_PORT;
-	} else {
-		if (!port)
-			port = DEFAULT_HTTP_PORT;
 	}
 
 #ifdef HAVE_ZLIB_H
@@ -1680,6 +1674,10 @@ int main(int argc, char **argv)
 		return 1;
 	}
 #endif
+
+	/* Resolve default port */
+	if (!port)
+		port = do_ssl ? DEFAULT_HTTPS_PORT : DEFAULT_HTTP_PORT;
 
 	/* Read zone info now, in case we chroot(). */
 	tzset();
