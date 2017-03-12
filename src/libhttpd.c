@@ -367,10 +367,10 @@ httpd_server *httpd_init(char *hostname, httpd_sockaddr *hsav4, httpd_sockaddr *
 
 	/* Done initializing. */
 	if (!hs->binding_hostname)
-		syslog(LOG_NOTICE, "%s starting on port %d", PACKAGE_STRING, hs->port);
+		syslog(LOG_NOTICE, "%s starting on port %d, vhost: %d", PACKAGE_STRING, hs->port, vhost);
 	else
-		syslog(LOG_NOTICE, "%s starting on %s, port %d", PACKAGE_STRING,
-		       httpd_ntoa(hs->listen4_fd != -1 ? hsav4 : hsav6), (int)hs->port);
+		syslog(LOG_NOTICE, "%s starting on %s, port %d, vhost: %d", PACKAGE_STRING,
+		       httpd_ntoa(hs->listen4_fd != -1 ? hsav4 : hsav6), (int)hs->port, vhost);
 
 	return hs;
 }
