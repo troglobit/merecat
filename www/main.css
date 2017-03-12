@@ -81,6 +81,9 @@ dl.config dd {
 }
 
 @media screen and (min-width: 1024px) {
+    html {
+	font-size: 1.1em;
+    }
     #wrapper {
 	width:      1024px;
 	text-align: left;
@@ -89,7 +92,7 @@ dl.config dd {
 	top:      0;
 	left:     0;
 	right:    0;
-	padding:  2em;
+	padding:  1em;
 	margin:   4em auto;
 
 	border-radius: 10px;
@@ -100,12 +103,12 @@ dl.config dd {
 
     #right {
 	float: right;
-	width:  48%;
+	width:  49%;
     }
 
     #left {
 	float: left;
-	width:  48%;
+	width:  49%;
     }
 
     #leftcontent {
