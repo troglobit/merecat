@@ -93,12 +93,17 @@ dl.config dd {
 	left:     0;
 	right:    0;
 	padding:  1em;
-	margin:   4em auto;
+
+	margin-top:   20px;
+	margin-bottom:30px;
+	margin-right: auto;
+	margin-left:  auto;
 
 	border-radius: 10px;
 	border:        1px solid #c8c5c2;
 
 	background-color: white;
+	box-shadow: 1px 1px 10px #BBB;
     }
 
     #right {
