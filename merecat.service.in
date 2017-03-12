@@ -8,7 +8,7 @@ Requires=network-online.target
 
 [Service]
 Type=simple
-ExecStart=@SBINDIR@/merecat -I httpd -n @WWWDIR@
+ExecStart=@SBINDIR@/merecat -n @WWWDIR@
 
 [Install]
 WantedBy=multi-user.target
