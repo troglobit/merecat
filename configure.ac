@@ -35,7 +35,7 @@ AC_ARG_ENABLE(msie-padding,
         AS_HELP_STRING([--enable-msie-padding], [Add padding to error messages for Internet Explorer]))
 
 AC_ARG_WITH([systemd],
-     [AS_HELP_STRING([--with-systemd=DIR], [Directory for systemd service files, default: auto])],
+     [AS_HELP_STRING([--with-systemd=DIR], [Directory for systemd service files, default: auto])],,
      [with_systemd=auto])
 
 AC_ARG_WITH([config],
