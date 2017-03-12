@@ -1506,22 +1506,22 @@ static int usage(int code)
 	       "             the built-in default is: \"" CGI_PATTERN "\"\n"
 	       "  -d DIR     Optional DIR to change into after chrooting to WEBROOT\n"
 #ifdef HAVE_LIBCONFUSE
-	       "  -f FILE    Configuration file name, default: " CONFDIR "/merecat.conf\n"
+	       "  -f FILE    Configuration file. Default uses IDENT: " CONFDIR "/%s.conf\n"
 #endif
 	       "  -g         Use global password file, .htpasswd\n"
 	       "  -h         This help text\n"
-	       "  -I IDENT   Identity to use in log messages, defaults to program name\n"
+	       "  -I IDENT   Identity for log messages, .conf, PID file, default: %s\n"
 	       "  -l LEVEL   Set log level: none, err, info, notice*, debug\n"
 	       "  -n         Run in foreground, do not detach from controlling terminal\n"
 	       "  -p PORT    Port to listen to, default 80, or 443 if HTTPS is enabled\n"
-	       "  -P PIDFN   Absolute path to PID file.  Default uses IDENT, /run/merecat.pid\n"
+	       "  -P PIDFN   Absolute path to PID file.  Default uses IDENT, /run/%s.pid\n"
 	       "  -r         Chroot into WEBROOT\n"
 	       "  -s         Check symlinks so they don't point outside WEBROOT\n"
 	       "  -t FILE    Throttle file\n"
 	       "  -u USER    Username to drop to, default: nobody\n"
 	       "  -v         Enable virtual hosting with WEBROOT as base\n"
 	       "  -V         Show Merecat httpd version\n"
-	       "\n", prognm);
+	       "\n", prognm, prognm, prognm, prognm);
 	printf("The optional 'WEBROOT' defaults to the current directory and 'HOSTNAME' is only\n"
 	       "for virtual hosting, to run one httpd per hostname.  The '-d DIR' is not needed\n"
 	       "in virtual hosting mode, see merecat(8) for more information on virtual hosting\n"
