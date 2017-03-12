@@ -1,6 +1,8 @@
 body {
     background-color:#f2f1f0;
     font-family: sans-serif;
+    font-size: 100%;     /* flexible baseline */
+    line-height: 1.2;
     text-align: center; /*For IE6 Shenanigans*/
 }
 
@@ -53,8 +55,11 @@ dl.config dd {
 }
 
 @media screen and (max-width: 1023px) {
+    html {
+	font-size: 1.375em;
+    }
     #wrapper {
-	width:      640px;
+	width:      480px;
 	text-align: left;
 
 	padding:  0.5em;
