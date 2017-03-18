@@ -72,12 +72,6 @@
 #define SHUT_WR 1
 #endif
 
-#define SIGNAL(signo, cb)		\
-	sa.sa_flags     = SA_RESTART;	\
-	sa.sa_handler   = cb;		\
-	sigemptyset(&sa.sa_mask);	\
-	sigaction(signo, &sa, NULL)
-
 /* For content-encoding: gzip */
 #ifdef HAVE_ZLIB_H
 #define ZLIB_OUTPUT_BUF_SIZE 262136
@@ -1487,6 +1481,39 @@ static void handle_alrm(int signo)
 	errno = oerrno;
 }
 
+static void init_signals(void)
+{
+	size_t i;
+	struct sigaction sa;
+	struct { int signo; void (*cb)(int); } signals[] = {
+		{ SIGTERM,  handle_term },
+		{ SIGTERM,  handle_term },
+		{ SIGINT,   handle_term },
+		{ SIGCHLD,  handle_chld },
+		{ SIGPIPE,  SIG_IGN     }, /* get EPIPE instead */
+		{ SIGHUP,   handle_bus  },
+		{ SIGHUP,   handle_hup  },
+		{ SIGUSR1,  handle_usr1 },
+		{ SIGUSR2,  handle_usr2 },
+		{ SIGALRM,  handle_alrm },
+	};
+
+	memset(&sa, 0, sizeof(sa));
+	for (i = 0; i < NELEMS(signals); i++) {
+		sa.sa_flags   = SA_RESTART;
+		sa.sa_handler = signals[i].cb;
+		if (sigaction(signals[i].signo, &sa, NULL))
+			syslog(LOG_WARNING, "Failed setting up handler for signo %d: %s",
+			       signals[i].signo, strerror(errno));
+	}
+
+	got_bus = 0;
+	got_hup = 0;
+	got_usr1 = 0;
+	watchdog_flag = 0;
+	alarm(OCCASIONAL_TIME * 3);
+}
+
 static int loglvl(char *level)
 {
 	for (int i = 0; prioritynames[i].c_name; i++) {
@@ -1570,7 +1597,6 @@ int main(int argc, char **argv)
 	httpd_sockaddr sa6;
 	int gotv4, gotv6;
 	struct timeval tv;
-	struct sigaction sa;
 	void *ctx = NULL;
 
 	ident = prognm = progname(argv[0]);
@@ -1819,21 +1845,7 @@ int main(int argc, char **argv)
 	}
 
 	/* Set up to catch signals. */
-	SIGNAL(SIGTERM, handle_term);
-	SIGNAL(SIGINT, handle_term);
-	SIGNAL(SIGCHLD, handle_chld);
-	SIGNAL(SIGPIPE, SIG_IGN);	/* get EPIPE instead */
-	SIGNAL(SIGHUP, handle_bus);
-	SIGNAL(SIGHUP, handle_hup);
-	SIGNAL(SIGUSR1, handle_usr1);
-	SIGNAL(SIGUSR2, handle_usr2);
-	SIGNAL(SIGALRM, handle_alrm);
-
-	got_bus = 0;
-	got_hup = 0;
-	got_usr1 = 0;
-	watchdog_flag = 0;
-	alarm(OCCASIONAL_TIME * 3);
+	init_signals();
 
 	/* Initialize the timer package. */
 	tmr_init();
