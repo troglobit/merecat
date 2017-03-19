@@ -1425,6 +1425,15 @@ char *httpd_method_str(int method)
 	case METHOD_DELETE:
 		return "DELETE";
 
+	case METHOD_CONNECT:
+		return "CONNECT";
+
+	case METHOD_OPTIONS:
+		return "OPTIONS";
+
+	case METHOD_TRACE:
+		return "TRACE";
+
 	default:
 		return "UNKNOWN";
 	}
@@ -2351,6 +2360,12 @@ int httpd_parse_request(httpd_conn *hc)
 		hc->method = METHOD_PUT;
 	else if (strcasecmp(method_str, httpd_method_str(METHOD_DELETE)) == 0)
 		hc->method = METHOD_DELETE;
+	else if (strcasecmp(method_str, httpd_method_str(METHOD_CONNECT)) == 0)
+		hc->method = METHOD_CONNECT;
+	else if (strcasecmp(method_str, httpd_method_str(METHOD_OPTIONS)) == 0)
+		hc->method = METHOD_OPTIONS;
+	else if (strcasecmp(method_str, httpd_method_str(METHOD_TRACE)) == 0)
+		hc->method = METHOD_TRACE;
 	else {
 		httpd_send_err(hc, 501, err501title, "", err501form, method_str);
 		return -1;
