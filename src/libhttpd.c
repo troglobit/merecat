@@ -3958,6 +3958,30 @@ static int really_start_request(httpd_conn *hc, struct timeval *now)
 
 	expnlen = strlen(hc->expnfilename);
 
+	if (hc->method == METHOD_OPTIONS) {
+		time_t now;
+		char buf[1000];
+		char nowbuf[100];
+		const char *rfc1123fmt = "%a, %d %b %Y %H:%M:%S GMT";
+
+		now = time(NULL);
+		strftime(nowbuf, sizeof(nowbuf), rfc1123fmt, gmtime(&now));
+
+		snprintf(buf, sizeof(buf),
+			 "%.20s %d %s\r\n"
+			 "Date: %s\r\n"
+			 "Server: %s\r\n"
+			 "Allow: POST,OPTIONS,GET,HEAD\r\n"
+			 "Cache-control: max-age=%d\r\n"
+			 "Content-Length: 0\r\n"
+			 "Content-Type: text/html\r\n"
+			 "\r\n",
+			 hc->protocol, 200, "OK", nowbuf,
+			 EXPOSED_SERVER_SOFTWARE, hc->hs->max_age);
+		add_response(hc, buf);
+		return 0;
+	}
+
 	if (hc->method != METHOD_GET && hc->method != METHOD_HEAD &&
 	    hc->method != METHOD_POST && hc->method != METHOD_PUT && hc->method != METHOD_DELETE) {
 		httpd_send_err(hc, 501, err501title, "", err501form, httpd_method_str(hc->method));
