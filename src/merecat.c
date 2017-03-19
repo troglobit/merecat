@@ -1309,7 +1309,7 @@ static void idle(ClientData client_data, struct timeval *nowP)
 		case CNST_READING:
 			if (nowP->tv_sec - c->active_at >= IDLE_READ_TIMELIMIT) {
 				syslog(LOG_INFO, "%s connection timed out reading", c->hc->client_addr.real_ip);
-				httpd_send_err(c->hc, 408, httpd_err408title, "", httpd_err408form, "");
+//				httpd_send_err(c->hc, 408, httpd_err408title, "", httpd_err408form, "");
 				finish_connection(c, nowP);
 			}
 			break;
