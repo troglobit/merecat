@@ -1162,7 +1162,7 @@ static void send_authenticate(httpd_conn *hc, char *realm)
 	/* If the request was a POST then there might still be data to be read,
 	** so we need to do a lingering close.
 	*/
-	if (hc->method == METHOD_POST)
+	if (hc->method == METHOD_POST || hc->method == METHOD_PUT)
 		hc->should_linger = 1;
 }
 
@@ -1418,6 +1418,12 @@ char *httpd_method_str(int method)
 
 	case METHOD_POST:
 		return "POST";
+
+	case METHOD_PUT:
+		return "PUT";
+
+	case METHOD_DELETE:
+		return "DELETE";
 
 	default:
 		return "UNKNOWN";
@@ -2341,6 +2347,10 @@ int httpd_parse_request(httpd_conn *hc)
 		hc->method = METHOD_HEAD;
 	else if (strcasecmp(method_str, httpd_method_str(METHOD_POST)) == 0)
 		hc->method = METHOD_POST;
+	else if (strcasecmp(method_str, httpd_method_str(METHOD_PUT)) == 0)
+		hc->method = METHOD_PUT;
+	else if (strcasecmp(method_str, httpd_method_str(METHOD_DELETE)) == 0)
+		hc->method = METHOD_DELETE;
 	else {
 		httpd_send_err(hc, 501, err501title, "", err501form, method_str);
 		return -1;
@@ -3641,7 +3651,7 @@ static void cgi_child(httpd_conn *hc)
 	** interposer process, depending on if we've read some of the data
 	** into our buffer.
 	*/
-	if (hc->method == METHOD_POST && hc->read_idx > hc->checked_idx) {
+	if ((hc->method == METHOD_POST || hc->method == METHOD_PUT) && hc->read_idx > hc->checked_idx) {
 		int p[2];
 
 		if (pipe(p) < 0) {
@@ -3785,7 +3795,8 @@ static int cgi(httpd_conn *hc)
 	*/
 	hc->do_keep_alive = 0;
 
-	if (hc->method == METHOD_GET || hc->method == METHOD_POST) {
+	if (hc->method == METHOD_GET || hc->method == METHOD_POST ||
+	    hc->method == METHOD_PUT || hc->method == METHOD_DELETE) {
 		if (hc->hs->cgi_limit != 0 && hc->hs->cgi_count >= hc->hs->cgi_limit) {
 			httpd_send_err(hc, 503, httpd_err503title, "", httpd_err503form, hc->encodedurl);
 			return -1;
@@ -3932,7 +3943,8 @@ static int really_start_request(httpd_conn *hc, struct timeval *now)
 
 	expnlen = strlen(hc->expnfilename);
 
-	if (hc->method != METHOD_GET && hc->method != METHOD_HEAD && hc->method != METHOD_POST) {
+	if (hc->method != METHOD_GET && hc->method != METHOD_HEAD &&
+	    hc->method != METHOD_POST && hc->method != METHOD_PUT && hc->method != METHOD_DELETE) {
 		httpd_send_err(hc, 501, err501title, "", err501form, httpd_method_str(hc->method));
 		return -1;
 	}
