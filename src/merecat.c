@@ -919,9 +919,9 @@ static void handle_read(connecttab *c, struct timeval *tvP)
 	/* Read some more bytes. */
 	sz = httpd_read(hc, &(hc->read_buf[hc->read_idx]), hc->read_size - hc->read_idx);
 	if (sz == 0) {
-		if (!hc->do_keep_alive)
-			httpd_send_err(hc, 400, httpd_err400title, "", httpd_err400form, "");
-		else
+//		if (!hc->do_keep_alive)
+//			httpd_send_err(hc, 400, httpd_err400title, "", httpd_err400form, "");
+		if (hc->do_keep_alive)
 			hc->do_keep_alive--;
 
 		c->active_at = tvP->tv_sec;
@@ -938,7 +938,7 @@ static void handle_read(connecttab *c, struct timeval *tvP)
 		if (errno == EINTR || errno == EAGAIN || errno == EWOULDBLOCK)
 			return;
 
-		httpd_send_err(hc, 400, httpd_err400title, "", httpd_err400form, "");
+//		httpd_send_err(hc, 400, httpd_err400title, "", httpd_err400form, "");
 		finish_connection(c, tvP);
 		return;
 	}
@@ -952,7 +952,7 @@ static void handle_read(connecttab *c, struct timeval *tvP)
 		return;
 
 	case GR_BAD_REQUEST:
-		httpd_send_err(hc, 400, httpd_err400title, "", httpd_err400form, "");
+//		httpd_send_err(hc, 400, httpd_err400title, "", httpd_err400form, "");
 		finish_connection(c, tvP);
 		return;
 	}
