@@ -3231,7 +3231,7 @@ static int ls(httpd_conn *hc)
 
 		/* Parent process spawned indexing process PID. */
 		closedir(dirp);
-		syslog(LOG_INFO, "%s: LS[%d] /%.200s \"%s\" \"%s\"",
+		syslog(LOG_INFO, "%s: LST[%d] /%.200s \"%s\" \"%s\"",
 		       httpd_client(hc), r, hc->expnfilename, hc->referer, hc->useragent);
 #ifdef CGI_TIMELIMIT
 		/* Schedule a kill for the child process, in case it runs too long */
