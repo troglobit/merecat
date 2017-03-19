@@ -3206,7 +3206,7 @@ static int ls(httpd_conn *hc)
 
 		/* Parent process. */
 		closedir(dirp);
-		syslog(LOG_INFO, "%s: spawned indexing process %d for directory '%.200s'",
+		syslog(LOG_INFO, "%s: spawned indexing process %d for '%.200s'",
 		       httpd_client(hc), r, hc->expnfilename);
 #ifdef CGI_TIMELIMIT
 		/* Schedule a kill for the child process, in case it runs too long */
@@ -3806,8 +3806,8 @@ static int cgi(httpd_conn *hc)
 		}
 
 		/* Parent process. */
-		syslog(LOG_INFO, "%s: spawned CGI process %d for file '%.200s'",
-		       httpd_client(hc), r, hc->expnfilename);
+		syslog(LOG_INFO, "%s: spawned CGI process %d for '%.200s%s'",
+		       httpd_client(hc), r, hc->expnfilename, hc->encodedurl);
 #ifdef CGI_TIMELIMIT
 		/* Schedule a kill for the child process, in case it runs too long */
 		client_data.i = r;
@@ -4251,7 +4251,7 @@ static void make_log_entry(httpd_conn *hc)
 	else
 		strcpy(bytes, "-");
 
-	syslog(LOG_INFO, "%s - %s \"%s %.200s %s\" %d %s \"%.200s\" \"%.200s\"",
+	syslog(LOG_INFO, "%s: %s \"%s %.200s %s\" %d %s \"%.200s\" \"%.200s\"",
 	       httpd_client(hc), ru, httpd_method_str(hc->method), url, hc->protocol,
 	       hc->status, bytes, hc->referer, hc->useragent);
 }
