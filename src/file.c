@@ -32,7 +32,7 @@
 /* Read the requested buffer completely, accounting for interruptions. */
 ssize_t file_read(int fd, void *buf, size_t len)
 {
-	ssize_t sz;
+	ssize_t sz, retry = 3;
 
 	sz = 0;
 	while ((size_t)sz < len) {
@@ -41,8 +41,10 @@ ssize_t file_read(int fd, void *buf, size_t len)
 		r = read(fd, (char *)buf + sz, len - sz);
 		if (r < 0) {
 			if (errno == EINTR || errno == EAGAIN || errno == EWOULDBLOCK) {
-				sleep(1);
-				continue;
+				if (retry-- > 0) {
+					sleep(1);
+					continue;
+				}
 			}
 
 			return r;
@@ -60,7 +62,7 @@ ssize_t file_read(int fd, void *buf, size_t len)
 /* Write the requested buffer completely, accounting for interruptions. */
 ssize_t file_write(int fd, void *buf, size_t len)
 {
-	ssize_t sz;
+	ssize_t sz, retry = 3;
 
 	sz = 0;
 	while ((size_t)sz < len) {
@@ -69,7 +71,10 @@ ssize_t file_write(int fd, void *buf, size_t len)
 		r = write(fd, (char *)buf + sz, len - sz);
 		if (r < 0) {
 			if (errno == EINTR || errno == EAGAIN || errno == EWOULDBLOCK) {
-				sleep(1);
+				if (retry-- > 0) {
+					sleep(1);
+					continue;
+				}
 				continue;
 			}
 
