@@ -1467,6 +1467,8 @@ static void handle_alrm(int signo)
 
 	/* If nothing has been happening */
 	if (!watchdog_flag) {
+		syslog(LOG_WARNING, "Got caught reading Vogon poetry ... aborting.");
+
 		/* Try changing dirs to someplace we can write. */
 		chdir("/tmp");
 		/* Dump core. */
