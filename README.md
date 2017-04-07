@@ -128,15 +128,16 @@ The most common options are available from the `merecat` command line
 and the `merecat.conf` configuration file.  Other, less common options,
 can be enabled using the `configure` script:
 
-    --enable-htaccess      Enable .htaccess files for access control
-    --enable-htpasswd      Enable .htpasswd files for authentication
-    --enable-public-html   Enable $HOME/public_html as ~USERNAME/
-    --enable-msie-padding  Enforce padding of httdp error messages
-                           sent to Internet Explorer, otherwise it will
-                           detect too short msg and display its own.
-    --without-config       Disable /etc/merecat.conf support using libConfuse
-    --without-ssl          Disable HTTPS support, default: enabled
-    --without-zlib         Disable mod_deflate (gzip) using zlib
+    --enable-builtin-icons  Enable built-in icons for dir listings
+    --enable-htaccess       Enable .htaccess files for access control
+    --enable-htpasswd       Enable .htpasswd files for authentication
+    --enable-public-html    Enable $HOME/public_html as ~USERNAME/
+    --enable-msie-padding   Enforce padding of httdp error messages
+                            sent to Internet Explorer, otherwise it will
+                            detect too short msg and display its own.
+    --without-config        Disable /etc/merecat.conf support using libConfuse
+    --without-ssl           Disable HTTPS support, default: enabled
+    --without-zlib          Disable mod_deflate (gzip) using zlib
 
 The source file `merecat.h` has even more features that can be tweaked,
 some of those are mentioned in the man page, but the header file has
