@@ -102,6 +102,9 @@ user@example:/var/www # for file in `find . -name '*.html' -o -name '*.css'`; do
       gzip -c $file > $file.gz; done
 ```
 
+This approach is more CPU friendly than letting Merecat "deflate" files
+on the fly, which it otherwise does.
+
 
 Build Requirements
 ------------------
