@@ -1,6 +1,6 @@
 Merecat ∴ Embedded Web Server
 =============================
-[![Travis Status][]][Travis]
+[![License Badge][]][License] [![Travis Status][]][Travis]
 
 <img align="right" width="500" src="www/img/merecat.jpg">
 
@@ -162,5 +162,7 @@ original [thttpd][] -- the tiny/turbo/throttling HTTP server.
 [FAQ]:           http://halplant.com:2001/server/thttpd_FAQ.html
 [thttpd]:        http://www.acme.com/software/thttpd/
 [sthttpd]:       https://github.com/blueness/sthttpd/
+[License]:       https://en.wikipedia.org/wiki/BSD_licenses
+[License Badge]: https://img.shields.io/badge/License-BSD%202--Clause-orange.svg
 [Travis]:        https://travis-ci.org/troglobit/merecat
 [Travis Status]: https://travis-ci.org/troglobit/merecat.png?branch=master
