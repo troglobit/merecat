@@ -47,13 +47,13 @@ web servers.  With Merecat you simply create directories for each host
 in the web server root:
 
 ```
-     /var/www/
-       |-- icons/
-       |-- cgi-bin/
-       |-- errors/
-       |    `-- err404.html
-       |-- ftp.example.com/
-       `-- www.example.com/
+    /var/www/
+      |-- icons/
+      |-- cgi-bin/
+      |-- errors/
+      |    `-- err404.html
+      |-- ftp.example.com/
+       `- www.example.com/
 ```
 
 Edit `/etc/merecat.conf`:
@@ -115,28 +115,28 @@ Debian/Ubuntu systems rarely support this GNU standard, so this is how
 you reference it for the Merecat `configure` script:
 
 ```shell
-    user@example:~/merecat/> PKG_CONFIG_LIBDIR=/usr/local/lib/pkgconfig ./configure
+user@example:~/merecat/> PKG_CONFIG_LIBDIR=/usr/local/lib/pkgconfig ./configure
 ```
 
 To build Merecat without support for `/etc/merecat.conf`:
 
 ```shell
-    user@example:~/merecat/> ./configure --without-config
+user@example:~/merecat/> ./configure --without-config
 ```
 
 If you build from GIT sources and not a released tarball, then remember:
 
 ```shell
-    user@example:~/merecat/> ./autogen.sh
+user@example:~/merecat/> ./autogen.sh
 ```
 
 To install `httpd` into `/usr/sbin/`, default index and icons into
 `/var/www`, and config file to `/etc/merecat.conf`:
 
 ```shell
-    user@example:~/merecat/> ./configure --prefix=/usr --localstatedir=/var --sysconfdir=/etc
-    user@example:~/merecat/> make
-    user@example:~/merecat/> sudo make install
+user@example:~/merecat/> ./configure --prefix=/usr --localstatedir=/var --sysconfdir=/etc
+user@example:~/merecat/> make
+user@example:~/merecat/> sudo make install
 ```
 
 Features
