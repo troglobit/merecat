@@ -30,11 +30,13 @@ Authentication
 To protect a directory in your `~USERNAME/public_html/`, create a simple
 `.htpasswd` file using the included `htpasswd` tool:
 
-    cd ~/public_html/Downloads
-    htpasswd -c .htpasswd friend
+```shell
+    user@example:~ $ public_html/Downloads
+    user@example:~/public_html/Downloads $ htpasswd -c .htpasswd friend
 	Changing password for user friend
     New password: *****
     Re-type new password: *****
+```
 
 
 Virtual Hosts
@@ -44,6 +46,7 @@ Setting up virtual hosts on a server can be a bit of a hassle with other
 web servers.  With Merecat you simply create directories for each host
 in the web server root:
 
+```
      /var/www/
        |-- icons/
        |-- cgi-bin/
@@ -51,11 +54,14 @@ in the web server root:
        |    `-- err404.html
        |-- ftp.example.com/
        `-- www.example.com/
+```
 
 Edit `/etc/merecat.conf`:
 
+```conf
     virtual-host = true
     cgi-pattern = /cgi-bin/*|**.cgi
+```
 
 Now the web server root, `/var/www/`, no longer serves files, only
 virtual host directories do, execpt for the shared files in `icons/`,
@@ -64,7 +70,9 @@ virtual host directories do, execpt for the shared files in `icons/`,
 On Linux bind mounts can be used to set up FTP and web access to the
 same files. Example `/etc/fstab`:
 
+```
     /srv/ftp  /var/www/ftp.example.com  none  defaults,bind  0  0
+```
 
 
 Optimizing Performance
@@ -75,7 +83,9 @@ One of the most important ones is browser caching.  Merecat supports
 both `ETag:` and `Cache-Control:`, however to enable the latter you need
 to define the `max-age` setting in `/etc/merecat.conf`:
 
+```conf
     max-age = 3600        # One hour
+```
 
 The value is completely site dependent.  For an embedded system you
 might want to set it to the maximum value, whereas for other scenarios
@@ -86,9 +96,11 @@ support for serving HTML, CSS, and other `text/*` files if there is a
 `.gz` version of the same file.  Here is an example of how to compress
 relevant files:
 
-    $ cd /var/www/
-    $ for file in `find . -name '*.html' -o -name '*.css'`; do \
-          gzip -c $file > $file.gz; done
+```shell
+user@example:~ # cd /var/www/
+user@example:/var/www # for file in `find . -name '*.html' -o -name '*.css'`; do \
+      gzip -c $file > $file.gz; done
+```
 
 
 Build Requirements
@@ -99,23 +111,30 @@ which, if built from source, by default installs to `/usr/local`.  Non
 Debian/Ubuntu systems rarely support this GNU standard, so this is how
 you reference it for the Merecat `configure` script:
 
-    PKG_CONFIG_LIBDIR=/usr/local/lib/pkgconfig ./configure
+```shell
+    user@example:~ $ PKG_CONFIG_LIBDIR=/usr/local/lib/pkgconfig ./configure
+```
 
 To build Merecat without support for `/etc/merecat.conf`:
 
-    ./configure --without-config
+```shell
+    user@example:~ $ ./configure --without-config
+```
 
 If you build from GIT sources and not a released tarball, then remember:
 
-    ./autogen.sh
+```shell
+    user@example:~ $ ./autogen.sh
+```
 
 To install `httpd` into `/usr/sbin/`, default index and icons into
 `/var/www`, and config file to `/etc/merecat.conf`:
 
-    ./configure --prefix=/usr --localstatedir=/var --sysconfdir=/etc
-    make
-    sudo make install
-
+```shell
+    user@example:~ $ ./configure --prefix=/usr --localstatedir=/var --sysconfdir=/etc
+    user@example:~ $ make
+    user@example:~ $ sudo make install
+```
 
 Features
 --------
@@ -128,6 +147,7 @@ The most common options are available from the `merecat` command line
 and the `merecat.conf` configuration file.  Other, less common options,
 can be enabled using the `configure` script:
 
+```
     --enable-builtin-icons  Enable built-in icons for dir listings
     --enable-htaccess       Enable .htaccess files for access control
     --enable-htpasswd       Enable .htpasswd files for authentication
@@ -138,6 +158,7 @@ can be enabled using the `configure` script:
     --without-config        Disable /etc/merecat.conf support using libConfuse
     --without-ssl           Disable HTTPS support, default: enabled
     --without-zlib          Disable mod_deflate (gzip) using zlib
+```
 
 The source file `merecat.h` has even more features that can be tweaked,
 some of those are mentioned in the man page, but the header file has
