@@ -31,8 +31,8 @@ To protect a directory in your `~USERNAME/public_html/`, create a simple
 `.htpasswd` file using the included `htpasswd` tool:
 
 ```shell
-    user@example:~ $ public_html/Downloads
-    user@example:~/public_html/Downloads $ htpasswd -c .htpasswd friend
+    user@example:~/> public_html/Downloads
+    user@example:~/public_html/Downloads/> htpasswd -c .htpasswd friend
 	Changing password for user friend
     New password: *****
     Re-type new password: *****
@@ -97,8 +97,8 @@ support for serving HTML, CSS, and other `text/*` files if there is a
 relevant files:
 
 ```shell
-user@example:~ # cd /var/www/
-user@example:/var/www # for file in `find . -name '*.html' -o -name '*.css'`; do \
+root@example:~/> cd /var/www/
+root@example:/var/www/> for file in `find . -name '*.html' -o -name '*.css'`; do \
       gzip -c $file > $file.gz; done
 ```
 
@@ -115,28 +115,28 @@ Debian/Ubuntu systems rarely support this GNU standard, so this is how
 you reference it for the Merecat `configure` script:
 
 ```shell
-    user@example:~ $ PKG_CONFIG_LIBDIR=/usr/local/lib/pkgconfig ./configure
+    user@example:~/merecat/> PKG_CONFIG_LIBDIR=/usr/local/lib/pkgconfig ./configure
 ```
 
 To build Merecat without support for `/etc/merecat.conf`:
 
 ```shell
-    user@example:~ $ ./configure --without-config
+    user@example:~/merecat/> ./configure --without-config
 ```
 
 If you build from GIT sources and not a released tarball, then remember:
 
 ```shell
-    user@example:~ $ ./autogen.sh
+    user@example:~/merecat/> ./autogen.sh
 ```
 
 To install `httpd` into `/usr/sbin/`, default index and icons into
 `/var/www`, and config file to `/etc/merecat.conf`:
 
 ```shell
-    user@example:~ $ ./configure --prefix=/usr --localstatedir=/var --sysconfdir=/etc
-    user@example:~ $ make
-    user@example:~ $ sudo make install
+    user@example:~/merecat/> ./configure --prefix=/usr --localstatedir=/var --sysconfdir=/etc
+    user@example:~/merecat/> make
+    user@example:~/merecat/> sudo make install
 ```
 
 Features
