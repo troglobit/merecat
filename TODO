@@ -1,5 +1,16 @@
 - - - - - - - - - - before release - - - - - - - - - -
 
+Add ??? sections to config file,
+
+host site.tla:port {
+     port = PORT
+     ssl  = BOOL
+}
+
+Let command line options override port/host etc. that
+are in the global section of the config file.
+
+
 - - - - - - - - - - high priority - - - - - - - - - -
 
 Look into integrating HTTPS support using Libre/OpenSSL and GnuTLS
@@ -29,8 +40,6 @@ a named pipe?
 
 Document how symlinks interact with .htpasswd - authorization is checked
 on the result of the symlink, and not the origin.
-
-SIGHUP log re-opening doesn't work if you started as root.
 
 Change redirect to put the Refresh command in the HTTP headers, instead of
 a META tag.
