@@ -3009,10 +3009,29 @@ static int child_ls_read_names(httpd_conn *hc, DIR *dirp, FILE *fp, int onlydir)
 	static size_t maxencrname = 0;
 
 	while ((de = readdir(dirp))) {
-		if (onlydir && de->d_type != DT_DIR)
-			continue;
-		if (!onlydir && de->d_type == DT_DIR) 
-			continue;
+		char *path;
+
+		path = realpath(de->d_name, NULL);
+		if (!path) {
+		fallback:
+			if (onlydir && de->d_type != DT_DIR)
+				continue;
+			if (!onlydir && de->d_type == DT_DIR)
+				continue;
+		} else {
+			struct stat st;
+
+			if (stat(path, &st)) {
+				free(path);
+				goto fallback;
+			}
+
+			free(path);
+			if (onlydir && !S_ISDIR(st.st_mode))
+				continue;
+			if (!onlydir && S_ISDIR(st.st_mode))
+				continue;
+		}
 			
 		if (nnames >= maxnames) {
 			if (maxnames == 0) {
