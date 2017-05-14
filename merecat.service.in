@@ -8,6 +8,8 @@ Requires=network-online.target
 
 [Service]
 Type=simple
+Restart=always
+RestartSec=3
 ExecStart=@SBINDIR@/merecat -n @WWWDIR@
 
 [Install]
