@@ -1,7 +1,7 @@
 [Unit]
 Description=Merecat web server
 Documentation=man:merecat(8) man:ssi(8) man:redirect(8) man:htpasswd(1)
-Documentation=file:@DOCDIR@/merecat/README.md
+Documentation=file:@DOCDIR@/README.md
 ConditionPathExists=/var/www
 After=network-online.target
 Requires=network-online.target
