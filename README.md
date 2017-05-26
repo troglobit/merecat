@@ -31,11 +31,11 @@ To protect a directory in your `~USERNAME/public_html/`, create a simple
 `.htpasswd` file using the included `htpasswd` tool:
 
 ```shell
-    user@example:~/> cd public_html/Downloads
-    user@example:~/public_html/Downloads/> htpasswd -c .htpasswd friend
-	Changing password for user friend
-    New password: *****
-    Re-type new password: *****
+user@example:~/> cd public_html/Downloads
+user@example:~/public_html/Downloads/> htpasswd -c .htpasswd friend
+Changing password for user friend
+New password: *****
+Re-type new password: *****
 ```
 
 
