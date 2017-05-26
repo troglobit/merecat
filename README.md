@@ -17,7 +17,7 @@ a Raspberry Pi:
 - URL-traffic-based throttling
 - HTTP/1.1 Keep-alive
 - Built-in gzip deflate using zlib
-- HTTPS support using OpenSSL
+- HTTPS support using OpenSSL/LibreSSL
 
 For questions see the included `merecat(8)` man page or the [FAQ][].
 
