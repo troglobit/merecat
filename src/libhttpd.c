@@ -4105,6 +4105,10 @@ static int really_start_request(httpd_conn *hc, struct timeval *now)
 				       hc->encodedurl);
 			return -1;
 		}
+	} else if (!S_ISREG(hc->sb.st_mode)) {
+		/* Err, not a regular file and not a directory? */
+		httpd_send_err(hc, 404, err404title, "", err404form, hc->encodedurl);
+		return -1;
 	}
 
 #ifdef ACCESS_FILE
