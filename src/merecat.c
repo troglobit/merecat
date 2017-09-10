@@ -1550,7 +1550,11 @@ static int usage(int code)
 	       "  -u USER    Username to drop to, default: nobody\n"
 	       "  -v         Enable virtual hosting with WEBROOT as base\n"
 	       "  -V         Show Merecat httpd version\n"
-	       "\n", prognm, prognm, prognm, prognm);
+	       "\n", prognm,
+#ifdef HAVE_LIBCONFUSE
+	       prognm,
+#endif
+	       prognm, prognm);
 	printf("The optional 'WEBROOT' defaults to the current directory and 'HOSTNAME' is only\n"
 	       "for virtual hosting, to run one httpd per hostname.  The '-d DIR' is not needed\n"
 	       "in virtual hosting mode, see merecat(8) for more information on virtual hosting\n"
@@ -1608,8 +1612,9 @@ int main(int argc, char **argv)
 #ifndef HAVE_LIBCONFUSE
 			syslog(LOG_ERR, "%s is not built with .conf file support", PACKAGE_NAME);
 			return 1;
-#endif
+#else
 			config = optarg;
+#endif
 			break;
 
 		case 'c':
