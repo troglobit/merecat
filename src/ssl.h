@@ -25,11 +25,12 @@
 ** SUCH DAMAGE.
 */
 
-#include <config.h>
-#include "libhttpd.h"
-
 #ifndef MERECAT_SSL_H_
 #define MERECAT_SSL_H_
+
+#include <config.h>
+#include <sys/uio.h>
+#include "libhttpd.h"
 
 #ifdef ENABLE_SSL
 
