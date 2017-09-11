@@ -1,6 +1,7 @@
 dist_man1_MANS = htpasswd.1
 dist_man8_MANS = redirect.8 ssi.8 merecat.8
-SYMLINK        = in.httpd.8 httpd.8
+# in.httpd.8 
+SYMLINK        = httpd.8
 
 # Hook in install merecat.8 --> in.httpd-8, httpd-8 symlinks
 install-data-hook:

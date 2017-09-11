@@ -1,6 +1,7 @@
 sbin_PROGRAMS       = merecat htpasswd
 
-SYMLINK             = in.httpd httpd
+# in.httpd 
+SYMLINK             = httpd
 merecat_SOURCES     = base64.c		base64.h	\
 		      fdwatch.c		fdwatch.h	\
 		      file.c		file.h		\
