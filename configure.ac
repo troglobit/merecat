@@ -74,6 +74,7 @@ AC_CHECK_FUNCS([alarm atoll clock_gettime daemon dup2 gai_strerror getcwd getadd
 
 AS_IF([test "x$enable_builtin_icons" = "xyes"], [
         AC_DEFINE(BUILTIN_ICONS, [1], [Enables built-in icons for dir listings])])
+AM_CONDITIONAL([HAVE_ICONS], [test "x$enable_builtin_icons" != "xyes"])
 
 AS_IF([test "x$enable_public_html" = "xyes"], [
         AC_DEFINE_UNQUOTED(TILDE_MAP_2, "public_html", [Enables ~user/public_html])])
