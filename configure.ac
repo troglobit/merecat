@@ -94,6 +94,7 @@ AS_IF([test "x${WEBDIR}" = "x"], [
 AS_IF([test "x$with_config" != "xno"], [
 	AC_DEFINE([HAVE_LIBCONFUSE], [1], [Build with support for /etc/merecat.conf])
 	PKG_CHECK_MODULES([confuse], [libconfuse >= 2.7])])
+AM_CONDITIONAL([HAVE_CONFUSE], [test "x$with_config" != "xno"])
 
 AS_IF([test "x$with_ssl" != "xno"], [
 	PKG_CHECK_MODULES([OpenSSL], [openssl])

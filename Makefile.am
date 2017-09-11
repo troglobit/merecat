@@ -1,8 +1,11 @@
 SUBDIRS                   = src man scripts tests www
-dist_sysconf_DATA         = merecat.conf
 doc_DATA                  = README.md LICENSE
 EXTRA_DIST                = README.md README.thttpd LICENSE throttle.conf
 DISTCHECK_CONFIGURE_FLAGS = --with-systemd=$$dc_install_base/$(systemd)
+
+if HAVE_CONFUSE
+dist_sysconf_DATA         = merecat.conf
+endif
 
 if HAVE_SYSTEMD
 systemd_DATA              = merecat.service
