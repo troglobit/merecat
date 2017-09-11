@@ -30,6 +30,7 @@ noinst_LIBRARIES    = libmatch.a
 libmatch_a_SOURCES  = match.c match.h
 
 # Hook in install merecat --> in.httpd, httpd symlinks
+if CREATE_SYMLINKS
 install-exec-hook:
 	@for file in $(SYMLINK); do					\
 		link=$(DESTDIR)$(sbindir)/$$file;			\
@@ -38,8 +39,7 @@ install-exec-hook:
 	done
 
 uninstall-hook:
-	@for file in $(SYMLINK); do				\
-		$(RM) $(DESTDIR)$(sbindir)/$$file;		\
+	@for file in $(SYMLINK); do					\
+		$(RM) $(DESTDIR)$(sbindir)/$$file;			\
 	done
-
-
+endif

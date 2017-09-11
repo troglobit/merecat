@@ -46,6 +46,10 @@ AC_ARG_WITH(ssl,
         AS_HELP_STRING([--without-ssl], [Disable HTTPS support, default: enabled]),
         [], [with_ssl=yes])
 
+AC_ARG_WITH([symlinks],
+        AS_HELP_STRING([--without-symlinks], [Disable httpd and in.httpd symlinks to merecat]),
+	[], [with_symlinks=yes])
+
 AC_ARG_WITH([zlib],
         AS_HELP_STRING([--without-zlib], [Disable mod_deflate (gzip) using zlib]),
 	[], [with_zlib=yes])
@@ -96,6 +100,8 @@ AS_IF([test "x$with_config" != "xno"], [
 	AC_DEFINE([HAVE_LIBCONFUSE], [1], [Build with support for /etc/merecat.conf])
 	PKG_CHECK_MODULES([confuse], [libconfuse >= 2.7])])
 AM_CONDITIONAL([HAVE_CONFUSE], [test "x$with_config" != "xno"])
+
+AM_CONDITIONAL([CREATE_SYMLINKS], [test "x$with_config" != "xno"])
 
 AS_IF([test "x$with_ssl" != "xno"], [
 	PKG_CHECK_MODULES([OpenSSL], [openssl])
