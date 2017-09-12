@@ -1,4 +1,6 @@
+if ENABLE_HTPASSWD
 dist_man1_MANS = htpasswd.1
+endif
 dist_man8_MANS = redirect.8 ssi.8 merecat.8
 # in.httpd.8 
 SYMLINK        = httpd.8

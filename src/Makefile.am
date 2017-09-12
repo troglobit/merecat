@@ -1,4 +1,7 @@
-sbin_PROGRAMS       = merecat htpasswd
+sbin_PROGRAMS       = merecat
+if ENABLE_HTPASSWD
+sbin_PROGRAMS      += htpasswd
+endif
 
 # in.httpd 
 SYMLINK             = httpd
@@ -22,9 +25,11 @@ merecat_CPPFLAGS    = -D_POSIX_SOURCE -D_BSD_SOURCE -D_GNU_SOURCE -D_DEFAULT_SOU
 merecat_CPPFLAGS   += -DCONFDIR='"$(sysconfdir)"' -DLOCALSTATEDIR='"$(localstatedir)"'
 merecat_LDADD       = libmatch.a $(confuse_LIBS) $(zlib_LIBS) $(OpenSSL_LIBS)
 
+if ENABLE_HTPASSWD
 htpasswd_CFLAGS      = -W -Wall -Wextra -Wno-unused-result -Wno-unused-parameter
 htpasswd_CPPFLAGS   = -DWEBDIR='"$(WEBDIR)"'
 htpasswd_SOURCES    = htpasswd.c
+endif
 
 noinst_LIBRARIES    = libmatch.a
 libmatch_a_SOURCES  = match.c match.h

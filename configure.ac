@@ -88,6 +88,7 @@ AS_IF([test "x$enable_htaccess" = "xyes"], [
 
 AS_IF([test "x$enable_htpasswd" = "xyes"], [
         AC_DEFINE_UNQUOTED(AUTH_FILE, ".htpasswd", [Enables .htpasswd auth. files])])
+AM_CONDITIONAL([ENABLE_HTPASSWD], [test "x$enable_htpasswd" = "xyes"])
 
 AS_IF([test "x$enable_msie_padding" = "xyes"], [
         AC_DEFINE(MSIE_PADDING, [1], [Enable padding of error messages for IE])])
