@@ -102,7 +102,7 @@ AS_IF([test "x$with_config" != "xno"], [
 	PKG_CHECK_MODULES([confuse], [libconfuse >= 2.7])])
 AM_CONDITIONAL([HAVE_CONFUSE], [test "x$with_config" != "xno"])
 
-AM_CONDITIONAL([CREATE_SYMLINKS], [test "x$with_config" != "xno"])
+AM_CONDITIONAL([CREATE_SYMLINKS], [test "x$with_symlinks" != "xno"])
 
 AS_IF([test "x$with_ssl" != "xno"], [
 	PKG_CHECK_MODULES([OpenSSL], [openssl])
