@@ -154,12 +154,14 @@ can be enabled using the `configure` script:
     --enable-builtin-icons  Enable built-in icons for dir listings
     --enable-htaccess       Enable .htaccess files for access control
     --enable-htpasswd       Enable .htpasswd files for authentication
+                            and a htpasswd tool to manage them
     --enable-public-html    Enable $HOME/public_html as ~USERNAME/
     --enable-msie-padding   Enforce padding of httdp error messages
                             sent to Internet Explorer, otherwise it will
                             detect too short msg and display its own.
     --without-config        Disable /etc/merecat.conf support using libConfuse
     --without-ssl           Disable HTTPS support, default: enabled
+    --without-symlinks      Disable httpd and in.httpd symlinks to merecat
     --without-zlib          Disable mod_deflate (gzip) using zlib
 ```
 
