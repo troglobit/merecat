@@ -9,9 +9,7 @@ actual web serving purposes.  It is however not a real [Meerkat][],
 merely yet another copycat, forked from the great [thttpd][] created by
 Jef&nbsp;Poskanzer.
 
-The limited feature set makes it very quick.  This small footprint makes
-Merecat suitable for small and embedded systems, even those smaller than
-a Raspberry Pi:
+The limited feature set makes Merecat very quick:
 
 - Virtual hosts
 - URL-traffic-based throttling
@@ -19,9 +17,12 @@ a Raspberry Pi:
 - Built-in gzip deflate using zlib
 - HTTPS support using OpenSSL/LibreSSL
 
-For questions see the included `merecat(8)` man page or the [FAQ][].
+The resulting footprint (~100 kiB) makes it suitable for small and
+embedded systems, even those smaller than a Raspberry Pi!
 
-Merecat is free software under the simplified 2-clause [BSD license][license].
+Merecat is available as free/open source software under the simplified
+2-clause [BSD license][license].  For more information, see the manual
+page `merecat(8)`, or the [FAQ][].
 
 
 Authentication
@@ -37,6 +38,8 @@ Changing password for user friend
 New password: *****
 Re-type new password: *****
 ```
+
+The `.htpasswd` support can be disabled using the `configure` script.
 
 
 Virtual Hosts
@@ -144,7 +147,7 @@ Features
 
 Merecat consists of a front-end, `merecat.c`, and a standalone HTTP
 library, `libhttpd.c`, which can be tweaked in various ways and used
-for embedding a web server in another applications if needed.
+for embedding a web server in another application if needed.
 
 The most common options are available from the `merecat` command line
 and the `merecat.conf` configuration file.  Other, less common options,
