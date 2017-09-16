@@ -48,14 +48,27 @@
 .Nm
 started out as a pun at Mongoose, which is another great web server, but
 is now useful for actual web serving purposes.  It is however not a real
-Meerkat, merely yet another copycat, forked from the
+Meerkat, merely yet another copycat, forked from the great
 .Nm thttpd
 created by Jef Poskanzer.
 .Pp
-The limited feature set makes it very quick.  Virtual hosts and the
-URL-traffic-based throttling are just about its only features.  This
-small footprint makes Merecat very suitable for small and embedded
-systems, even those smaller than a Raspberry Pi.
+The limited feature set makes Merecat very quick:
+.Pp
+.Bl -dash -offsent indent -compact
+.It
+Virtual hosts
+.It
+URL-traffic-based throttling
+.It
+HTTP/1.1 Keep-alive
+.It
+Built-in gzip deflate using zlib
+.It
+HTTPS support using OpenSSL/LibreSSL
+.El
+.Pp
+The resulting footprint (~100 kiB) makes Merecat suitable for small and
+embedded systems, even those smaller than a Raspberry Pi!
 .Sh OPTIONS
 This program follows the usual UNIX command line syntax.  The options
 are as follows:
