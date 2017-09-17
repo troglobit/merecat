@@ -35,20 +35,20 @@ AC_ARG_ENABLE(msie-padding,
         AS_HELP_STRING([--enable-msie-padding], [Add padding to error messages for Internet Explorer]))
 
 AC_ARG_WITH([systemd],
-     [AS_HELP_STRING([--with-systemd=DIR], [Directory for systemd service files, default: auto])],,
-     [with_systemd=auto])
+	[AS_HELP_STRING([--with-systemd=DIR], [Directory for systemd service files, default: auto])],,
+	[with_systemd=auto])
 
 AC_ARG_WITH([config],
-        AS_HELP_STRING([--without-config], [Disable /etc/merecat.conf support using libConfuse]),
-	[], [with_config=yes])
+        AS_HELP_STRING([--without-config], [Disable /etc/merecat.conf support using libConfuse]),,
+	[with_config=yes])
 
 AC_ARG_WITH(ssl,
-        AS_HELP_STRING([--without-ssl], [Disable HTTPS support, default: enabled]),
-        [], [with_ssl=yes])
+        AS_HELP_STRING([--without-ssl], [Disable HTTPS support, default: enabled]),,
+        [with_ssl=yes])
 
 AC_ARG_WITH([symlinks],
-        AS_HELP_STRING([--without-symlinks], [Disable httpd and in.httpd symlinks to merecat]),
-	[], [with_symlinks=yes])
+        AS_HELP_STRING([--without-symlinks], [Disable httpd and in.httpd symlinks to merecat]),,
+	[with_symlinks=yes])
 
 AC_ARG_WITH([zlib],
         AS_HELP_STRING([--without-zlib], [Disable mod_deflate (gzip) using zlib]),
