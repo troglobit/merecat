@@ -1,3 +1,5 @@
+- Auto-detect zlib support, don't fail if missing!
+
 - - - - - - - - - - before release - - - - - - - - - -
 
 Add ??? sections to config file,
