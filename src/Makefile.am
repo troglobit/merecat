@@ -19,7 +19,8 @@ merecat_SOURCES     = base64.c		base64.h	\
 if ENABLE_SSL
 merecat_SOURCES    += ssl.c ssl.h
 endif
-merecat_CFLAGS      = -W -Wall -Wextra -Wno-unused-result -Wno-unused-parameter -Wno-unused-variable
+merecat_CFLAGS      = -fPIC -W -Wall -Wextra
+merecat_CFLAGS     += -Wno-unused-result -Wno-unused-parameter -Wno-unused-variable
 merecat_CFLAGS     += -std=gnu99 $(confuse_CFLAGS) $(zlib_CFLAGS) $(OpenSSL_CFLAGS)
 merecat_CPPFLAGS    = -D_POSIX_SOURCE -D_BSD_SOURCE -D_GNU_SOURCE -D_DEFAULT_SOURCE
 merecat_CPPFLAGS   += -DCONFDIR='"$(sysconfdir)"' -DLOCALSTATEDIR='"$(localstatedir)"'
