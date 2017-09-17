@@ -51,8 +51,8 @@ AC_ARG_WITH([symlinks],
 	[with_symlinks=yes])
 
 AC_ARG_WITH([zlib],
-        AS_HELP_STRING([--without-zlib], [Disable mod_deflate (gzip) using zlib]),
-	[], [with_zlib=yes])
+        AS_HELP_STRING([--without-zlib], [Disable mod_deflate (gzip) using zlib]),,
+	[with_zlib=auto])
 
 # Checks for header files.
 AC_CHECK_HEADERS([arpa/inet.h fcntl.h grp.h memory.h netdb.h netinet/in.h osreldate.h paths.h poll.h stdlib.h string.h sys/devpoll.h sys/event.h sys/param.h sys/poll.h sys/socket.h sys/time.h syslog.h unistd.h])
@@ -141,8 +141,10 @@ AS_IF([test "x$with_ssl" != "xno"], [
 AM_CONDITIONAL([ENABLE_SSL], test "x$with_ssl" = "xyes")
 
 AS_IF([test "x$with_zlib" != "xno"], [
-	PKG_CHECK_MODULES([zlib], [zlib >= 1.2.3.4])
-	AC_CHECK_HEADERS([zlib.h])])
+	AC_CHECK_HEADERS([zlib.h])
+	AS_IF([test "x$ac_cv_header_zlib_h" = "xyes" -o "x$with_zlib" = "xyes"], [
+		PKG_CHECK_MODULES([zlib], [zlib >= 1.2.3.4])])
+])
 
 # Check where to install the systemd .service file
 AS_IF([test "x$with_systemd" = "xyes" -o "x$with_systemd" = "xauto"], [
