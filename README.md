@@ -25,6 +25,13 @@ Merecat is available as free/open source software under the simplified
 page `merecat(8)`, or the [FAQ][].
 
 
+Docker
+------
+
+Try out [Docker Merecat](https://hub.docker.com/r/troglobit/merecat/)
+safely isolated from the rest of the system, with easy deployment.
+
+
 Authentication
 --------------
 
