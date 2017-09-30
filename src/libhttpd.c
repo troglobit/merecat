@@ -831,8 +831,8 @@ static void send_response_tail(httpd_conn *hc)
 	char buf[1000];
 
 	snprintf(buf, sizeof(buf),
-		 " <address>%s httpd at %s port %d</address>\n"
 		 "</div>\n"
+		 " <address>%s httpd at %s port %d</address>\n"
 		 "</body>\n"
 		 "</html>\n", EXPOSED_SERVER_SOFTWARE, get_hostname(hc), (int)hc->hs->port);
 	add_response(hc, buf);
