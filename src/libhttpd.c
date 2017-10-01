@@ -535,7 +535,7 @@ const char *httpd_css_default(void)
 	const char *style = "  <style type=\"text/css\">\n"
 		"    body { background-color:#f2f1f0; font-family: sans-serif;}\n"
 		"    h2 { border-bottom: 1px solid #f2f1f0; font-weight: normal;}"
-		"    address { border-top: 1px solid #f2f1f0; margin-top: 1em; color:#c8c5c2; }"
+		"    address { border-top: 1px solid #f2f1f0; margin-top: 1em; padding-top: 5px; color:#c8c5c2; }"
 		"    table { table-layout: fixed; border-collapse: collapse;}\n"
 		"    table tr:hover { background-color:#f2f1f0;}\n"
 		"    table tr td { text-align: left; padding: 0 5px 0 0px; }\n"
