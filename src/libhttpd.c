@@ -4082,8 +4082,8 @@ static int really_start_request(httpd_conn *hc, struct timeval *now)
 #endif /* GENERATE_INDEXES */
 
 	got_one:
-		/* Got an index file.  Expand symlinks again.  More pathinfo means
-		** something went wrong.
+		/* Got an index file.  Expand symlinks again.
+		** More pathinfo means something went wrong.
 		*/
 		cp = expand_symlinks(hc->indexname, &pi, hc->hs->no_symlink_check, hc->tildemapped);
 		if (!cp || pi[0] != '\0') {
@@ -4227,18 +4227,6 @@ sneaky:
 		return -1;
 	}
 
-	/* It's not CGI.  If it's executable or there's pathinfo, someone's
-	** trying to either serve or run a non-CGI file as CGI.   Either case
-	** is prohibited.
-	*/
-	if (hc->sb.st_mode & S_IXOTH) {
-		syslog(LOG_NOTICE, "%s URL \"%s\" is executable but isn't CGI", httpd_client(hc), hc->encodedurl);
-		httpd_send_err(hc, 403, err403title, "",
-			       ERROR_FORM(err403form,
-					  "The requested URL '%s' resolves to a file which is marked executable but is not a CGI file; retrieving it is forbidden.\n"),
-			       hc->encodedurl);
-		return -1;
-	}
 	if (hc->pathinfo[0] != '\0') {
 		syslog(LOG_INFO, "%s URL \"%s\" has pathinfo but isn't CGI", httpd_client(hc), hc->encodedurl);
 		httpd_send_err(hc, 403, err403title, "",
