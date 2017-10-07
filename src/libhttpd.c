@@ -3013,12 +3013,20 @@ static int child_ls_read_names(httpd_conn *hc, DIR *dirp, FILE *fp, int onlydir)
 
 		path = realpath(de->d_name, NULL);
 		if (!path) {
+			struct stat st;
+
+			httpd_realloc_str(&name, &maxname, strlen(hc->expnfilename) + 1 + strlen(de->d_name));
+			snprintf(name, maxname, "%s/%s", hc->expnfilename, de->d_name);
+
+			if (stat(name, &st))
+				continue;
+			if (!(st.st_mode & (S_IROTH | S_IXOTH)))
+				continue;
+
 		fallback:
 			if (onlydir && de->d_type != DT_DIR)
 				continue;
 			if (!onlydir && de->d_type == DT_DIR)
-				continue;
-			if (access(de->d_name, R_OK))
 				continue;
 		} else {
 			struct stat st;
@@ -3028,10 +3036,8 @@ static int child_ls_read_names(httpd_conn *hc, DIR *dirp, FILE *fp, int onlydir)
 				goto fallback;
 			}
 
-			if (access(path, R_OK)) {
-				free(path);
+			if (!(st.st_mode & (S_IROTH | S_IXOTH)))
 				continue;
-			}
 
 			free(path);
 			if (onlydir && !S_ISDIR(st.st_mode))
