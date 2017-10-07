@@ -3018,12 +3018,19 @@ static int child_ls_read_names(httpd_conn *hc, DIR *dirp, FILE *fp, int onlydir)
 				continue;
 			if (!onlydir && de->d_type == DT_DIR)
 				continue;
+			if (access(path, R_OK))
+				continue;
 		} else {
 			struct stat st;
 
 			if (stat(path, &st)) {
 				free(path);
 				goto fallback;
+			}
+
+			if (access(path, R_OK)) {
+				free(path);
+				continue;
 			}
 
 			free(path);
