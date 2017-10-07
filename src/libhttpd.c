@@ -3011,6 +3011,11 @@ static int child_ls_read_names(httpd_conn *hc, DIR *dirp, FILE *fp, int onlydir)
 	while ((de = readdir(dirp))) {
 		char *path;
 
+		if (!strcmp(".", de->d_name))
+			continue;
+		if (!strcmp("..", de->d_name))
+			continue;
+
 		path = realpath(de->d_name, NULL);
 		if (!path) {
 			struct stat st;
