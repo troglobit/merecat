@@ -144,11 +144,11 @@ must be enabled:
 Build Requirements
 ------------------
 
-Merecat depends on a few external libraries, if enabled, e.g. OpenSSL
-and [libConfuse](https://github.com/martinh/libconfuse/) which, if built
-from source, by default installs to `/usr/local`.  Non Debian/Ubuntu
-systems rarely support this GNU standard, so this is how you reference
-it for the Merecat `configure` script:
+Merecat depends on a few external libraries, if enabled, e.g. OpenSSL,
+zlib, and [libConfuse](https://github.com/martinh/libconfuse/) which,
+when built from source, defaults to an install prefix of `/usr/local`.
+Non Debian/Ubuntu systems rarely support this GNU standard, so here is
+how you reference it for the Merecat `configure` script:
 
 ```shell
 user@example:~/merecat/> PKG_CONFIG_LIBDIR=/usr/local/lib/pkgconfig ./configure
