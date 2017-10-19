@@ -355,7 +355,9 @@
 ** individual directories by merely doing a "chmod 711" on them - the
 ** standard Unix file permission to allow file access but disable "ls".
 */
+#ifdef notdef
 #define GENERATE_INDEXES
+#endif
 
 /* CONFIGURE: Whether to log unknown request headers.  Most sites will not
 ** want to log them, which will save them a bit of CPU time.

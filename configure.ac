@@ -34,6 +34,10 @@ AC_ARG_ENABLE(htpasswd,
 AC_ARG_ENABLE(msie-padding,
         AS_HELP_STRING([--enable-msie-padding], [Add padding to error messages for Internet Explorer]))
 
+AC_ARG_ENABLE(dirlisting,
+        AS_HELP_STRING([--disable-dirlisting], [Disable directory listings when no index file is found]),,[
+		enable_dirlisting=yes])
+
 AC_ARG_WITH([systemd],
 	[AS_HELP_STRING([--with-systemd=DIR], [Directory for systemd service files, default: auto])],,
 	[with_systemd=auto])
@@ -92,6 +96,9 @@ AM_CONDITIONAL([ENABLE_HTPASSWD], [test "x$enable_htpasswd" = "xyes"])
 
 AS_IF([test "x$enable_msie_padding" = "xyes"], [
         AC_DEFINE(MSIE_PADDING, [1], [Enable padding of error messages for IE])])
+
+AS_IF([test "x$enable_dirlisting" != "xno"], [
+        AC_DEFINE(GENERATE_INDEXES, [1], [Automatically generate directory index when index file is missing])])
 
 AC_ARG_VAR(WEBDIR, [Document root of your web server [LOCALSTATEDIR/www]])
 AS_IF([test "x${WEBDIR}" = "x"], [
