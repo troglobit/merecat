@@ -83,22 +83,23 @@ error:
 
 void httpd_ssl_exit(httpd_server *hs)
 {
-	if (hs->ctx) {
-#if HAVE_DECL_SSL_COMP_FREE_COMPRESSION_METHODS
-		SSL_COMP_free_compression_methods();
-#endif
-		SSL_CTX_free(hs->ctx);
-		hs->ctx = NULL;
+	if (!hs || !hs->ctx)
+		return;
 
-		ENGINE_cleanup();
-		ERR_free_strings();
-		ERR_remove_state(0);
-		EVP_cleanup();
-		CRYPTO_cleanup_all_ex_data();
-		CONF_modules_free();
-		CONF_modules_unload(1);
-		COMP_zlib_cleanup();
-	}
+#if HAVE_DECL_SSL_COMP_FREE_COMPRESSION_METHODS
+	SSL_COMP_free_compression_methods();
+#endif
+	SSL_CTX_free(hs->ctx);
+	hs->ctx = NULL;
+
+	ENGINE_cleanup();
+	ERR_free_strings();
+	ERR_remove_state(0);
+	EVP_cleanup();
+	CRYPTO_cleanup_all_ex_data();
+	CONF_modules_free();
+	CONF_modules_unload(1);
+	COMP_zlib_cleanup();
 }
 
 int httpd_ssl_open(httpd_conn *hc)
