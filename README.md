@@ -214,8 +214,8 @@ Origin & References
 -------------------
 
 Merecat is a stiched up fork of [sthttpd][] with lots of lost patches
-found lying around the web.  The sthttpd project is a fork from the
-original [thttpd][] -- the tiny/turbo/throttling HTTP server.
+found lying around the web.  The sthttpd project in turn is a fork from
+the original [thttpd][] -- the tiny/turbo/throttling HTTP server.
 
 * [thttpd][] was created by Jef Poskanzer <mailto:jef@mail.acme.com>
 * [sthttpd][] was spawned by Anthony G. Basile <mailto:blueness@gentoo.org>
