@@ -118,13 +118,37 @@ This approach is more CPU friendly than letting Merecat "deflate" files
 on the fly, which it otherwise does.
 
 
+HTTPS Support
+-------------
+
+If the `configure` script finds OpenSSL installed HTTPS support will be
+enabled by default, this can be disabled using `--without-ssl`.
+
+The HTTPS support has SSLv2, SSLv3, and TLSv1 disabled (hard coded) by
+default.  Only TLSv2 and later will be enabled and negotiated on a per
+client basis.
+
+To set up Merecat for HTTPS the following `/etc/merecat.conf` settings
+must be enabled:
+
+    port     = 443
+    ssl      = true
+    certfile = certs/cert.pem
+    keyfile  = private/key.pem
+
+**NOTE:** Currently, virtual hosts is not supported when HTTPS is
+  enabled.  A wildcard certificate may work, but the author has not
+  tested any of this yet pending *Let's Encrypt* support.
+
+
 Build Requirements
 ------------------
 
-Merecat depends on [libConfuse](https://github.com/martinh/libconfuse/)
-which, if built from source, by default installs to `/usr/local`.  Non
-Debian/Ubuntu systems rarely support this GNU standard, so this is how
-you reference it for the Merecat `configure` script:
+Merecat depends on a few external libraries, if enabled, e.g. OpenSSL
+and [libConfuse](https://github.com/martinh/libconfuse/) which, if built
+from source, by default installs to `/usr/local`.  Non Debian/Ubuntu
+systems rarely support this GNU standard, so this is how you reference
+it for the Merecat `configure` script:
 
 ```shell
 user@example:~/merecat/> PKG_CONFIG_LIBDIR=/usr/local/lib/pkgconfig ./configure
