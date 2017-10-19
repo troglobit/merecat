@@ -13,8 +13,6 @@ are in the global section of the config file.
 
 - - - - - - - - - - high priority - - - - - - - - - -
 
-Look into integrating HTTPS support using Libre/OpenSSL and GnuTLS
-
 Look into compressing CGI and ls() output using fmemopen()
 
 IPv6 not working right.
