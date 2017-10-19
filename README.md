@@ -196,11 +196,9 @@ can be enabled using the `configure` script:
     --enable-builtin-icons  Enable built-in icons for dir listings
     --enable-htaccess       Enable .htaccess files for access control
     --enable-htpasswd       Enable .htpasswd files for authentication
-                            and a htpasswd tool to manage them
     --enable-public-html    Enable $HOME/public_html as ~USERNAME/
-    --enable-msie-padding   Enforce padding of httdp error messages
-                            sent to Internet Explorer, otherwise it will
-                            detect too short msg and display its own.
+    --enable-msie-padding   Add padding to error messages for Internet Explorer
+    --disable-dirlisting    Disable directory listings when no index file is found
     --without-config        Disable /etc/merecat.conf support using libConfuse
     --without-ssl           Disable HTTPS support, default: enabled
     --without-symlinks      Disable httpd and in.httpd symlinks to merecat
