@@ -9,16 +9,18 @@ actual web serving purposes.  It is however not a real [Meerkat][],
 merely yet another copycat, forked from the great [thttpd][] created by
 Jef&nbsp;Poskanzer.
 
-The limited feature set makes Merecat very quick:
+Merecat expands a lot on the features originally offered by thttpd, but
+still has a very limited feature set:
 
 - Virtual hosts
+- Basic `.htpassd` and `.htaccess` support
 - URL-traffic-based throttling
 - HTTP/1.1 Keep-alive
 - Built-in gzip deflate using zlib
 - HTTPS support using OpenSSL/LibreSSL
 
-The resulting footprint (~100 kiB) makes it suitable for small and
-embedded systems, even those smaller than a Raspberry Pi!
+The resulting footprint (~100 kiB) makes it quick and suitable for small
+and embedded systems, even those smaller than a Raspberry Pi!
 
 Merecat is available as free/open source software under the simplified
 2-clause [BSD license][license].  For more information, see the manual
