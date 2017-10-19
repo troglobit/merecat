@@ -60,20 +60,20 @@ web servers.  With Merecat you simply create directories for each host
 in the web server root:
 
 ```
-    /var/www/
-      |-- icons/
-      |-- cgi-bin/
-      |-- errors/
-      |    `-- err404.html
-      |-- ftp.example.com/
-       `- www.example.com/
+/var/www/
+  |-- icons/
+  |-- cgi-bin/
+  |-- errors/
+  |    `-- err404.html
+  |-- ftp.example.com/
+   `- www.example.com/
 ```
 
 Edit `/etc/merecat.conf`:
 
 ```conf
-    virtual-host = true
-    cgi-pattern = /cgi-bin/*|**.cgi
+virtual-host = true
+cgi-pattern = /cgi-bin/*|**.cgi
 ```
 
 Now the web server root, `/var/www/`, no longer serves files, only
@@ -84,7 +84,7 @@ On Linux bind mounts can be used to set up FTP and web access to the
 same files. Example `/etc/fstab`:
 
 ```
-    /srv/ftp  /var/www/ftp.example.com  none  defaults,bind  0  0
+/srv/ftp  /var/www/ftp.example.com  none  defaults,bind  0  0
 ```
 
 
@@ -97,7 +97,7 @@ both `ETag:` and `Cache-Control:`, however to enable the latter you need
 to define the `max-age` setting in `/etc/merecat.conf`:
 
 ```conf
-    max-age = 3600        # One hour
+max-age = 3600        # One hour
 ```
 
 The value is completely site dependent.  For an embedded system you
@@ -132,16 +132,20 @@ client basis.
 To set up Merecat for HTTPS the following `/etc/merecat.conf` settings
 must be enabled:
 
-    port     = 443
-    ssl      = true
-    certfile = certs/cert.pem
-    keyfile  = private/key.pem
+```
+port     = 443
+ssl      = true
+certfile = certs/cert.pem
+keyfile  = private/key.pem
+```
 
 To create a self signed certificate, use `openssl` like this:
 
-    root@example:/var/www/> mkdir private certs
-    root@example:/var/www/> openssl req -x509 -newkey rsa:4096 \
-	    -keyout private/key.pem -out certs/cert.pem -days 365 -nodes
+```
+root@example:/var/www/> mkdir private certs
+root@example:/var/www/> openssl req -x509 -newkey rsa:4096 \
+    -keyout private/key.pem -out certs/cert.pem -days 365 -nodes
+```
 
 **NOTE:** Currently, virtual hosts is not supported when HTTPS is
   enabled.  A wildcard certificate may work, but the author has not
@@ -194,16 +198,16 @@ and the `merecat.conf` configuration file.  Other, less common options,
 can be enabled using the `configure` script:
 
 ```
-    --enable-builtin-icons  Enable built-in icons for dir listings
-    --enable-htaccess       Enable .htaccess files for access control
-    --enable-htpasswd       Enable .htpasswd files for authentication
-    --enable-public-html    Enable $HOME/public_html as ~USERNAME/
-    --enable-msie-padding   Add padding to error messages for Internet Explorer
-    --disable-dirlisting    Disable directory listings when no index file is found
-    --without-config        Disable /etc/merecat.conf support using libConfuse
-    --without-ssl           Disable HTTPS support, default: enabled
-    --without-symlinks      Disable httpd and in.httpd symlinks to merecat
-    --without-zlib          Disable mod_deflate (gzip) using zlib
+--enable-builtin-icons  Enable built-in icons for dir listings
+--enable-htaccess       Enable .htaccess files for access control
+--enable-htpasswd       Enable .htpasswd files for authentication
+--enable-public-html    Enable $HOME/public_html as ~USERNAME/
+--enable-msie-padding   Add padding to error messages for Internet Explorer
+--disable-dirlisting    Disable directory listings when no index file is found
+--without-config        Disable /etc/merecat.conf support using libConfuse
+--without-ssl           Disable HTTPS support, default: enabled
+--without-symlinks      Disable httpd and in.httpd symlinks to merecat
+--without-zlib          Disable mod_deflate (gzip) using zlib
 ```
 
 The source file `merecat.h` has even more features that can be tweaked,
