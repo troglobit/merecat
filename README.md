@@ -136,6 +136,12 @@ must be enabled:
     certfile = certs/cert.pem
     keyfile  = private/key.pem
 
+To create a self signed certificate, use `openssl` like this:
+
+    root@example:/var/www/> mkdir private certs
+    root@example:/var/www/> openssl req -x509 -newkey rsa:4096 \
+	    -keyout private/key.pem -out certs/cert.pem -days 365 -nodes
+
 **NOTE:** Currently, virtual hosts is not supported when HTTPS is
   enabled.  A wildcard certificate may work, but the author has not
   tested any of this yet pending *Let's Encrypt* support.
