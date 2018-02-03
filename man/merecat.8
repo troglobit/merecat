@@ -372,10 +372,9 @@ Relevant
 defines:
 .Cm CGI_PATTERN, CGI_TIMELIMIT, CGI_NICE, CGI_PATH, CGI_LD_LIBRARY_PATH, CGIBINDIR .
 .Sh "BASIC AUTHENTICATION"
-Basic Authentication is enabled by default in
-.Nm ,
-but can also be disabled at compile time.  When enabled, it uses a
-password file in the directory to be protected, called
+Basic authentication is available as an option at compile time.  See the
+included configure script for details.  When enabled, it uses a password
+file in the directory to be protected, called
 .Pa .htpasswd
 by default.  This file is formatted as the familiar colon-separated
 username/encrypted-password pair, records delimited by newlines.  The

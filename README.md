@@ -38,8 +38,8 @@ safely isolated from the rest of the system, with easy deployment.
 Authentication
 --------------
 
-To protect a directory in your `~USERNAME/public_html/`, create a simple
-`.htpasswd` file using the included `htpasswd` tool:
+To protect a directory in your `~USERNAME/public_html/`, create the file
+`.htpasswd` using the included `htpasswd` tool:
 
 ```shell
 user@example:~/> cd public_html/Downloads
@@ -49,7 +49,8 @@ New password: *****
 Re-type new password: *****
 ```
 
-The `.htpasswd` support can be disabled using the `configure` script.
+Enable this feature, and user home directories, with the `configure`
+script.  See more on this in the [Features](#features) section below.
 
 
 Virtual Hosts
