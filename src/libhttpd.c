@@ -1221,7 +1221,7 @@ static int auth_check(httpd_conn *hc, char *dirname)
 			*slash = 0;
 		}
 		
-		if (!found) {
+		if (found) {
 			/* use this directory for authentication */
 			rc = auth_check2(hc, currdir[0] ? currdir : ".");
 		}
