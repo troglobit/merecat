@@ -4145,21 +4145,15 @@ static int really_start_request(httpd_conn *hc, struct timeval *now)
 	/* Check if the filename is the ACCESS_FILE itself - that's verboten. */
 	if (expnlen == sizeof(ACCESS_FILE) - 1) {
 		if (strcmp(hc->expnfilename, ACCESS_FILE) == 0) {
+		deny_access:
 			syslog(LOG_NOTICE, "%.80s URL \"%.80s\" tried to retrieve an access file", httpd_client(hc), hc->encodedurl);
-			httpd_send_err(hc, 403, err403title, "",
-				       ERROR_FORM(err403form,
-						  "The requested URL '%.80s' is an access file, retrieving it is not permitted.\n"),
-				       hc->encodedurl);
+			httpd_send_err(hc, 404, err404title, "", err404form, hc->encodedurl);
 			return -1;
 		}
 	} else if (expnlen >= sizeof(ACCESS_FILE) &&
 		   strcmp(&(hc->expnfilename[expnlen - sizeof(ACCESS_FILE) + 1]), ACCESS_FILE) == 0 &&
 		   hc->expnfilename[expnlen - sizeof(ACCESS_FILE)] == '/') {
-		syslog(LOG_NOTICE, "%.80s URL \"%.80s\" tried to retrieve an access file", httpd_client(hc), hc->encodedurl);
-		httpd_send_err(hc, 403, err403title, "",
-			       ERROR_FORM(err403form, "The requested URL '%.80s' is an access file, retrieving it is not permitted.\n"),
-			       hc->encodedurl);
-		return -1;
+		goto deny_access;
 	}
 #endif /* ACCESS_FILE */
 
@@ -4180,22 +4174,15 @@ static int really_start_request(httpd_conn *hc, struct timeval *now)
 	/* Check if the filename is the AUTH_FILE itself - that's verboten. */
 	if (expnlen == sizeof(AUTH_FILE) - 1) {
 		if (!strcmp(hc->expnfilename, AUTH_FILE)) {
+		deny_auth:
 			syslog(LOG_NOTICE, "%s URL \"%s\" tried to retrieve an auth file", httpd_client(hc), hc->encodedurl);
-			httpd_send_err(hc, 403, err403title, "",
-				       ERROR_FORM(err403form,
-						  "The requested URL '%s' is an authorization file, retrieving it is not permitted.\n"),
-				       hc->encodedurl);
+			httpd_send_err(hc, 404, err404title, "", err404form, hc->encodedurl);
 			return -1;
 		}
 	} else if (expnlen >= sizeof(AUTH_FILE) &&
 		   strcmp(&(hc->expnfilename[expnlen - sizeof(AUTH_FILE) + 1]), AUTH_FILE) == 0 &&
 		   hc->expnfilename[expnlen - sizeof(AUTH_FILE)] == '/') {
-		syslog(LOG_NOTICE, "%s URL \"%s\" tried to retrieve an auth file", httpd_client(hc), hc->encodedurl);
-		httpd_send_err(hc, 403, err403title, "",
-			       ERROR_FORM(err403form,
-					  "The requested URL '%s' is an authorization file, retrieving it is not permitted.\n"),
-			       hc->encodedurl);
-		return -1;
+		goto deny_auth;
 	}
 #endif /* AUTH_FILE */
 
