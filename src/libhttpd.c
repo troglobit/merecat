@@ -958,17 +958,6 @@ static int send_err_file(httpd_conn *hc, int status, char *title, const char *ex
 
 
 #ifdef ACCESS_FILE
-static int access_file_error(httpd_conn *hc, char *accesspath, char *line)
-{
-	syslog(LOG_ERR, "%.80s access file %.80s: invalid line: %s", httpd_client(hc), accesspath, line);
-	httpd_send_err(hc, 403, err403title, "",
-		       ERROR_FORM(err403form,
-				  "The requested URL '%.80s' is protected by an access file (1)"),
-		       hc->encodedurl);
-
-	return -1;
-}
-
 /* Returns -1 == unauthorized, 0 == no access file, 1 = authorized. */
 static int access_check(httpd_conn *hc, char *dirname)
 {
@@ -1072,7 +1061,7 @@ static int access_check2(httpd_conn *hc, char *dirname)
 
 		httpd_send_err(hc, 403, err403title, "",
 			       ERROR_FORM(err403form,
-					  "The requested URL '%.80s' is protected by an access file (2)"),
+					  "The requested URL '%.80s' is protected by an access file. (2)"),
 			       hc->encodedurl);
 		return -1;
 	}
@@ -1091,41 +1080,40 @@ static int access_check2(httpd_conn *hc, char *dirname)
 			addr = addr2;
 
 		if (!addr) {
+		err:
 			fclose(fp);
-			return access_file_error(hc, hc->accesspath, line);
+			syslog(LOG_ERR, "%.80s access file %.80s: invalid line: %s",
+			       httpd_client(hc), hc->accesspath, line);
+			httpd_send_err(hc, 403, err403title, "",
+				       ERROR_FORM(err403form,
+						  "The requested URL '%.80s' is protected by an access file. (1)"),
+				       hc->encodedurl);
+			return -1;
 		}
 
 		mask = strchr(++addr, '/');
 		if (mask) {
 			*mask++ = '\0';
-			if (!*mask) {
-				fclose(fp);
-				return access_file_error(hc, hc->accesspath, line);
-			}
+			if (!*mask)
+				goto err;
 
 			if (!strchr(mask, '.')) {
 				long l = atol(mask);
 
-				if ((l < 0) || (l > 32)) {
-					fclose(fp);
-					return access_file_error(hc, hc->accesspath, line);
-				}
+				if ((l < 0) || (l > 32))
+					goto err;
 
 				for (l = 32 - l; l > 0; --l)
 					ipv4_mask.s_addr ^= 1 << (l - 1);
 				ipv4_mask.s_addr = htonl(ipv4_mask.s_addr);
 			} else {
-				if (!inet_aton(mask, &ipv4_mask)) {
-					fclose(fp);
-					return access_file_error(hc, hc->accesspath, line);
-				}
+				if (!inet_aton(mask, &ipv4_mask))
+					goto err;
 			}
 		}
 
-		if (!inet_aton(addr, &ipv4_addr)) {
-			fclose(fp);
-			return access_file_error(hc, hc->accesspath, line);
-		}
+		if (!inet_aton(addr, &ipv4_addr))
+			goto err;
 
 		/*
 		 * Does client addr match this rule?
@@ -1145,8 +1133,7 @@ static int access_check2(httpd_conn *hc, char *dirname)
 				return 1;
 
 			default:
-				fclose(fp);
-				return access_file_error(hc, hc->accesspath, line);
+				goto err;
 			}
 		}
 	}
