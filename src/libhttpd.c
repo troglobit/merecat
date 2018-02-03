@@ -965,8 +965,8 @@ static int err_accessfile(httpd_conn* hc, char* accesspath, char* err, FILE* f)
 	syslog(LOG_ERR, "%.80s access file %.80s: invalid line: %s", httpd_client(hc), accesspath, err);
 	httpd_send_err(hc, 403, err403title, "",
 		       ERROR_FORM(err403form,
-				  "The requested URL '%.80s' is protected by an access file, but the "
-				  "access file contains garbage.\n"), hc->encodedurl);
+				  "The requested URL '%.80s' is protected by an access file (1)"),
+		       hc->encodedurl);
 
 	return -1;
 }
@@ -1074,8 +1074,8 @@ static int access_check2 (httpd_conn* hc, char* dirname)
 
 		httpd_send_err(hc, 403, err403title, "",
 			       ERROR_FORM(err403form,
-					  "The requested URL '%.80s' is protected by an access file, but "
-					  "the access file cannot be opened.\n"), hc->encodedurl);
+					  "The requested URL '%.80s' is protected by an access file (2)"),
+			       hc->encodedurl);
 		return -1;
 	}
 
