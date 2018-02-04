@@ -969,10 +969,18 @@ static char *find_htfile(char *topdir, char *dir, char *htfile)
 
 	snprintf(path, len, "%s/%s", (dir[0] ? dir : "."), htfile);
 	while (1) {
+		int rc;
 		char *ptr, *slash;
 		struct stat st;
 
-		if (stat(path, &st) == 0) {
+		rc = stat(path, &st);
+
+		ptr = strstr(path, htfile);
+		if (!ptr)
+			break;
+		*--ptr = 0;
+
+		if (rc == 0) {
 			found = 1;
 			break;
 		}
