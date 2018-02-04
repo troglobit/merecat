@@ -142,12 +142,12 @@ static int send_err_file(httpd_conn *hc, int status, char *title, const char *ex
 #endif
 #ifdef AUTH_FILE
 static void send_authenticate(httpd_conn *hc, char *realm);
-static int auth_check(httpd_conn *hc, char *dirname);
-static int auth_check2(httpd_conn *hc, char *dirname);
+static int auth_check(httpd_conn *hc, char *dir);
+static int auth_check2(httpd_conn *hc, char *dir);
 #endif
 #ifdef ACCESS_FILE
-static int access_check(httpd_conn* hc, char* dirname);
-static int access_check2(httpd_conn* hc, char* dirname);
+static int access_check(httpd_conn *hc, char *dir);
+static int access_check2(httpd_conn *hc, char *dir);
 #endif
 static void send_dirredirect(httpd_conn *hc);
 static int hexit(char c);
@@ -956,15 +956,61 @@ static int send_err_file(httpd_conn *hc, int status, char *title, const char *ex
 }
 #endif /* ERR_DIR */
 
+#if defined(ACCESS_FILE) || defined(AUTH_FILE)
+static char *find_htfile(char *topdir, char *dir, char *htfile)
+{
+	int found = 0;
+	char *path;
+	size_t len = strlen(dir) + strlen(htfile) + 2;
+
+	path = malloc(len);
+	if (!path)
+		return NULL;
+
+	snprintf(path, len, "%s/%s", (dir[0] ? dir : "."), htfile);
+	while (1) {
+		char *ptr, *slash;
+		struct stat st;
+
+		if (stat(path, &st) == 0) {
+			found = 1;
+			break;
+		}
+
+		/* Nope, try up a level. */
+		ptr = strstr(path, htfile);
+		if (!ptr)
+			break;
+		*--ptr = 0;
+
+		/* loop until we hit topdir. */
+		if (strcmp(topdir, path) == 0)
+			break;
+
+		slash = strrchr(path, '/');
+		if (!slash)
+			break;
+
+		memmove(slash + 1, ptr + 1, strlen(htfile) + 1);
+	}
+
+	if (!found) {
+		free(path);
+		return NULL;
+	}
+
+	return path;
+}
+#endif
 
 #ifdef ACCESS_FILE
 /* Returns -1 == unauthorized, 0 == no access file, 1 = authorized. */
-static int access_check(httpd_conn *hc, char *dirname)
+static int access_check(httpd_conn *hc, char *dir)
 {
 	int rc = 0;
 	char *topdir, *tmp = NULL;
 
-	if (!dirname) {
+	if (!dir) {
 		char *ptr;
 
 		if (strstr(hc->expnfilename, ACCESS_FILE)) {
@@ -974,8 +1020,11 @@ static int access_check(httpd_conn *hc, char *dirname)
 		}
 
 		tmp = strdup(hc->expnfilename);
-		if (!tmp)
-			goto err;
+		if (!tmp) {
+			syslog(LOG_ERR, "out of memory in access code; "
+			       "Denying access.");
+			return -1;
+		}
 
 		ptr = strrchr(tmp, '/');
 		if (!ptr)
@@ -983,7 +1032,7 @@ static int access_check(httpd_conn *hc, char *dirname)
 		else
 			*ptr = '\0';
 
-		dirname = tmp;
+		dir = tmp;
 	}
 
 	if (hc->hs->vhost && hc->hostdir[0] != '\0')
@@ -991,60 +1040,15 @@ static int access_check(httpd_conn *hc, char *dirname)
 	else
 		topdir = ".";
 
-	/* TODO: Refactor code duplication between this and auth_check() recursive lookup */
 	if (!hc->hs->global_passwd) {
-		int found;
-		char *path, *slash, *currdir;
-		size_t len;
-		struct stat sb;
-
-		currdir = strdup(dirname);
-		if (!currdir) {
-		err:
-			if (tmp)
-				free(tmp);
-			syslog(LOG_ERR, "out of memory in authentication code; "
-			       "Denying access.");
-			return -1;
+		char *path;
+	local:
+		path = find_htfile(topdir, dir, ACCESS_FILE);
+		if (path) {
+			rc = access_check2(hc, path);
+			free(path);
 		}
 
-		len = strlen(dirname) + 1 + sizeof(ACCESS_FILE);
-		path = malloc(len);
-		if (!path) {
-			free(currdir);
-			goto err;
-		}
-
-		while (1) {
-			snprintf(path, len, "%s/%s", (currdir[0] ? currdir : "."), ACCESS_FILE);
-			
-			/* Does this directory have an auth file? */
-			if (stat(path, &sb) == 0) {
-				found = 1;
-				break;
-			}
-
-			/* loop until we hit topdir. */
-			if (strcmp(topdir, currdir) == 0)
-				break;
-
-			/* Nope, try up a level. */
-			slash = strrchr(currdir, '/');
-			if (!slash)
-				slash = currdir;
-
-			if (slash[0] == '\0')
-				break;
-			*slash = 0;
-		}
-		
-		if (found) {
-			/* use this directory for authentication */
-			rc = access_check2(hc, currdir[0] ? currdir : ".");
-		}
-
-		free(currdir);
-		free(path);
 		if (tmp)
 			free(tmp);
 
@@ -1053,8 +1057,7 @@ static int access_check(httpd_conn *hc, char *dirname)
 
 	rc = access_check2(hc, topdir);
 	if (!rc)
-		/* Fall back to local $dirname/.htaccess file */
-		rc = access_check2(hc, dirname);
+		goto local;
 	if (tmp)
 		free(tmp);
 
@@ -1062,7 +1065,7 @@ static int access_check(httpd_conn *hc, char *dirname)
 }
 
 /* Returns -1 == unauthorized, 0 == no access file, 1 = authorized. */
-static int access_check2(httpd_conn *hc, char *dirname)
+static int access_check2(httpd_conn *hc, char *dir)
 {
 	struct in_addr ipv4_addr, ipv4_mask = { 0xffffffff };
 	FILE *fp;
@@ -1072,8 +1075,8 @@ static int access_check2(httpd_conn *hc, char *dirname)
 	size_t l;
 
 	/* Construct access filename. */
-	httpd_realloc_str(&hc->accesspath, &hc->maxaccesspath, strlen(dirname) + 1 + sizeof(ACCESS_FILE));
-	snprintf(hc->accesspath, hc->maxaccesspath, "%s/%s", dirname, ACCESS_FILE);
+	httpd_realloc_str(&hc->accesspath, &hc->maxaccesspath, strlen(dir) + 1 + sizeof(ACCESS_FILE));
+	snprintf(hc->accesspath, hc->maxaccesspath, "%s/%s", dir, ACCESS_FILE);
 
 	/* Does this directory have an access file? */
 	if (lstat(hc->accesspath, &sb) < 0) {
@@ -1195,12 +1198,12 @@ static void send_authenticate(httpd_conn *hc, char *realm)
 
 
 /* Returns -1 == unauthorized, 0 == no auth file, 1 = authorized. */
-static int auth_check(httpd_conn *hc, char *dirname)
+static int auth_check(httpd_conn *hc, char *dir)
 {
 	int rc = 0;
 	char *topdir, *tmp = NULL;
 
-	if (!dirname) {
+	if (!dir) {
 		char *ptr;
 
 		if (strstr(hc->expnfilename, AUTH_FILE)) {
@@ -1210,8 +1213,11 @@ static int auth_check(httpd_conn *hc, char *dirname)
 		}
 
 		tmp = strdup(hc->expnfilename);
-		if (!tmp)
-			goto err;
+		if (!tmp) {
+			syslog(LOG_ERR, "out of memory in authentication code; "
+			       "Denying authorization.");
+			return -1;
+		}
 
 		ptr = strrchr(tmp, '/');
 		if (!ptr)
@@ -1219,7 +1225,7 @@ static int auth_check(httpd_conn *hc, char *dirname)
 		else
 			*ptr = '\0';
 
-		dirname = tmp;
+		dir = tmp;
 	}
 
 	if (hc->hs->vhost && hc->hostdir[0] != '\0')
@@ -1227,60 +1233,15 @@ static int auth_check(httpd_conn *hc, char *dirname)
 	else
 		topdir = ".";
 
-	/* TODO: Refactor code duplication between this and access_check() recursive lookup */
 	if (!hc->hs->global_passwd) {
-		int found;
-		char *path, *slash, *currdir;
-		size_t len;
-		struct stat sb;
-
-		currdir = strdup(dirname);
-		if (!currdir) {
-		err:
-			if (tmp)
-				free(tmp);
-			syslog(LOG_ERR, "out of memory in authentication code; "
-			       "Denying authorization.");
-			return -1;
+		char *path;
+	local:
+		path = find_htfile(topdir, dir, AUTH_FILE);
+		if (path) {
+			rc = auth_check2(hc, path);
+			free(path);
 		}
 
-		len = strlen(dirname) + 1 + sizeof(AUTH_FILE);
-		path = malloc(len);
-		if (!path) {
-			free(currdir);
-			goto err;
-		}
-
-		while (1) {
-			snprintf(path, len, "%s/%s", (currdir[0] ? currdir : "."), AUTH_FILE);
-			
-			/* Does this directory have an auth file? */
-			if (stat(path, &sb) == 0) {
-				found = 1;
-				break;
-			}
-
-			/* loop until we hit topdir. */
-			if (strcmp(topdir, currdir) == 0)
-				break;
-
-			/* Nope, try up a level. */
-			slash = strrchr(currdir, '/');
-			if (!slash)
-				slash = currdir;
-
-			if (slash[0] == '\0')
-				break;
-			*slash = 0;
-		}
-		
-		if (found) {
-			/* use this directory for authentication */
-			rc = auth_check2(hc, currdir[0] ? currdir : ".");
-		}
-
-		free(currdir);
-		free(path);
 		if (tmp)
 			free(tmp);
 
@@ -1289,8 +1250,7 @@ static int auth_check(httpd_conn *hc, char *dirname)
 
 	rc = auth_check2(hc, topdir);
 	if (!rc)
-		/* Fall back to local $dirname/.htpasswd file */
-		rc = auth_check2(hc, dirname);
+		goto local;
 	if (tmp)
 		free(tmp);
 
@@ -1299,7 +1259,7 @@ static int auth_check(httpd_conn *hc, char *dirname)
 
 
 /* Returns -1 == unauthorized, 0 == no auth file, 1 = authorized. */
-static int auth_check2(httpd_conn *hc, char *dirname)
+static int auth_check2(httpd_conn *hc, char *dir)
 {
 	struct stat sb;
 	char authinfo[550];
@@ -1313,8 +1273,8 @@ static int auth_check2(httpd_conn *hc, char *dirname)
 	char *crypt_result;
 
 	/* Construct auth filename. */
-	httpd_realloc_str(&hc->authpath, &hc->maxauthpath, strlen(dirname) + 1 + sizeof(AUTH_FILE));
-	snprintf(hc->authpath, hc->maxauthpath, "%s/%s", dirname, AUTH_FILE);
+	httpd_realloc_str(&hc->authpath, &hc->maxauthpath, strlen(dir) + 1 + sizeof(AUTH_FILE));
+	snprintf(hc->authpath, hc->maxauthpath, "%s/%s", dir, AUTH_FILE);
 
 	/* Does this directory have an auth file? */
 	if (lstat(hc->authpath, &sb) < 0)
@@ -1324,7 +1284,7 @@ static int auth_check2(httpd_conn *hc, char *dirname)
 	/* Does this request contain basic authorization info? */
 	if (hc->authorization[0] == '\0' || strncmp(hc->authorization, "Basic ", 6) != 0) {
 		/* Nope, return a 401 Unauthorized. */
-		send_authenticate(hc, dirname);
+		send_authenticate(hc, dir);
 		return -1;
 	}
 
@@ -1335,7 +1295,7 @@ static int auth_check2(httpd_conn *hc, char *dirname)
 	authpass = strchr(authinfo, ':');
 	if (!authpass) {
 		/* No colon?  Bogus auth info. */
-		send_authenticate(hc, dirname);
+		send_authenticate(hc, dir);
 		return -1;
 	}
 	*authpass++ = '\0';
@@ -1361,7 +1321,7 @@ static int auth_check2(httpd_conn *hc, char *dirname)
 		}
 
 		/* No. */
-		send_authenticate(hc, dirname);
+		send_authenticate(hc, dir);
 		return -1;
 	}
 
@@ -1421,14 +1381,14 @@ static int auth_check2(httpd_conn *hc, char *dirname)
 			}
 
 			/* No. */
-			send_authenticate(hc, dirname);
+			send_authenticate(hc, dir);
 			return -1;
 		}
 	}
 
 	/* Didn't find that user.  Access denied. */
 	fclose(fp);
-	send_authenticate(hc, dirname);
+	send_authenticate(hc, dir);
 
 	return -1;
 }
