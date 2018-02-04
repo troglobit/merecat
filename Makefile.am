@@ -42,7 +42,7 @@ release-hook:
 	fi
 
 # Target to run when building a release
-release: dist release-hook md5-dist
+release: distcheck release-hook md5-dist
 	@echo
 	@echo "Resulting release files:"
 	@echo "================================================================="
