@@ -3,7 +3,7 @@ if [ ! -x configure ]; then
 fi
 
 ./configure --prefix=/usr --localstatedir=/var --sysconfdir=/etc --enable-builtin-icons \
-	    --without-config --without-ssl --without-symlinks
+	    --without-config --without-ssl --without-symlinks --enable-htaccess --enable-htpasswd
 
 make -j5 clean
 make -j5
