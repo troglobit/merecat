@@ -1537,7 +1537,7 @@ static int usage(int code)
 #ifdef HAVE_LIBCONFUSE
 	       "  -f FILE    Configuration file. Default uses IDENT: " CONFDIR "/%s.conf\n"
 #endif
-	       "  -g         Use global password file, .htpasswd\n"
+	       "  -g         Use global password, .htpasswd, and access, .htaccess files\n"
 	       "  -h         This help text\n"
 	       "  -I IDENT   Identity for log messages, .conf, PID file, default: %s\n"
 	       "  -l LEVEL   Set log level: none, err, info, notice*, debug\n"

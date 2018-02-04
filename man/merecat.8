@@ -262,9 +262,17 @@ change the web server document root.  Defaults to the current directory.
 When chrooting this can be used to adjust the web server document root.
 .It Cm global-passwd = Ar <true | false>
 Set this to true to protect the entire directory tree with a
-single .htpasswd file.  When unset, which is the default,
+single
+.Pa .htpasswd
+and/or
+.Pa .htaccess
+file.  When unset, which is the default,
 .Nm
-looks for a local .htpasswd file, or serves the file without password.
+looks for a local
+.Pa .htpasswd
+and
+.Pa .htaccess
+file, or serves the file without password.
 .It Cm hostname = Ar HOSTNAME
 The hostname to bind to when multihoming.  For more details on this, see
 below discussion.
