@@ -967,6 +967,12 @@ static int access_check(httpd_conn *hc, char *dirname)
 	if (!dirname) {
 		char *ptr;
 
+		if (strstr(hc->expnfilename, ACCESS_FILE)) {
+			syslog(LOG_NOTICE, "%.80s URL \"%.80s\" tried to retrieve access file",
+			       httpd_client(hc), hc->encodedurl);
+			return -1;
+		}
+
 		tmp = strdup(hc->expnfilename);
 		if (!tmp)
 			goto err;
@@ -1196,6 +1202,12 @@ static int auth_check(httpd_conn *hc, char *dirname)
 
 	if (!dirname) {
 		char *ptr;
+
+		if (strstr(hc->expnfilename, AUTH_FILE)) {
+			syslog(LOG_NOTICE, "%.80s URL \"%.80s\" tried to retrieve auth file",
+			       httpd_client(hc), hc->encodedurl);
+			return -1;
+		}
 
 		tmp = strdup(hc->expnfilename);
 		if (!tmp)
@@ -4172,40 +4184,12 @@ static int really_start_request(httpd_conn *hc, struct timeval *now)
 	/* Check access for this directory. */
 	if (access_check(hc, NULL) == -1)
 		return -1;
-
-	/* Check if the filename is the ACCESS_FILE itself - that's verboten. */
-	if (expnlen == sizeof(ACCESS_FILE) - 1) {
-		if (strcmp(hc->expnfilename, ACCESS_FILE) == 0) {
-		deny_access:
-			syslog(LOG_NOTICE, "%.80s URL \"%.80s\" tried to retrieve an access file", httpd_client(hc), hc->encodedurl);
-			httpd_send_err(hc, 404, err404title, "", err404form, hc->encodedurl);
-			return -1;
-		}
-	} else if (expnlen >= sizeof(ACCESS_FILE) &&
-		   strcmp(&(hc->expnfilename[expnlen - sizeof(ACCESS_FILE) + 1]), ACCESS_FILE) == 0 &&
-		   hc->expnfilename[expnlen - sizeof(ACCESS_FILE)] == '/') {
-		goto deny_access;
-	}
 #endif /* ACCESS_FILE */
 
 #ifdef AUTH_FILE
 	/* Check authorization for this directory. */
 	if (auth_check(hc, NULL) == -1)
 		return -1;
-
-	/* Check if the filename is the AUTH_FILE itself - that's verboten. */
-	if (expnlen == sizeof(AUTH_FILE) - 1) {
-		if (!strcmp(hc->expnfilename, AUTH_FILE)) {
-		deny_auth:
-			syslog(LOG_NOTICE, "%s URL \"%s\" tried to retrieve an auth file", httpd_client(hc), hc->encodedurl);
-			httpd_send_err(hc, 404, err404title, "", err404form, hc->encodedurl);
-			return -1;
-		}
-	} else if (expnlen >= sizeof(AUTH_FILE) &&
-		   strcmp(&(hc->expnfilename[expnlen - sizeof(AUTH_FILE) + 1]), AUTH_FILE) == 0 &&
-		   hc->expnfilename[expnlen - sizeof(AUTH_FILE)] == '/') {
-		goto deny_auth;
-	}
 #endif /* AUTH_FILE */
 
 sneaky:
