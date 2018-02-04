@@ -22,7 +22,7 @@ addons:
 # all unit tests on a merecat with HTTPS enabled.
 script:
   - ./autogen.sh
-  - ./configure --prefix=/tmp --without-ssl
+  - ./configure --prefix=/tmp --without-ssl --enable-htaccess --enable-htpasswd
   - make V=1 || cat config.h
   - make distclean
   - ./configure --prefix=/tmp
