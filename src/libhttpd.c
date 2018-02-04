@@ -985,16 +985,11 @@ static char *find_htfile(char *topdir, char *dir, char *htfile)
 			break;
 		}
 
-		/* Nope, try up a level. */
-		ptr = strstr(path, htfile);
-		if (!ptr)
-			break;
-		*--ptr = 0;
-
 		/* loop until we hit topdir. */
 		if (strcmp(topdir, path) == 0)
 			break;
 
+		/* Nope, try up a level. */
 		slash = strrchr(path, '/');
 		if (!slash)
 			break;
