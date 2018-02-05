@@ -291,7 +291,8 @@ int main(int argc, char *argv[])
 		fprintf(stderr, "Use -c option to create new one.\n");
 		return 1;
 	}
-	strcpy(user, argv[2]);
+	strncpy(user, argv[2], sizeof(user) - 1);
+	user[sizeof(user)-1] = '\0';
 
 	found = 0;
 	while (!(get_line(line, MAX_STRING_LEN, f))) {
