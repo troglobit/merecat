@@ -135,7 +135,7 @@ static void add_password(char *user, FILE *fp)
 		index = 0;
 	}
 
-	if (!isatty(fileno(stdin))) {
+	if (!isatty(STDIN_FILENO)) {
 		if (!fgets(pass, sizeof(pass), stdin)) {
 			fprintf(stderr, "Failed reading password from stdin: %s\n", strerror(errno));
 			exit(1);
@@ -250,7 +250,8 @@ int main(int argc, char *argv[])
 		if (strcmp(argv[1], "-c"))
 			return usage(1);
 
-		if (!(tfp = fopen(argv[2], "w"))) {
+		tfp = fopen(argv[2], "w");
+		if (!tfp) {
 			fprintf(stderr, "Could not open passwd file %s for writing.\n", argv[2]);
 			perror("fopen");
 			return 1;
@@ -261,7 +262,7 @@ int main(int argc, char *argv[])
 			return 1;
 		}
 
-		if (((strchr(argv[2], ';')) != NULL) || ((strchr(argv[2], '>')) != NULL)) {
+		if (strchr(argv[2], ';') || strchr(argv[2], '>')) {
 			fprintf(stderr, "%s: filename contains an illegal character\n", argv[0]);
 			return 1;
 		}
@@ -271,7 +272,7 @@ int main(int argc, char *argv[])
 			return 1;
 		}
 
-		if ((strchr(argv[3], ':')) != NULL) {
+		if (strchr(argv[3], ':')) {
 			fprintf(stderr, "%s: username contains an illegal character\n", argv[0]);
 			return 1;
 		}
@@ -280,11 +281,14 @@ int main(int argc, char *argv[])
 		add_password(argv[3], tfp);
 		fclose(tfp);
 		return 0;
-	} else if (argc != 3)
+	}
+
+	if (argc != 3)
 		return usage(1);
 
 	tfd = mkstemp(tmp);
-	if (!(tfp = fdopen(tfd, "w"))) {
+	tfp = fdopen(tfd, "w");
+	if (!tfp) {
 		fprintf(stderr, "Could not open temp file.\n");
 		return 1;
 	}
@@ -318,7 +322,7 @@ int main(int argc, char *argv[])
 	user[sizeof(user)-1] = '\0';
 
 	found = 0;
-	while (!(get_line(line, MAX_STRING_LEN, f))) {
+	while (!get_line(line, MAX_STRING_LEN, f)) {
 		if (found || (line[0] == '#') || (!line[0])) {
 			putline(tfp, line);
 			continue;
