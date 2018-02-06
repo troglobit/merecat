@@ -335,13 +335,13 @@ int main(int argc, char *argv[])
 			continue;
 		}
 
-		printf("Changing password for user %s\n", user);
+		printf("Changing password for user %s.\n", user);
 		add_password(user, tfp);
 		found = 1;
 	}
 
 	if (!found) {
-		printf("Adding user %s\n", user);
+		printf("Adding user %s.\n", user);
 		add_password(user, tfp);
 	}
 
