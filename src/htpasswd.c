@@ -9,13 +9,14 @@
 */
 
 #include <config.h>
-
+#include <ctype.h>
 #include <errno.h>
 #include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <sys/types.h>
+#include <termios.h>
 #include <time.h>
 #include <unistd.h>
 
@@ -28,16 +29,7 @@ extern char *crypt(const char *key, const char *setting);
 
 int tfd;
 char tmp[] = "/tmp/htp.XXXXXX";
-
-static char *strd(char *s)
-{
-	char *d;
-
-	d = (char *)malloc(strlen(s) + 1);
-	strcpy(d, s);
-
-	return d;
-}
+struct termios saved;
 
 static void getword(char *word, char *line, char stop)
 {
@@ -97,25 +89,34 @@ static void to64(char *s, long v, size_t len)
 	}
 }
 
-#ifdef MPE
-/* MPE lacks getpass() and a way to suppress stdin echo.  So for now, just
-issue the prompt and read the results with echo.  (Ugh). */
-
-char *getpass(const char *prompt)
+static char *get_password(const char *prompt, char *password, size_t len)
 {
+	int c;
+	char *pwd = NULL;
+	size_t pos;
+	struct termios term = saved;
 
-	static char password[81];
+	/* Disable XON/XOFF and ECHO while reading password string */
+	term.c_iflag &= ~(IXON|IXOFF);
+	term.c_lflag &= ~ECHO;
+	tcsetattr(STDIN_FILENO, TCSANOW, &term);
 
 	fputs(prompt, stderr);
-	gets((char *)&password);
 
-	if (strlen((char *)&password) > 8) {
-		password[8] = '\0';
-	}
+	pos = 0;
+	do {
+		c = fgetc(stdin);
+		if (isascii(c) && '\r' != c && '\n' != c)
+			password[pos++] = c;
+	} while (c != '\n' && pos < len);
+	fputs("\n", stderr);
+	password[pos] = 0;
+	pwd = password;
 
-	return (char *)&password;
+	/* Restore TTY */
+	tcsetattr(STDIN_FILENO, TCSANOW, &saved);
+	return pwd;
 }
-#endif
 
 static void add_password(char *user, FILE *fp)
 {
@@ -144,18 +145,31 @@ static void add_password(char *user, FILE *fp)
 			pass[strlen(pass) - 1] = '\0';
 		pw = pass;
 	} else {
-		pw = strd((char *)getpass("New password:"));
-		if (strcmp(pw, (char *)getpass("Re-type new password:")) != 0) {
-			fprintf(stderr, "They don't match, sorry.\n");
+		pw = get_password("New password: ", pass, sizeof(pass));
+		if (!pw) {
+		fail:
+			fprintf(stderr, "Failed reading password.\n");
+		error:
 			if (tfd != -1)
 				unlink(tmp);
 			exit(1);
+		}
+
+		pw = strdup(pw);
+		cpw = get_password("Re-type password: ", pass, sizeof(pass));
+		if (!pw || !cpw)
+			goto fail;
+
+		if (strcmp(pw, cpw) != 0) {
+			fprintf(stderr, "Passwords do not match, aborting.\n");
+			goto error;
 		}
 	}
 
 	srandom(time(NULL));
 	to64(&salt[index], random(), saltlen);
 
+	fprintf(stderr, "Cameo\n");
 	cpw = crypt(pw, salt);
 	if (cpw)
 		fprintf(fp, "%s:%s\n", user, cpw);
@@ -206,6 +220,10 @@ static int usage(int code)
 static void interrupted(int signo)
 {
 	fprintf(stderr, "Interrupted.\n");
+
+	if (isatty(STDIN_FILENO))
+		tcsetattr(STDIN_FILENO, TCSANOW, &saved);
+
 	if (tfd != -1)
 		unlink(tmp);
 	exit(1);
@@ -220,6 +238,11 @@ int main(int argc, char *argv[])
 	char line[MAX_STRING_LEN];
 	char l[MAX_STRING_LEN];
 	char w[MAX_STRING_LEN];
+
+	if (isatty(STDIN_FILENO) && tcgetattr(STDIN_FILENO, &saved)) {
+		fprintf(stderr, "Cannot query TTY status, sorry: %s\n", strerror(errno));
+		return 1;
+	}
 
 	tfd = -1;
 	signal(SIGINT, interrupted);
