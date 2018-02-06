@@ -169,7 +169,6 @@ static void add_password(char *user, FILE *fp)
 	srandom(time(NULL));
 	to64(&salt[index], random(), saltlen);
 
-	fprintf(stderr, "Cameo\n");
 	cpw = crypt(pw, salt);
 	if (cpw)
 		fprintf(fp, "%s:%s\n", user, cpw);
