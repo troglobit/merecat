@@ -189,8 +189,7 @@ ssize_t httpd_ssl_writev(httpd_conn *hc, struct iovec *iov, size_t num)
 		free(buf);
 		if (rc <= 0) {
 			rc = SSL_get_error(hc->ssl, rc);
-			switch (rc)
-			{
+			switch (rc) {
 			case SSL_ERROR_WANT_WRITE:
 				errno = EAGAIN;
 				break;
