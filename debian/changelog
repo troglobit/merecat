@@ -1,6 +1,8 @@
 merecat (2.32-1) unstable; urgency=medium
 
   * New upstream release:
+    - Limited support for HTTPS, single public cert and private key.
+      Works with a single host, vhost only with wildcard cert
     - Added support for HTTP gzip compression, serves .gz files
     - Skip .htpasswd (and .htaccess) in dir listings
     - Allow SO_REUSEPORT, useful for load balancing

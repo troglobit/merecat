@@ -12,6 +12,9 @@ deflate compression using zlib.
 
 ### Changes
 - Add Dockerfile for ease of deployment in limited setups
+- Add basic support for HTTPS.  Simple public certificate and a private
+  key file is supported, and only with one host.  Virtual hosts require
+  using a wildcard cert
 - Add gzip deflate compression when built with zlib, also compress HEAD
   as well as GET requests
 - Add true `Connection: keep-alive` support
@@ -38,11 +41,12 @@ deflate compression using zlib.
 - Refactor, deprecated POSIX API's, e.g. `bzero() --> memset()`
 
 ### Fixes
+- Fix CVE-2017-17663, buffer overrun in htpasswd tool, from thttpd v2.28
 - Fixes for non GNU C libraries like musl: `__progname`, `%m`, etc.
 - Fix `X-Forwarded-For` when using IPv6, thanks to Steve Kemp!
 - Debian packaging fixes
 - Make sure both `.htpasswd` *and* `.htaccess` are declared forbidden
-  files and not allowed to be downloaded
+  files and not allowed to be downloaded or shown in directory listings
 - Use `memmove()` instead of `strcpy()` for possibly overlapping regions
 - Cleanup of default `merecat.conf`, default disabled options to their
   built-in default values
