@@ -3249,9 +3249,11 @@ static int child_ls(httpd_conn *hc, DIR *dirp)
 
 	buf = malloc((size_t)len);
 	if (buf) {
+		syslog(LOG_DEBUG, "Sending dirlisting to client ...");
 		rewind(fp);
 		fread(buf, (size_t)len, 1, fp);
-		httpd_write(hc, buf, (size_t)len);
+		if (httpd_write(hc, buf, (size_t)len) <= 0)
+			syslog(LOG_ERR, "Failed sending dirlisting to client: %s", sterror(errno));
 		free(buf);
 	}
 
