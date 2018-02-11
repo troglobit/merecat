@@ -3186,23 +3186,12 @@ static int child_ls(httpd_conn *hc, DIR *dirp)
 	long len;
 	char *buf;
 
-	/* Child process. */
-	sub_process = 1;
-	httpd_unlisten(hc->hs);
-	send_mime(hc, 200, ok200title, "", "", "text/html; charset=%s", (off_t) - 1, hc->sb.st_mtime);
-	httpd_send_response(hc);
-
-#ifdef CGI_NICE
-	/* Set priority. */
-	nice(CGI_NICE);
-#endif
-
 	fp = tmpfile();
 	if (!fp) {
 		syslog(LOG_ERR, "tmpfile: %s", strerror(errno));
+error:
 		httpd_send_err(hc, 500, err500title, "", err500form, hc->encodedurl);
 		httpd_send_response(hc);
-		closedir(dirp);
 		return 1;
 	}
 
@@ -3234,8 +3223,6 @@ static int child_ls(httpd_conn *hc, DIR *dirp)
 	child_ls_read_names(hc, dirp, fp, 1);
 	rewinddir(dirp);
 	child_ls_read_names(hc, dirp, fp, 0);
-	closedir(dirp);
-
 
 	fprintf(fp, " </table></div>\n");
 	fprintf(fp, " <address>%s httpd at %s port %d</address>\n", EXPOSED_SERVER_SOFTWARE, get_hostname(hc), (int)hc->hs->port);
@@ -3244,21 +3231,27 @@ static int child_ls(httpd_conn *hc, DIR *dirp)
 	len = ftell(fp);
 	if (len == -1) {
 		syslog(LOG_ERR, "ftell: %s", strerror(errno));
-		goto end;
+		fclose(fp);
+		goto error;
 	}
 
 	buf = malloc((size_t)len);
-	if (buf) {
-		syslog(LOG_DEBUG, "Sending dirlisting to client ...");
-		rewind(fp);
-		fread(buf, (size_t)len, 1, fp);
-		if (httpd_write(hc, buf, (size_t)len) <= 0)
-			syslog(LOG_ERR, "Failed sending dirlisting to client: %s", strerror(errno));
-		free(buf);
+	if (!buf) {
+		fclose(fp);
+		goto error;
 	}
 
-end:
+	send_mime(hc, 200, ok200title, "", "", "text/html; charset=%s", (off_t) - 1, hc->sb.st_mtime);
+	httpd_send_response(hc);
+
+	rewind(fp);
+	fread(buf, (size_t)len, 1, fp);
+	if (httpd_write(hc, buf, (size_t)len) <= 0)
+		syslog(LOG_ERR, "Failed sending dirlisting to client: %s", strerror(errno));
+
+	free(buf);
 	fclose(fp);
+
 	return 0;
 }
 
@@ -3271,7 +3264,7 @@ static int ls(httpd_conn *hc)
 	hc->compression_type = COMPRESSION_NONE;
 
 	dirp = opendir(hc->expnfilename);
-	if (dirp == (DIR *) 0) {
+	if (!dirp) {
 		syslog(LOG_ERR, "opendir %s: %s", hc->expnfilename, strerror(errno));
 		httpd_send_err(hc, 404, err404title, "", err404form, hc->encodedurl);
 		return -1;
@@ -3281,36 +3274,12 @@ static int ls(httpd_conn *hc)
 		closedir(dirp);
 		send_mime(hc, 200, ok200title, "", "", "text/html; charset=%s", (off_t) - 1, hc->sb.st_mtime);
 	} else if (hc->method == METHOD_GET) {
-		if (hc->hs->cgi_limit != 0 && hc->hs->cgi_count >= hc->hs->cgi_limit) {
-			closedir(dirp);
-			httpd_send_err(hc, 503, httpd_err503title, "", httpd_err503form, hc->encodedurl);
-			return -1;
-		}
+		child_ls(hc, dirp);
 
-		++hc->hs->cgi_count;
-		r = fork();
-		if (r < 0) {
-			syslog(LOG_ERR, "fork: %s", strerror(errno));
-			closedir(dirp);
-			httpd_send_err(hc, 500, err500title, "", err500form, hc->encodedurl);
-			return -1;
-		}
-
-		if (r == 0)
-			exit(child_ls(hc, dirp));
-
-		/* Parent process spawned indexing process PID. */
 		closedir(dirp);
 		syslog(LOG_INFO, "%s: LST[%d] /%.200s \"%s\" \"%s\"",
 		       httpd_client(hc), r, hc->expnfilename, hc->referer, hc->useragent);
-#ifdef CGI_TIMELIMIT
-		/* Schedule a kill for the child process, in case it runs too long */
-		client_data.i = r;
-		if (!tmr_create(NULL, cgi_kill, client_data, CGI_TIMELIMIT * 1000L, 0)) {
-			syslog(LOG_CRIT, "tmr_create(cgi_kill ls) failed");
-			exit(1);
-		}
-#endif
+
 		hc->status = 200;
 		hc->bytes_sent = CGI_BYTECOUNT;
 		hc->should_linger = 0;
