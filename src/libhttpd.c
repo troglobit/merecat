@@ -3183,6 +3183,8 @@ static int child_ls_read_names(httpd_conn *hc, DIR *dirp, FILE *fp, int onlydir)
 static int child_ls(httpd_conn *hc, DIR *dirp)
 {
 	FILE *fp;
+	long len;
+	char *buf;
 
 	/* Child process. */
 	sub_process = 1;
@@ -3195,14 +3197,9 @@ static int child_ls(httpd_conn *hc, DIR *dirp)
 	nice(CGI_NICE);
 #endif
 
-	/* Open a stdio stream so that we can use fprintf, which is more
-	** efficient than a bunch of separate write()s.  We don't have
-	** to worry about double closes or file descriptor leaks cause
-	** we're in a subprocess.
-	*/
-	fp = fdopen(hc->conn_fd, "w");
+	fp = tmpfile();
 	if (!fp) {
-		syslog(LOG_ERR, "fdopen: %s", strerror(errno));
+		syslog(LOG_ERR, "tmpfile: %s", strerror(errno));
 		httpd_send_err(hc, 500, err500title, "", err500form, hc->encodedurl);
 		httpd_send_response(hc);
 		closedir(dirp);
@@ -3243,8 +3240,21 @@ static int child_ls(httpd_conn *hc, DIR *dirp)
 	fprintf(fp, " </table></div>\n");
 	fprintf(fp, " <address>%s httpd at %s port %d</address>\n", EXPOSED_SERVER_SOFTWARE, get_hostname(hc), (int)hc->hs->port);
 	fprintf(fp, "</div></body>\n</html>\n");
-	fclose(fp);
 
+	len = ftell(fp);
+	if (len == -1) {
+		syslog(LOG_ERR, "ftell: %s", strerror(errno));
+		goto end;
+	}
+
+	buf = malloc((size_t)len);
+	if (buf) {
+		httpd_write(hc, buf, (size_t)len);
+		free(buf);
+	}
+
+end:
+	fclose(fp);
 	return 0;
 }
 
