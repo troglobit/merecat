@@ -46,10 +46,7 @@
 #  include <time.h>
 # endif
 #endif
- 
-#ifdef HAVE_MMAP
 #include <sys/mman.h>
-#endif				/* HAVE_MMAP */
 
 #include "file.h"
 #include "libhttpd.h"
@@ -286,8 +283,8 @@ void *mmc_map(char *filename, struct stat *sbP, struct timeval *nowP)
 	m->reftime = now;
 
 	/* Avoid doing anything for zero-length files; some systems don't like
-	 ** to mmap them, other systems dislike mallocing zero bytes.
-	 */
+	** to mmap them, other systems dislike mallocing zero bytes.
+	*/
 	if (m->size == 0) {
 		/* arbitrary non-NULL address */
 		m->addr = (void *)1;
@@ -305,7 +302,7 @@ void *mmc_map(char *filename, struct stat *sbP, struct timeval *nowP)
 			memcpy(m->addr, buf, size_size);
 			goto cont;
 		}
-#ifdef HAVE_MMAP
+
 		/* Map the file into memory. */
 		m->addr = mmap(0, size_size, PROT_READ, MAP_PRIVATE, fd, 0);
 		if (m->addr == (void *)-1 && errno == ENOMEM) {
@@ -324,45 +321,12 @@ void *mmc_map(char *filename, struct stat *sbP, struct timeval *nowP)
 
 			return NULL;
 		}
-#else /* HAVE_MMAP */
-		/* Read the file into memory. */
-		m->addr = (void *)malloc(size_size);
-		if (!m->addr) {
-			/* Ooo, out of memory.  Free all unreferenced maps
-			 ** and try again.
-			 */
-			panic();
-			m->addr = (void *)malloc(size_size);
-		}
-
-		if (!m->addr) {
-			syslog(LOG_ERR, "out of memory storing a file");
-			close(fd);
-			free(m);
-			--alloc_count;
-
-			return NULL;
-		}
-
-		if (file_read(fd, m->addr, size_size) != m->size) {
-			syslog(LOG_ERR, "read: %s", strerror(errno));
-			close(fd);
-			free(m->addr);
-			free(m);
-			--alloc_count;
-
-			return NULL;
-		}
-#endif /* HAVE_MMAP */
 	}
 	close(fd);
 cont:
 	/* Put the Map into the hash table. */
 	if (add_hash(m) < 0) {
 		syslog(LOG_ERR, "add_hash() failure");
-#ifndef HAVE_MMAP
-		free(m->addr);
-#endif
 		free(m);
 		--alloc_count;
 
@@ -484,12 +448,8 @@ static void really_unmap(Map **mm)
 
 	m = *mm;
 	if (m->size) {
-#ifdef HAVE_MMAP
 		if (munmap(m->addr, m->size) < 0)
 			syslog(LOG_ERR, "munmap: %s", strerror(errno));
-#else
-		free(m->addr);
-#endif
 	}
 
 	/* Update the total byte count. */
