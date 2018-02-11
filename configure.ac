@@ -80,6 +80,9 @@ AC_FUNC_MMAP
 AC_FUNC_WAIT3
 AC_CHECK_FUNCS([alarm atoll clock_gettime daemon dup2 gai_strerror getcwd getaddrinfo gethostbyname gethostname getnameinfo getpass gettimeofday hstrerror inet_ntoa kqueue malloc memmove memset mkdir munmap poll select setlogin setsid sigaction socket strcasecmp strchr strcspn strdup strerror strncasecmp strpbrk strrchr strspn strstr tzset snprintf waitpid])
 
+AS_IF([test "x$ac_cv_func_mmap_fixed_mapped" != "xyes"],
+	AC_MSG_ERROR([A fully functioning mmap() is required for building Merecat.]))
+
 AS_IF([test "x$enable_builtin_icons" = "xyes"], [
         AC_DEFINE(BUILTIN_ICONS, [1], [Enables built-in icons for dir listings])])
 AM_CONDITIONAL([HAVE_ICONS], [test "x$enable_builtin_icons" != "xyes"])
