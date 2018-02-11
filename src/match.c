@@ -28,11 +28,7 @@
 */
 
 #include <config.h>
-
-/* System headers */
 #include <string.h>
-
-/* Local headers */
 #include "match.h"
 
 static int match_one(const char *pattern, int patternlen, const char *string);

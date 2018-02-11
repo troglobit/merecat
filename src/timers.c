@@ -27,13 +27,11 @@
 
 #include <config.h>
 
-/* System headers */
 #include <stdlib.h>
 #include <stdio.h>
 #include <syslog.h>
 #include <sys/types.h>
 
-/* Local headers */
 #include "timers.h"
 
 

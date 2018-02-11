@@ -31,7 +31,6 @@
 
 #include <config.h>
 
-/* System headers */
 #include <ctype.h>
 #ifdef HAVE_MEMORY_H
 #include <memory.h>
@@ -42,7 +41,6 @@
 #include <sys/types.h>
 #include <time.h>
 
-/* Local headers */
 #include "tdate_parse.h"
 
 

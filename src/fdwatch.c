@@ -27,7 +27,6 @@
 
 #include <config.h>
 
-/* System headers */
 #include <sys/types.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -60,7 +59,6 @@
 #include <sys/event.h>
 #endif				/* HAVE_SYS_EVENT_H */
 
-/* Local headers */
 #include "fdwatch.h"
 
 #ifdef HAVE_SELECT

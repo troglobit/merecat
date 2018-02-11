@@ -29,7 +29,6 @@
 
 #include <config.h>
 
-/* System headers */
 #include <sys/types.h>
 #include <sys/param.h>
 #include <sys/stat.h>
@@ -75,7 +74,6 @@
 
 extern char *crypt(const char *key, const char *setting);
 
-/* Local headers */
 #include "base64.h"
 #include "file.h"
 #include "libhttpd.h"
