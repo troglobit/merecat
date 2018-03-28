@@ -1769,7 +1769,7 @@ int main(int argc, char **argv)
 			exit(1);
 		}
 	}
-#endif				/* USE_USER_DIR */
+#endif /* USE_USER_DIR */
 
 	/* Get current directory. */
 	getcwd(path, sizeof(path) - 1);
@@ -1790,7 +1790,7 @@ int main(int argc, char **argv)
 			syslog(LOG_CRIT, "daemon: %s", strerror(errno));
 			exit(1);
 		}
-#else				/* HAVE_DAEMON */
+#else /* HAVE_DAEMON */
 		switch (fork()) {
 		case 0:
 			break;
