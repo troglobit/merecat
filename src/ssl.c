@@ -66,6 +66,7 @@ void *httpd_ssl_init(char *cert, char *key, char *dhparm)
 	SSL_CTX_set_options(ctx, SSL_OP_NO_SSLv2); /* DROWN */
 	SSL_CTX_set_options(ctx, SSL_OP_NO_SSLv3); /* POODLE */
 	SSL_CTX_set_options(ctx, SSL_OP_NO_TLSv1); /* BEAST */
+	SSL_CTX_set_options(ctx, SSL_OP_NO_COMPRESSION); /* CRIME */
 
 #if HAVE_DECL_SSL_CTX_SET_ECDH_AUTO
 	SSL_CTX_set_ecdh_auto(ctx, 1);
