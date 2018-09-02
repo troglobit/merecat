@@ -115,7 +115,7 @@ void httpd_ssl_exit(httpd_server *hs)
 
 	ENGINE_cleanup();
 	ERR_free_strings();
-	ERR_remove_state(0);
+//	ERR_remove_state(0);
 	EVP_cleanup();
 	CRYPTO_cleanup_all_ex_data();
 	CONF_modules_free();
