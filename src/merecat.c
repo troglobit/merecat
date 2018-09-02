@@ -93,6 +93,7 @@ static int   do_chroot         = 0;
 static int   do_ssl            = 0;
 static char *certfile          = NULL;
 static char *keyfile           = NULL;
+static char *dhfile            = NULL;
 static int   no_log            = 0;
 static int   no_symlink_check  = 1;
 static int   do_vhost          = 0;
@@ -212,6 +213,7 @@ static int read_config(char *filename)
 		CFG_BOOL("ssl", do_ssl, CFGF_NONE),
 		CFG_STR ("certfile", certfile, CFGF_NONE),
 		CFG_STR ("keyfile", keyfile, CFGF_NONE),
+		CFG_STR ("dhfile", dhfile, CFGF_NONE),
 		CFG_END()
 	};
 
@@ -275,6 +277,7 @@ static int read_config(char *filename)
 #endif
 		certfile = cfg_getstr(cfg, "certfile");
 		keyfile  = cfg_getstr(cfg, "keyfile");
+		dhfile   = cfg_getstr(cfg, "dhfile"); /* Optional */
 		if (!certfile || !keyfile) {
 			syslog(LOG_ERR, "Missing SSL certificate file(s)");
 			goto error;
@@ -1744,7 +1747,7 @@ int main(int argc, char **argv)
 
 	/* Initialize SSL library and load cert files before we chroot */
 	if (do_ssl) {
-		ctx = httpd_ssl_init(certfile, keyfile);
+		ctx = httpd_ssl_init(certfile, keyfile, dhfile);
 		if (!ctx) {
 			syslog(LOG_ERR, "Failed initializing SSL");
 			exit(1);

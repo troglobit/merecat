@@ -45,7 +45,7 @@
 #include "file.h"
 #include "libhttpd.h"
 
-void *httpd_ssl_init(char *cert, char *key)
+void *httpd_ssl_init(char *cert, char *key, char *dhparm)
 {
 	SSL_CTX *ctx;
 
@@ -71,11 +71,24 @@ void *httpd_ssl_init(char *cert, char *key)
  	SSL_CTX_set_default_verify_paths(ctx);
  	SSL_CTX_set_verify(ctx, SSL_VERIFY_NONE, NULL);
 
-	if (SSL_CTX_use_certificate_file(ctx, cert, SSL_FILETYPE_PEM) < 0)
+	if (SSL_CTX_use_certificate_file(ctx, cert, SSL_FILETYPE_PEM) != 1)
 		goto error;
 
-	if (SSL_CTX_use_PrivateKey_file(ctx, key, SSL_FILETYPE_PEM) < 0 )
+	if (SSL_CTX_use_PrivateKey_file(ctx, key, SSL_FILETYPE_PEM) != 1)
 		goto error;
+
+	if (dhparm) {
+		FILE *fp;
+		DH *dh = NULL;
+
+		fp = fopen(dhparm, "r");
+		if (fp) {
+			dh = PEM_read_DHparams(fp, NULL, NULL, NULL);
+			fclose(fp);
+		}
+
+		SSL_CTX_set_tmp_dh(ctx, dh);
+	}
 
 	return ctx;
 error:

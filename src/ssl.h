@@ -35,7 +35,7 @@
 #ifdef ENABLE_SSL
 
 /* Initialize SSL and load certificate and key file */
-void *httpd_ssl_init(char *cert, char *key);
+void *httpd_ssl_init(char *cert, char *key, char *dhparm);
 
 /* Unload SSL, called automatically at httpd_exit() */
 void httpd_ssl_exit(httpd_server *hs);
@@ -55,7 +55,7 @@ ssize_t httpd_ssl_write  (httpd_conn *hc, void *buf, size_t len);
 ssize_t httpd_ssl_writev (httpd_conn *hc, struct iovec *iov, size_t num);
 
 #else
-#define httpd_ssl_init(cert, key)      NULL
+#define httpd_ssl_init(cert, key, dhparm) NULL
 #define httpd_ssl_exit(hs)
 
 #define httpd_ssl_open(hc)             (hc->ssl = NULL)
