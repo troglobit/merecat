@@ -27,6 +27,7 @@
 
 #include <config.h>
 #include <string.h>
+#include <syslog.h>
 #include <sys/stat.h>
 #include <sys/uio.h>
 #include <unistd.h>
@@ -42,8 +43,9 @@
 #include <openssl/evp.h>
 #include <openssl/rand.h>
 
-#include "file.h"
 #include "libhttpd.h"
+#include "file.h"
+#include "ssl.h"
 
 void *httpd_ssl_init(char *cert, char *key, char *dhparm)
 {
@@ -85,14 +87,16 @@ void *httpd_ssl_init(char *cert, char *key, char *dhparm)
 		if (fp) {
 			dh = PEM_read_DHparams(fp, NULL, NULL, NULL);
 			fclose(fp);
-		}
+		} else
+			syslog(LOG_ERR, "Failed reading dhfile %s: %m", dhparm);
 
-		SSL_CTX_set_tmp_dh(ctx, dh);
+		if (!dh || SSL_CTX_set_tmp_dh(ctx, dh) != 1)
+			httpd_ssl_log_errors();
 	}
 
 	return ctx;
 error:
-	ERR_print_errors_fp(stderr);
+	httpd_ssl_log_errors();
 	return NULL;
 }
 
@@ -124,7 +128,7 @@ int httpd_ssl_open(httpd_conn *hc)
 
 	if (!hc) {
 		errno = EINVAL;
-		return 1;
+		goto error;
 	}
 
 	hc->ssl = NULL;
@@ -134,16 +138,19 @@ int httpd_ssl_open(httpd_conn *hc)
 	if (ctx) {
 		hc->ssl = SSL_new(ctx);
 		if (!hc->ssl)
-			return 1;
+			goto error;
 
 		SSL_set_fd(hc->ssl, hc->conn_fd);
 		if (SSL_accept(hc->ssl) <= 0) {
 			SSL_free(hc->ssl);
-			return 1;
+			goto error;
 		}
 	}
 
 	return 0;
+error:
+	httpd_ssl_log_errors();
+	return 1;
 }
 
 void httpd_ssl_close(httpd_conn *hc)
@@ -159,6 +166,25 @@ void httpd_ssl_shutdown(httpd_conn *hc)
 {
 	if (hc->ssl)
 		SSL_shutdown(hc->ssl);
+}
+
+static int ssl_error_cb(const char *str, size_t len, void *data)
+{
+	size_t sz;
+	char buf[512];
+
+	memset(buf, 0, sizeof(buf));
+	sz = len < sizeof(buf) ? len : sizeof(buf) - 1;
+	memcpy(buf, str, sz);
+
+	syslog(LOG_ERR, "OpenSSL error: %s", buf);
+
+	return 0;
+}
+
+void httpd_ssl_log_errors(void)
+{
+	ERR_print_errors_cb(ssl_error_cb, NULL);
 }
 
 ssize_t httpd_ssl_read(httpd_conn *hc, void *buf, size_t len)
