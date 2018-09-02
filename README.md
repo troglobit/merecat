@@ -136,21 +136,31 @@ must be enabled:
 ```
 port     = 443
 ssl      = true
+dhfile   = certs/dhparm.pem
 certfile = certs/cert.pem
 keyfile  = private/key.pem
 ```
 
-To create a self signed certificate, use `openssl` like this:
+To create a self signed certificate and enable perfect forward secrecy,
+PFS, i.e. Diffie-Helman paramters (optional), use the `openssl` tool as
+shown below.  Notice the use of a sub-shell with `openssl.cnf` where
+most of the certificate settings are, and more importantly notice the
+use of `subjectAltName`, or SAN.  The latter is required by most
+browsers today.
 
 ```
 root@example:/var/www/> mkdir private certs
-root@example:/var/www/> openssl req -x509 -newkey rsa:4096 \
-    -keyout private/key.pem -out certs/cert.pem -days 365 -nodes
+root@example:/var/www/> openssl req -x509 -newkey rsa:4096 -nodes    \
+            -keyout private/server.key -new -out certs/server.pem    \
+			-subj /CN=www.acme.com -reqexts SAN -extensions SAN      \
+			-sha256 -days 3650 -config <(cat /etc/ssl/openssl.cnf    \
+             <(printf '[SAN]\nsubjectAltName=DNS:www.acme.com'))
+root@example:/var/www/> openssl dhparam -out certs/dhparm.pem 4096
 ```
 
-**NOTE:** Currently, virtual hosts is not supported when HTTPS is
-  enabled.  A wildcard certificate may work, but the author has not
-  tested any of this yet pending *Let's Encrypt* support.
+**NOTE:** Currently, virtual hosts are not supported when HTTPS is
+  enabled.  A wildcard certificate may work, although this has not
+  been tested yet pending native *Let's Encrypt* support.
 
 
 Build Requirements
