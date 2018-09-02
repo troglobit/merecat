@@ -3705,7 +3705,7 @@ static void cgi_child(httpd_conn *hc)
 	** interposer process, depending on if we've read some of the data
 	** into our buffer.
 	*/
-	if ((hc->method == METHOD_POST || hc->method == METHOD_PUT) && hc->read_idx > hc->checked_idx) {
+	if ((hc->method == METHOD_POST || hc->method == METHOD_PUT) && hc->read_idx >= hc->checked_idx) {
 		int p[2];
 
 		if (pipe(p) < 0) {
