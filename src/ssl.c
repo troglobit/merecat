@@ -72,6 +72,8 @@ void *httpd_ssl_init(char *cert, char *key, char *dhparm)
 	SSL_CTX_set_ecdh_auto(ctx, 1);
 #endif
 
+	SSL_CTX_set_cipher_list(ctx, "HIGH:!aNULL:!kRSA:!PSK:!SRP:!MD5:!RC4");
+
  	SSL_CTX_set_default_verify_paths(ctx);
  	SSL_CTX_set_verify(ctx, SSL_VERIFY_NONE, NULL);
 
