@@ -51,10 +51,11 @@ void *httpd_ssl_init(char *cert, char *key, char *dhparm)
 {
 	SSL_CTX *ctx;
 
+	SSL_library_init();
 	SSL_load_error_strings();
 	OpenSSL_add_ssl_algorithms();
 
-	ctx = SSL_CTX_new(SSLv23_server_method());
+	ctx = SSL_CTX_new(SSLv23_method());
 	if (!ctx)
 		goto error;
 
