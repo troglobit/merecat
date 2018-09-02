@@ -3491,9 +3491,11 @@ static void cgi_interpose_input(httpd_conn *hc, int wfd)
 
 	c = hc->read_idx - hc->checked_idx;
 	if (c > 0) {
-		if ((size_t)file_write(wfd, &(hc->read_buf[hc->checked_idx]), c) != c)
+		r = file_write(wfd, &(hc->read_buf[hc->checked_idx]), c);
+		if ((size_t)r != c)
 			return;
 	}
+
 	while (c < hc->contentlength) {
 		r = httpd_read(hc, buf, MIN(sizeof(buf), hc->contentlength - c));
 		if (r < 0 && (errno == EINTR || errno == EAGAIN)) {
@@ -3726,6 +3728,7 @@ static void cgi_child(httpd_conn *hc)
 			cgi_interpose_input(hc, p[1]);
 			exit(0);
 		}
+
 		/* Need to schedule a kill for process r; but in the main process! */
 		close(p[1]);
 		if (p[0] != STDIN_FILENO) {
