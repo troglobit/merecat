@@ -620,7 +620,7 @@ static int check_throttles(connecttab *c)
 }
 
 
-static void clear_throttles(connecttab *c, struct timeval *tvP)
+static void clear_throttles(connecttab *c, struct timeval *tv)
 {
 	int tind;
 
@@ -684,14 +684,14 @@ static void update_throttles(ClientData client_data, struct timeval *nowP)
 }
 
 
-static void really_clear_connection(connecttab *c, struct timeval *tvP)
+static void really_clear_connection(connecttab *c, struct timeval *tv)
 {
 	stats_bytes += c->hc->bytes_sent;
 	if (c->conn_state != CNST_PAUSING)
 		fdwatch_del_fd(c->hc->conn_fd);
 
-	httpd_close_conn(c->hc, tvP);
-	clear_throttles(c, tvP);
+	httpd_close_conn(c->hc, tv);
+	clear_throttles(c, tv);
 	if (c->linger_timer) {
 		tmr_cancel(c->linger_timer);
 		c->linger_timer = 0;
@@ -734,7 +734,7 @@ static void linger_clear_connection(ClientData client_data, struct timeval *nowP
 }
 
 
-static void clear_connection(connecttab *c, struct timeval *tvP)
+static void clear_connection(connecttab *c, struct timeval *tv)
 {
 	ClientData client_data;
 
@@ -775,7 +775,7 @@ static void clear_connection(connecttab *c, struct timeval *tvP)
 
 		/* release file memory */
 		if (c->hc->file_address) {
-			mmc_unmap(c->hc->file_address, &c->hc->sb, tvP);
+			mmc_unmap(c->hc->file_address, &c->hc->sb, tv);
 			c->hc->file_address = NULL;
 		}
 
@@ -789,7 +789,7 @@ static void clear_connection(connecttab *c, struct timeval *tvP)
 		/* Reset the connection file descriptor to no-delay mode. */
 		httpd_set_ndelay(c->hc->conn_fd);
 
-		c->linger_timer = tmr_create(tvP, linger_clear_connection, client_data, KEEPALIVE_TIMELIMIT, 0);
+		c->linger_timer = tmr_create(tv, linger_clear_connection, client_data, KEEPALIVE_TIMELIMIT, 0);
 		if (!c->linger_timer) {
 			syslog(LOG_CRIT, "tmr_create(linger_clear_connection)2 failed");
 			exit(1);
@@ -804,31 +804,31 @@ static void clear_connection(connecttab *c, struct timeval *tvP)
 
 		client_data.p = c;
 		if (c->linger_timer) {
-			tmr_reset(tvP,  c->linger_timer);
+			tmr_reset(tv,  c->linger_timer);
 		} else {
-			c->linger_timer = tmr_create(tvP, linger_clear_connection, client_data, LINGER_TIME, 0);
+			c->linger_timer = tmr_create(tv, linger_clear_connection, client_data, LINGER_TIME, 0);
 			if (!c->linger_timer) {
 				syslog(LOG_CRIT, "tmr_create(linger_clear_connection) failed");
 				exit(1);
 			}
 		}
 	} else {
-		really_clear_connection(c, tvP);
+		really_clear_connection(c, tv);
 	}
 }
 
 
-static void finish_connection(connecttab *c, struct timeval *tvP)
+static void finish_connection(connecttab *c, struct timeval *tv)
 {
 	/* If we haven't actually sent the buffered response yet, do so now. */
 	httpd_send_response(c->hc);
 
 	/* And clear. */
-	clear_connection(c, tvP);
+	clear_connection(c, tv);
 }
 
 
-static int handle_newconnect(httpd_server *hs, struct timeval *tvP, int listen_fd)
+static int handle_newconnect(httpd_server *hs, struct timeval *tv, int listen_fd)
 {
 	connecttab *c;
 
@@ -844,7 +844,7 @@ static int handle_newconnect(httpd_server *hs, struct timeval *tvP, int listen_f
 			 ** by the time we get back here.
 			 */
 			syslog(LOG_WARNING, "Too many connections (%d >) %d)!", num_connects, max_connects);
-			tmr_run(tvP);
+			tmr_run(tv);
 			return 0;
 		}
 
@@ -873,7 +873,7 @@ static int handle_newconnect(httpd_server *hs, struct timeval *tvP, int listen_f
 			 ** existing connections.  Maybe the error will clear.
 			 */
 		case GC_FAIL:
-			tmr_run(tvP);
+			tmr_run(tv);
 			return 0;
 
 			/* No more connections to accept for now. */
@@ -886,7 +886,7 @@ static int handle_newconnect(httpd_server *hs, struct timeval *tvP, int listen_f
 		first_free_connect = c->next_free_connect;
 		c->next_free_connect = -1;
 		++num_connects;
-		c->active_at = tvP->tv_sec;
+		c->active_at = tv->tv_sec;
 		c->wakeup_timer = NULL;
 		c->linger_timer = NULL;
 		c->next_byte_index = 0;
@@ -904,7 +904,7 @@ static int handle_newconnect(httpd_server *hs, struct timeval *tvP, int listen_f
 }
 
 
-static void handle_read(connecttab *c, struct timeval *tvP)
+static void handle_read(connecttab *c, struct timeval *tv)
 {
 	int sz;
 	httpd_conn *hc = c->hc;
@@ -913,7 +913,7 @@ static void handle_read(connecttab *c, struct timeval *tvP)
 	if (hc->read_idx >= hc->read_size) {
 		if (hc->read_size > 5000) {
 			httpd_send_err(hc, 400, httpd_err400title, "", httpd_err400form, "");
-			finish_connection(c, tvP);
+			finish_connection(c, tv);
 			return;
 		}
 		httpd_realloc_str(&hc->read_buf, &hc->read_size, hc->read_size + 1000);
@@ -927,8 +927,8 @@ static void handle_read(connecttab *c, struct timeval *tvP)
 		if (hc->do_keep_alive)
 			hc->do_keep_alive--;
 
-		c->active_at = tvP->tv_sec;
-		finish_connection(c, tvP);
+		c->active_at = tv->tv_sec;
+		finish_connection(c, tv);
 		return;
 	}
 
@@ -942,12 +942,12 @@ static void handle_read(connecttab *c, struct timeval *tvP)
 			return;
 
 //		httpd_send_err(hc, 400, httpd_err400title, "", httpd_err400form, "");
-		finish_connection(c, tvP);
+		finish_connection(c, tv);
 		return;
 	}
 
 	hc->read_idx += sz;
-	c->active_at = tvP->tv_sec;
+	c->active_at = tv->tv_sec;
 
 	/* Do we have a complete request yet? */
 	switch (httpd_got_request(hc)) {
@@ -956,7 +956,7 @@ static void handle_read(connecttab *c, struct timeval *tvP)
 
 	case GR_BAD_REQUEST:
 //		httpd_send_err(hc, 400, httpd_err400title, "", httpd_err400form, "");
-		finish_connection(c, tvP);
+		finish_connection(c, tv);
 		return;
 	}
 
@@ -969,21 +969,21 @@ static void handle_read(connecttab *c, struct timeval *tvP)
 
 	/* Yes.  Try parsing and resolving it. */
 	if (httpd_parse_request(hc) < 0) {
-		finish_connection(c, tvP);
+		finish_connection(c, tv);
 		return;
 	}
 
 	/* Check the throttle table */
 	if (!check_throttles(c)) {
 		httpd_send_err(hc, 503, httpd_err503title, "", httpd_err503form, hc->encodedurl);
-		finish_connection(c, tvP);
+		finish_connection(c, tv);
 		return;
 	}
 
 	/* Start the connection going. */
-	if (httpd_start_request(hc, tvP) < 0) {
+	if (httpd_start_request(hc, tv) < 0) {
 		/* Something went wrong.  Close down the connection. */
-		finish_connection(c, tvP);
+		finish_connection(c, tv);
 		return;
 	}
 
@@ -1006,19 +1006,19 @@ static void handle_read(connecttab *c, struct timeval *tvP)
 			throttles[c->tnums[tind]].bytes_since_avg += hc->bytes_sent;
 		c->next_byte_index = hc->bytes_sent;
 
-		finish_connection(c, tvP);
+		finish_connection(c, tv);
 		return;
 	}
 
 	if (c->next_byte_index >= c->end_byte_index) {
 		/* There's nothing to send. */
-		finish_connection(c, tvP);
+		finish_connection(c, tv);
 		return;
 	}
 
 	/* Cool, we have a valid connection and a file to send to it. */
 	c->conn_state = CNST_SENDING;
-	c->started_at = tvP->tv_sec;
+	c->started_at = tv->tv_sec;
 	c->wouldblock_delay = 0;
 
 #ifdef HAVE_ZLIB_H
@@ -1080,7 +1080,7 @@ static void handle_read(connecttab *c, struct timeval *tvP)
 }
 
 
-static void handle_send(connecttab *c, struct timeval *tvP)
+static void handle_send(connecttab *c, struct timeval *tv)
 {
 	size_t max_bytes;
 	ssize_t sz = -1;
@@ -1154,7 +1154,7 @@ static void handle_send(connecttab *c, struct timeval *tvP)
 	}
 
 	if (sz < 0 && errno == EINTR) {
-		clear_connection(c, tvP);
+		clear_connection(c, tv);
 		return;
 	}
 
@@ -1177,7 +1177,7 @@ static void handle_send(connecttab *c, struct timeval *tvP)
 		if (c->wakeup_timer)
 			syslog(LOG_ERR, "replacing non-null wakeup_timer!");
 
-		c->wakeup_timer = tmr_create(tvP, wakeup_connection, client_data, c->wouldblock_delay, 0);
+		c->wakeup_timer = tmr_create(tv, wakeup_connection, client_data, c->wouldblock_delay, 0);
 		if (!c->wakeup_timer) {
 			syslog(LOG_CRIT, "tmr_create(wakeup_connection) failed");
 			exit(1);
@@ -1199,12 +1199,12 @@ static void handle_send(connecttab *c, struct timeval *tvP)
 		 */
 		if (errno != EPIPE && errno != EINVAL && errno != ECONNRESET)
 			syslog(LOG_ERR, "write failed: %s while sending %s", strerror(errno), hc->encodedurl);
-		clear_connection(c, tvP);
+		clear_connection(c, tv);
 		return;
 	}
 
 	/* Ok, we wrote something. */
-	c->active_at = tvP->tv_sec;
+	c->active_at = tv->tv_sec;
 	/* Was this a headers + file writev()? */
 	if (hc->responselen > 0) {
 		/* Yes; did we write only part of the headers? */
@@ -1231,14 +1231,14 @@ static void handle_send(connecttab *c, struct timeval *tvP)
 	if (c->hc->compression_type == COMPRESSION_NONE) {
 		if (c->next_byte_index >= c->end_byte_index) {
 			/* This connection is finished! */
-			finish_connection(c, tvP);
+			finish_connection(c, tv);
 			return;
 		}
 #ifdef HAVE_ZLIB_H
 	} else {
 		if ((c->zs_state == Z_STREAM_END) && (c->zs_output_head + sz == c->zs.next_out)) {
 			/* This conection is finished! */
-			clear_connection(c, tvP);
+			clear_connection(c, tv);
 			return;
 		} else if (sz > 0) {
 			/* move data to beginning of zlib output buffer
@@ -1258,7 +1258,7 @@ static void handle_send(connecttab *c, struct timeval *tvP)
 
 	/* If we're throttling, check if we're sending too fast. */
 	if (c->max_limit != THROTTLE_NOLIMIT) {
-		elapsed = tvP->tv_sec - c->started_at;
+		elapsed = tv->tv_sec - c->started_at;
 		if (elapsed == 0)
 			elapsed = 1;	/* count at least one second */
 		if (c->hc->bytes_sent / elapsed > c->max_limit) {
@@ -1271,7 +1271,7 @@ static void handle_send(connecttab *c, struct timeval *tvP)
 			client_data.p = c;
 			if (c->wakeup_timer)
 				syslog(LOG_ERR, "replacing non-null wakeup_timer!");
-			c->wakeup_timer = tmr_create(tvP, wakeup_connection, client_data, coast > 0 ? (coast * 1000L) : 500L, 0);
+			c->wakeup_timer = tmr_create(tv, wakeup_connection, client_data, coast > 0 ? (coast * 1000L) : 500L, 0);
 			if (!c->wakeup_timer) {
 				syslog(LOG_CRIT, "tmr_create(wakeup_connection) failed");
 				exit(1);
@@ -1282,7 +1282,7 @@ static void handle_send(connecttab *c, struct timeval *tvP)
 }
 
 
-static void handle_linger(connecttab *c, struct timeval *tvP)
+static void handle_linger(connecttab *c, struct timeval *tv)
 {
 	ssize_t r;
 	char buf[512];
@@ -1297,7 +1297,7 @@ static void handle_linger(connecttab *c, struct timeval *tvP)
 	} while (r > 0);
 
 	if (r <= 0)
-		really_clear_connection(c, tvP);
+		really_clear_connection(c, tv);
 }
 
 
