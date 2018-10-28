@@ -52,10 +52,10 @@ static struct timeval tv_diff;	/* system time - monotonic difference at start */
 static unsigned int hash(Timer *t)
 {
 	/* We can hash on the trigger time, even though it can change over
-	 ** the life of a timer via either the periodic bit or the tmr_reset()
-	 ** call.  This is because both of those guys call l_resort(), which
-	 ** recomputes the hash and moves the timer to the appropriate list.
-	 */
+	** the life of a timer via either the periodic bit or the tmr_reset()
+	** call.  This is because both of those guys call l_resort(), which
+	** recomputes the hash and moves the timer to the appropriate list.
+	*/
 	return ((unsigned int)t->time.tv_sec ^ (unsigned int)t->time.tv_usec) % HASH_SIZE;
 }
 
@@ -72,8 +72,9 @@ static void l_add(Timer *t)
 		timers[h] = t;
 		t->prev = t->next = NULL;
 	} else {
-		if ( t->time.tv_sec  < t2->time.tv_sec ||
-		    (t->time.tv_sec == t2->time.tv_sec && t->time.tv_usec <= t2->time.tv_usec)) {
+		if ( t->time.tv_sec   < t2->time.tv_sec ||
+		    (t->time.tv_sec  == t2->time.tv_sec &&
+		     t->time.tv_usec <= t2->time.tv_usec)) {
 			/* The new timer goes at the head of the list. */
 			timers[h] = t;
 			t->prev   = NULL;
@@ -83,7 +84,8 @@ static void l_add(Timer *t)
 			/* Walk the list to find the insertion point. */
 			for (t2prev = t2, t2 = t2->next; t2; t2prev = t2, t2 = t2->next) {
 				if (t->time.tv_sec < t2->time.tv_sec ||
-				    (t->time.tv_sec == t2->time.tv_sec && t->time.tv_usec <= t2->time.tv_usec)) {
+				    (t->time.tv_sec  == t2->time.tv_sec &&
+				     t->time.tv_usec <= t2->time.tv_usec)) {
 					/* Found it. */
 					t2prev->next = t;
 					t->prev      = t2prev;
@@ -150,10 +152,12 @@ void tmr_init(void)
 
 		/* Get current system time */
 		gettimeofday(&tv_start, NULL);
-		tv.tv_sec = ts.tv_sec;
+
+		tv.tv_sec  = ts.tv_sec;
 		tv.tv_usec = ts.tv_nsec / 1000L;
-		/* Calculate and save the difference: tv_start is since the Epoch, so tv_start > ts
-		   tv_diff = tv_start - tv      */
+		/* Calculate and save the difference: tv_start is since
+		** the Epoch, so tv_start > ts tv_diff = tv_start - tv
+		*/
 		timersub(&tv_start, &tv, &tv_diff);
 	}
 #endif
@@ -211,7 +215,7 @@ struct timeval *tmr_timeout(struct timeval *nowP)
 	if (msecs == INFTIM)
 		return NULL;
 
-	timeout.tv_sec = msecs / 1000L;
+	timeout.tv_sec  =  msecs / 1000L;
 	timeout.tv_usec = (msecs % 1000L) * 1000L;
 
 	return &timeout;
@@ -226,10 +230,11 @@ long tmr_mstimeout(struct timeval *nowP)
 	Timer *t;
 
 	gotone = 0;
-	msecs = 0;		/* make lint happy */
-	/* Since the lists are sorted, we only need to look at the
-	 ** first timer on each one.
-	 */
+	msecs  = 0;
+
+	/* Since the lists are sorted, we only need to look at
+	** the first timer on each one.
+	*/
 	for (h = 0; h < HASH_SIZE; ++h) {
 		t = timers[h];
 		if (t) {
@@ -263,14 +268,16 @@ void tmr_run(struct timeval *nowP)
 		for (t = timers[h]; t; t = next) {
 			next = t->next;
 			/* Since the lists are sorted, as soon as we find a timer
-			 ** that isn't ready yet, we can go on to the next list.
-			 */
-			if (t->time.tv_sec > nowP->tv_sec || (t->time.tv_sec == nowP->tv_sec && t->time.tv_usec > nowP->tv_usec))
+			** that isn't ready yet, we can go on to the next list.
+			*/
+			if (t->time.tv_sec > nowP->tv_sec || (t->time.tv_sec == nowP->tv_sec &&
+							      t->time.tv_usec > nowP->tv_usec))
 				break;
+
 			(t->timer_proc) (t->client_data, nowP);
 			if (t->periodic) {
 				/* Reschedule. */
-				t->time.tv_sec += t->msecs / 1000L;
+				t->time.tv_sec  +=  t->msecs / 1000L;
 				t->time.tv_usec += (t->msecs % 1000L) * 1000L;
 				if (t->time.tv_usec >= 1000000L) {
 					t->time.tv_sec += t->time.tv_usec / 1000000L;
@@ -289,7 +296,7 @@ void tmr_reset(struct timeval *nowP, Timer *t)
 		return;
 
 	t->time = *nowP;
-	t->time.tv_sec += t->msecs / 1000L;
+	t->time.tv_sec  +=  t->msecs / 1000L;
 	t->time.tv_usec += (t->msecs % 1000L) * 1000L;
 	if (t->time.tv_usec >= 1000000L) {
 		t->time.tv_sec += t->time.tv_usec / 1000000L;
