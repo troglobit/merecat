@@ -828,7 +828,7 @@ static void finish_connection(connecttab *c, struct timeval *tvP)
 }
 
 
-static int handle_newconnect(struct timeval *tvP, int listen_fd)
+static int handle_newconnect(httpd_server *hs, struct timeval *tvP, int listen_fd)
 {
 	connecttab *c;
 
@@ -1988,7 +1988,7 @@ int main(int argc, char **argv)
 
 		/* Is it a new connection? */
 		if (hs && hs->listen6_fd != -1 && fdwatch_check_fd(hs->listen6_fd)) {
-			if (handle_newconnect(&tv, hs->listen6_fd))
+			if (handle_newconnect(hs, &tv, hs->listen6_fd))
 				/* Go around the loop and do another fdwatch, rather than
 				 ** dropping through and processing existing connections.
 				 ** New connections always get priority.
@@ -1997,7 +1997,7 @@ int main(int argc, char **argv)
 		}
 
 		if (hs && hs->listen4_fd != -1 && fdwatch_check_fd(hs->listen4_fd)) {
-			if (handle_newconnect(&tv, hs->listen4_fd))
+			if (handle_newconnect(hs, &tv, hs->listen4_fd))
 				/* Go around the loop and do another fdwatch, rather than
 				 ** dropping through and processing existing connections.
 				 ** New connections always get priority.
