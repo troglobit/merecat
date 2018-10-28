@@ -636,9 +636,9 @@ static void update_throttles(ClientData client_data, struct timeval *nowP)
 	connecttab *c;
 	long l;
 
-	/* Update the average sending rate for each throttle.  This is only used
-	 ** when new connections start up.
-	 */
+	/* Update the average sending rate for each throttle.
+	** This is only used when new connections start up.
+	*/
 	for (tnum = 0; tnum < numthrottles; ++tnum) {
 		throttles[tnum].rate = (2 * throttles[tnum].rate + throttles[tnum].bytes_since_avg / THROTTLE_TIME) / 3;
 		throttles[tnum].bytes_since_avg = 0;
@@ -662,9 +662,9 @@ static void update_throttles(ClientData client_data, struct timeval *nowP)
 		}
 	}
 
-	/* Now update the sending rate on all the currently-sending connections,
-	 ** redistributing it evenly.
-	 */
+	/* Now update the sending rate on all the currently-sending
+	** connections, redistributing it evenly.
+	*/
 	for (cnum = 0; cnum < max_connects; ++cnum) {
 		c = &connects[cnum];
 		if (c->conn_state == CNST_SENDING || c->conn_state == CNST_PAUSING) {
@@ -744,16 +744,18 @@ static void clear_connection(connecttab *c, struct timeval *tv)
 	}
 
 	/* This is our version of Apache's lingering_close() routine, which is
-	 ** their version of the often-broken SO_LINGER socket option.  For why
-	 ** this is necessary, see http://www.apache.org/docs/misc/fin_wait_2.html
-	 ** What we do is delay the actual closing for a few seconds, while reading
-	 ** any bytes that come over the connection.  However, we don't want to do
-	 ** this unless it's necessary, because it ties up a connection slot and
-	 ** file descriptor which means our maximum connection-handling rate
-	 ** is lower.  So, elsewhere we set a flag when we detect the few
-	 ** circumstances that make a lingering close necessary.  If the flag
-	 ** isn't set we do the real close now.
-	 */
+	** their version of the often-broken SO_LINGER socket option.  For why
+	** this is necessary, see [1].  What we do is delay the actual closing
+	** for a few seconds, while reading any bytes that come over the
+	** connection.  However, we don't want to do this unless it's
+	** necessary, because it ties up a connection slot and file descriptor
+	** which means our maximum connection-handling rate is lower.  So,
+	** elsewhere we set a flag when we detect the few circumstances that
+	** make a lingering close necessary.  If the flag isn't set we do the
+	** real close now.
+	**
+	** [1]: http://www.apache.org/docs/misc/fin_wait_2.html
+	*/
 	if (c->conn_state == CNST_LINGERING && !c->hc->do_keep_alive) {
 		/* If we were already lingering, shut down for real. */
 		tmr_cancel(c->linger_timer);
@@ -833,16 +835,16 @@ static int handle_newconnect(httpd_server *hs, struct timeval *tv, int listen_fd
 	connecttab *c;
 
 	/* This loops until the accept() fails, trying to start new
-	 ** connections as fast as possible so we don't overrun the
-	 ** listen queue.
-	 */
+	** connections as fast as possible so we don't overrun the
+	** listen queue.
+	*/
 	for (;;) {
 		/* Is there room in the connection table? */
 		if (num_connects >= max_connects) {
 			/* Out of connection slots.  Run the timers, then the
-			 ** existing connections, and maybe we'll free up a slot
-			 ** by the time we get back here.
-			 */
+			** existing connections, and maybe we'll free up a slot
+			** by the time we get back here.
+			*/
 			syslog(LOG_WARNING, "Too many connections (%d >) %d)!", num_connects, max_connects);
 			tmr_run(tv);
 			return 0;
@@ -870,8 +872,8 @@ static int handle_newconnect(httpd_server *hs, struct timeval *tv, int listen_fd
 		/* Get the connection. */
 		switch (httpd_get_conn(hs, listen_fd, c->hc)) {
 			/* Some error happened.  Run the timers, then the
-			 ** existing connections.  Maybe the error will clear.
-			 */
+			** existing connections.  Maybe the error will clear.
+			*/
 		case GC_FAIL:
 			tmr_run(tv);
 			return 0;
@@ -934,10 +936,10 @@ static void handle_read(connecttab *c, struct timeval *tv)
 
 	if (sz < 0) {
 		/* Ignore EINTR and EAGAIN.  Also ignore EWOULDBLOCK.  At first glance
-		 ** you would think that connections returned by fdwatch as readable
-		 ** should never give an EWOULDBLOCK; however, this apparently can
-		 ** happen if a packet gets garbled.
-		 */
+		** you would think that connections returned by fdwatch as readable
+		** should never give an EWOULDBLOCK; however, this apparently can
+		** happen if a packet gets garbled.
+		*/
 		if (errno == EINTR || errno == EAGAIN || errno == EWOULDBLOCK)
 			return;
 
@@ -1261,6 +1263,7 @@ static void handle_send(connecttab *c, struct timeval *tv)
 		elapsed = tv->tv_sec - c->started_at;
 		if (elapsed == 0)
 			elapsed = 1;	/* count at least one second */
+
 		if (c->hc->bytes_sent / elapsed > c->max_limit) {
 			c->conn_state = CNST_PAUSING;
 			fdwatch_del_fd(hc->conn_fd);
@@ -1271,7 +1274,8 @@ static void handle_send(connecttab *c, struct timeval *tv)
 			client_data.p = c;
 			if (c->wakeup_timer)
 				syslog(LOG_ERR, "replacing non-null wakeup_timer!");
-			c->wakeup_timer = tmr_create(tv, wakeup_connection, client_data, coast > 0 ? (coast * 1000L) : 500L, 0);
+			c->wakeup_timer = tmr_create(tv, wakeup_connection, client_data,
+						     coast > 0 ? (coast * 1000L) : 500L, 0);
 			if (!c->wakeup_timer) {
 				syslog(LOG_CRIT, "tmr_create(wakeup_connection) failed");
 				exit(1);
@@ -1289,7 +1293,7 @@ static void handle_linger(connecttab *c, struct timeval *tv)
 
 	/* In lingering-close mode we just read and ignore bytes.  An error
 	** or EOF ends things, otherwise we go until a timeout.
-	 */
+	*/
 	do {
 		r = httpd_read(c->hc, buf, sizeof(buf));
 		if (r < 0 && (errno == EINTR || errno == EAGAIN || errno == EWOULDBLOCK))
@@ -1377,19 +1381,19 @@ static void handle_chld(int signo)
 				continue;
 
 			/* ECHILD shouldn't happen with the WNOHANG option,
-			 ** but with some kernels it does anyway.  Ignore it.
-			 */
+			** but with some kernels it does anyway.  Ignore it.
+			*/
 			if (errno != ECHILD)
 				syslog(LOG_ERR, "child wait: %s", strerror(errno));
 			break;
 		}
 
 		/* Decrement the CGI count.  Note that this is not accurate, since
-		 ** each CGI can involve two or even three child processes.
-		 ** Decrementing for each child means that when there is heavy CGI
-		 ** activity, the count will be lower than it should be, and therefore
-		 ** more CGIs will be allowed than should be.
-		 */
+		** each CGI can involve two or even three child processes.
+		** Decrementing for each child means that when there is heavy CGI
+		** activity, the count will be lower than it should be, and therefore
+		** more CGIs will be allowed than should be.
+		*/
 		if (hs) {
 			--hs->cgi_count;
 			if (hs->cgi_count < 0)
@@ -1435,9 +1439,9 @@ static void handle_usr1(int signo)
 
 	if (num_connects == 0) {
 		/* If there are no active connections we want to exit immediately
-		 ** here.  Not only is it faster, but without any connections the
-		 ** main loop won't wake up until the next new connection.
-		 */
+		** here.  Not only is it faster, but without any connections the
+		** main loop won't wake up until the next new connection.
+		*/
 		shut_down();
 		syslog(LOG_NOTICE, "Exiting due to SIGUSR1");
 		closelog();
@@ -1732,9 +1736,9 @@ int main(int argc, char **argv)
 	if (throttlefile)
 		read_throttlefile(throttlefile);
 
-	/* If we're root and we're going to become another user, get the uid/gid
-	 ** now.
-	 */
+	/* If we're root and we're going to drop privileges to become another
+	** user, get their uid/gid now.
+	*/
 	if (getuid() == 0) {
 		pwd = getpwnam(user);
 		if (!pwd) {
@@ -1764,9 +1768,9 @@ int main(int argc, char **argv)
 #ifdef USE_USER_DIR
 	else if (getuid() == 0) {
 		/* No explicit directory was specified, we're root, and the
-		 ** USE_USER_DIR option is set - switch to the specified user's
-		 ** home dir.
-		 */
+		** USE_USER_DIR option is set - switch to the specified user's
+		** home dir.
+		*/
 		if (chdir(pwd->pw_dir) < 0) {
 			syslog(LOG_CRIT, "chdir %s: %s", pwd->pw_dir, strerror(errno));
 			exit(1);
@@ -1780,9 +1784,9 @@ int main(int argc, char **argv)
 		strcat(path, "/");
 
 	if (background) {
-		/* We're not going to use stdin stdout or stderr from here on, so close
-		 ** them to save file descriptors.
-		 */
+		/* We're not going to use stdin stdout or stderr from here on,
+		** so close them to save file descriptors.
+		*/
 		fclose(stdin);
 		fclose(stdout);
 		fclose(stderr);
@@ -1808,9 +1812,9 @@ int main(int argc, char **argv)
 #endif
 #endif /* HAVE_DAEMON */
 	} else {
-		/* Even if we don't daemonize, we still want to disown our parent
-		 ** process.
-		 */
+		/* Even if we don't daemonize, we still want to disown our
+		** parent process.
+		*/
 #ifdef HAVE_SETSID
 		setsid();
 #endif
@@ -1821,9 +1825,9 @@ int main(int argc, char **argv)
 		pidfn = ident;
 	pidfile(pidfn);
 
-	/* Initialize the fdwatch package.  Have to do this before chroot,
-	 ** if /dev/poll is used.
-	 */
+	/* Initialize the fdwatch package.  We have to do this before
+	** chrooting, if /dev/poll is used.
+	*/
 	max_connects = fdwatch_get_nfiles();
 	if (max_connects < 0) {
 		syslog(LOG_CRIT, "fdwatch initialization failure");
@@ -1861,8 +1865,8 @@ int main(int argc, char **argv)
 	tmr_init();
 
 	/* Initialize the HTTP layer.  Got to do this before giving up root,
-	 ** so that we can bind to a privileged port.
-	 */
+	** so that we can bind to a privileged port.
+	*/
 	hs = httpd_init(hostname, gotv4 ? &sa4 : NULL, gotv6 ? &sa6 : NULL, port, ctx,
 			cgi_pattern, cgi_limit, charset, max_age, path, no_log,
 			no_symlink_check, do_vhost, do_global_passwd, url_pattern, local_pattern,
@@ -1989,19 +1993,20 @@ int main(int argc, char **argv)
 		/* Is it a new connection? */
 		if (hs && hs->listen6_fd != -1 && fdwatch_check_fd(hs->listen6_fd)) {
 			if (handle_newconnect(hs, &tv, hs->listen6_fd))
-				/* Go around the loop and do another fdwatch, rather than
-				 ** dropping through and processing existing connections.
-				 ** New connections always get priority.
-				 */
+				/* Go around the loop and do another fdwatch,
+				** rather than dropping through and processing
+				** existing connections.  New connections
+				** always get priority.
+				*/
 				continue;
 		}
 
 		if (hs && hs->listen4_fd != -1 && fdwatch_check_fd(hs->listen4_fd)) {
 			if (handle_newconnect(hs, &tv, hs->listen4_fd))
 				/* Go around the loop and do another fdwatch, rather than
-				 ** dropping through and processing existing connections.
-				 ** New connections always get priority.
-				 */
+				** dropping through and processing existing connections.
+				** New connections always get priority.
+				*/
 				continue;
 		}
 
