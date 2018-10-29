@@ -304,6 +304,7 @@ httpd_server *httpd_init(char *hostname, httpd_sockaddr *hsav4, httpd_sockaddr *
 			memmove(cp + 1, cp + 2, strlen(cp) - 1);
 	}
 
+	hs->cgi_tracker = calloc(cgi_limit, sizeof(pid_t));
 	hs->cgi_limit = cgi_limit;
 	hs->cgi_count = 0;
 	hs->charset = strdup(charset);
@@ -3839,6 +3840,39 @@ static void cgi_child(httpd_conn *hc)
 	exit(1);
 }
 
+int httpd_cgi_track(httpd_server *hs, pid_t pid)
+{
+	int i;
+
+	for (i = 0; i < hs->cgi_limit; i++) {
+		if (hs->cgi_tracker[i] != 0)
+			continue;
+
+		hs->cgi_tracker[i] = pid;
+		hs->cgi_count++;
+
+		return 0;
+	}
+
+	return 1;		/* Error, no space? */
+}
+
+int httpd_cgi_untrack(httpd_server *hs, pid_t pid)
+{
+	int i;
+
+	for (i = 0; i < hs->cgi_limit; i++) {
+		if (hs->cgi_tracker[i] != pid)
+			continue;
+
+		hs->cgi_tracker[i] = 0;
+		hs->cgi_count--;
+
+		return 0;
+	}
+
+	return 1;		/* Not found in this server */
+}
 
 static int cgi(httpd_conn *hc)
 {
@@ -3856,7 +3890,7 @@ static int cgi(httpd_conn *hc)
 			httpd_send_err(hc, 503, httpd_err503title, "", httpd_err503form, hc->encodedurl);
 			return -1;
 		}
-		++hc->hs->cgi_count;
+
 		httpd_clear_ndelay(hc->conn_fd);
 		r = fork();
 		if (r < 0) {
@@ -3874,6 +3908,9 @@ static int cgi(httpd_conn *hc)
 		/* Parent process spawned CGI process PID. */
 		syslog(LOG_INFO, "%s: CGI[%d] /%.200s%s \"%s\" \"%s\"",
 		       httpd_client(hc), r, hc->expnfilename, hc->encodedurl, hc->referer, hc->useragent);
+
+		httpd_cgi_track(hc->hs, r);
+
 #ifdef CGI_TIMELIMIT
 		/* Schedule a kill for the child process, in case it runs too long */
 		client_data.i = r;
@@ -3882,6 +3919,7 @@ static int cgi(httpd_conn *hc)
 			exit(1);
 		}
 #endif
+
 		hc->status = 200;
 		hc->bytes_sent = CGI_BYTECOUNT;
 		hc->should_linger = 0;

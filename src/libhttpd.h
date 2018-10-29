@@ -77,6 +77,7 @@ typedef struct {
 	char *binding_hostname;
 	char *server_hostname;
 	unsigned short port;
+	pid_t *cgi_tracker;
 	char *cgi_pattern;
 	int cgi_limit, cgi_count;
 	char *charset;
@@ -315,5 +316,9 @@ extern ssize_t httpd_writev(httpd_conn *hc, struct iovec *iov, size_t num);
 
 /* Generate debugging statistics syslog message. */
 extern void httpd_logstats(long secs);
+
+/* Track PID of CGI scripts, server calls untrack for each collected PID */
+extern int httpd_cgi_track(httpd_server *hs, pid_t pid);
+extern int httpd_cgi_untrack(httpd_server *hs, pid_t pid);
 
 #endif /* LIBHTTPD_H_ */

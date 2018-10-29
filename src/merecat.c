@@ -1388,17 +1388,9 @@ static void handle_chld(int signo)
 			break;
 		}
 
-		/* Decrement the CGI count.  Note that this is not accurate, since
-		** each CGI can involve two or even three child processes.
-		** Decrementing for each child means that when there is heavy CGI
-		** activity, the count will be lower than it should be, and therefore
-		** more CGIs will be allowed than should be.
-		*/
-		if (hs) {
-			--hs->cgi_count;
-			if (hs->cgi_count < 0)
-				hs->cgi_count = 0;
-		}
+		/* Decrement CGI count.  Ignore PID from any CGI children */
+		if (hs)
+			httpd_cgi_untrack(hs, pid);
 	}
 
 	/* Restore previous errno. */
