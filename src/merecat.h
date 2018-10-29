@@ -91,9 +91,7 @@
 ** no limit (and you'd better have a lot of memory).  This can also be
 ** set in the runtime config file.
 */
-#if 0
 #define CGI_LIMIT 50
-#endif
 
 /* Fallback */
 #ifndef CGI_LIMIT
