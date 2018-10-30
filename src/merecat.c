@@ -538,19 +538,19 @@ static void logstats(struct timeval *nowP)
 
 static void shut_down(void)
 {
-	int cnum;
 	struct timeval tv;
+	int i;
 
 	gettimeofday(&tv, NULL);
 	logstats(&tv);
-	for (cnum = 0; cnum < max_connects; ++cnum) {
-		if (connects[cnum].conn_state != CNST_FREE)
-			httpd_close_conn(connects[cnum].hc, &tv);
+	for (i = 0; i < max_connects; ++i) {
+		if (connects[i].conn_state != CNST_FREE)
+			httpd_close_conn(connects[i].hc, &tv);
 
-		if (connects[cnum].hc) {
-			httpd_destroy_conn(connects[cnum].hc);
-			free(connects[cnum].hc);
-			connects[cnum].hc = NULL;
+		if (connects[i].hc) {
+			httpd_destroy_conn(connects[i].hc);
+			free(connects[i].hc);
+			connects[i].hc = NULL;
 			--httpd_conn_count;
 		}
 	}
