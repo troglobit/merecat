@@ -161,7 +161,7 @@ static int httpd_conn_count;
 cfg_t *cfg = NULL;
 #endif
 
-static struct httpd_server *hs[2] = { NULL };
+static struct httpd_server *server_list = NULL;
 int terminate = 0;
 time_t start_time, stats_time;
 long stats_connections;
@@ -543,6 +543,7 @@ static void logstats(struct timeval *now)
 
 static void shut_down(void)
 {
+	struct httpd_server *server;
 	struct timeval tv;
 	int i;
 
@@ -560,18 +561,14 @@ static void shut_down(void)
 		}
 	}
 
-	for (i = 0; i < (int)NELEMS(hs); i++) {
-		struct httpd_server *ths = hs[i];
+	LIST_FOREACH(server, server_list) {
+		LIST_REMOVE(server, server_list);
 
-		if (!ths)
-			continue;
-		hs[i] = NULL;
-
-		if (ths->listen4_fd != -1)
-			fdwatch_del_fd(ths->listen4_fd);
-		if (ths->listen6_fd != -1)
-			fdwatch_del_fd(ths->listen6_fd);
-		httpd_exit(ths);
+		if (server->listen4_fd != -1)
+			fdwatch_del_fd(server->listen4_fd);
+		if (server->listen6_fd != -1)
+			fdwatch_del_fd(server->listen6_fd);
+		httpd_exit(server);
 	}
 
 #ifdef HAVE_LIBCONFUSE
@@ -1370,14 +1367,13 @@ static void handle_term(int signo)
 /* SIGCHLD - a chile process exitted, so we need to reap the zombie */
 static void handle_chld(int signo)
 {
+	struct httpd_server *server;
 	const int oerrno = errno;
 	pid_t pid;
 	int status;
 
 	/* Reap defunct children until there aren't any more. */
 	while (1) {
-		size_t i;
-
 #ifdef HAVE_WAITPID
 		pid = waitpid((pid_t)-1, &status, WNOHANG);
 #else
@@ -1399,10 +1395,8 @@ static void handle_chld(int signo)
 		}
 
 		/* Decrement CGI count.  Ignore PID from any CGI children */
-		for (i = 0; i < (int)NELEMS(hs); i++) {
-			struct httpd_server *ths = hs[i];
-
-			if (ths && !httpd_cgi_untrack(ths, pid))
+		LIST_FOREACH(server, server_list) {
+			if (!httpd_cgi_untrack(server, pid))
 				break;
 		}
 	}
@@ -1611,6 +1605,7 @@ int main(int argc, char **argv)
 	int num_ready;
 	int cnum;
 	connecttab *ct;
+	struct httpd_server *server;
 	struct httpd_conn *hc;
 	httpd_sockaddr sa4;
 	httpd_sockaddr sa6;
@@ -1873,12 +1868,15 @@ int main(int argc, char **argv)
 	/* Initialize the HTTP layer.  Got to do this before giving up root,
 	** so that we can bind to a privileged port.
 	*/
-	hs[0] = httpd_init(hostname, gotv4 ? &sa4 : NULL, gotv6 ? &sa6 : NULL, port, ctx,
-			   cgi_pattern, cgi_limit, charset, max_age, path, no_log,
-			   no_symlink_check, do_vhost, do_global_passwd, url_pattern, local_pattern,
-			   no_empty_referers, list_dotfiles);
-	if (!hs[0])
+	server = httpd_init(hostname, gotv4 ? &sa4 : NULL, gotv6 ? &sa6 : NULL, port, ctx,
+			    cgi_pattern, cgi_limit, charset, max_age, path, no_log,
+			    no_symlink_check, do_vhost, do_global_passwd, url_pattern, local_pattern,
+			    no_empty_referers, list_dotfiles);
+	if (!server)
 		exit(1);
+
+	/* Add to list of servers */
+	LIST_INSERT(server, server_list);
 
 	/* Set up the occasional timer. */
 	if (!tmr_create(NULL, occasional, noarg, OCCASIONAL_TIME * 1000L, 1)) {
@@ -1967,10 +1965,10 @@ int main(int argc, char **argv)
 	num_connects = 0;
 	httpd_conn_count = 0;
 
-	if (hs[0]->listen4_fd != -1)
-		fdwatch_add_fd(hs[0]->listen4_fd, NULL, FDW_READ);
-	if (hs[0]->listen6_fd != -1)
-		fdwatch_add_fd(hs[0]->listen6_fd, NULL, FDW_READ);
+	if (server->listen4_fd != -1)
+		fdwatch_add_fd(server->listen4_fd, NULL, FDW_READ);
+	if (server->listen6_fd != -1)
+		fdwatch_add_fd(server->listen6_fd, NULL, FDW_READ);
 
 	/* Main loop. */
 	tmr_prepare_timeval(&tv);
@@ -1997,8 +1995,8 @@ int main(int argc, char **argv)
 		}
 
 		/* Is it a new connection? */
-		if (hs[0] && hs[0]->listen6_fd != -1 && fdwatch_check_fd(hs[0]->listen6_fd)) {
-			if (handle_newconnect(hs[0], &tv, hs[0]->listen6_fd))
+		if (server && server->listen6_fd != -1 && fdwatch_check_fd(server->listen6_fd)) {
+			if (handle_newconnect(server, &tv, server->listen6_fd))
 				/* Go around the loop and do another fdwatch,
 				** rather than dropping through and processing
 				** existing connections.  New connections
@@ -2007,8 +2005,8 @@ int main(int argc, char **argv)
 				continue;
 		}
 
-		if (hs[0] && hs[0]->listen4_fd != -1 && fdwatch_check_fd(hs[0]->listen4_fd)) {
-			if (handle_newconnect(hs[0], &tv, hs[0]->listen4_fd))
+		if (server && server->listen4_fd != -1 && fdwatch_check_fd(server->listen4_fd)) {
+			if (handle_newconnect(server, &tv, server->listen4_fd))
 				/* Go around the loop and do another fdwatch, rather than
 				** dropping through and processing existing connections.
 				** New connections always get priority.
@@ -2046,12 +2044,12 @@ int main(int argc, char **argv)
 
 		if (got_usr1 && !terminate) {
 			terminate = 1;
-			if (hs[0]) {
-				if (hs[0]->listen4_fd != -1)
-					fdwatch_del_fd(hs[0]->listen4_fd);
-				if (hs[0]->listen6_fd != -1)
-					fdwatch_del_fd(hs[0]->listen6_fd);
-				httpd_unlisten(hs[0]);
+			if (server) {
+				if (server->listen4_fd != -1)
+					fdwatch_del_fd(server->listen4_fd);
+				if (server->listen6_fd != -1)
+					fdwatch_del_fd(server->listen6_fd);
+				httpd_unlisten(server);
 			}
 		}
 

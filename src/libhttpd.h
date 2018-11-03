@@ -58,6 +58,36 @@
 #define NELEMS(array) (sizeof(array) / sizeof(array[0]))
 #endif
 
+/* Doubly linked list macros */
+#define LIST_FOREACH(node, list)		\
+	for (typeof (node) next, node = list;	\
+	     node && (next = node->next, 1);	\
+	     node = next)
+
+#define LIST_INSERT(node, list) do {		\
+	typeof (node) next;			\
+	next       = list;			\
+	list       = node;			\
+	if (next)				\
+		next->prev = node;		\
+	node->next = next;			\
+	node->prev = NULL;			\
+} while (0)
+
+#define LIST_REMOVE(node, list) do {		\
+	typeof (node) prev, next;		\
+	prev = node->prev;			\
+	next = node->next;			\
+	if (prev)				\
+		prev->next = next;		\
+	if (next)				\
+		next->prev = prev;		\
+	node->prev = NULL;			\
+	node->next = NULL;			\
+	if (list == node)			\
+		list = next;			\
+} while (0)
+
 
 /* The httpd structs. */
 
@@ -74,24 +104,33 @@ typedef union {
 
 /* A server. */
 struct httpd_server {
+	struct httpd_server *prev, *next;
+
 	char *binding_hostname;
 	char *server_hostname;
 	unsigned short port;
+
 	pid_t *cgi_tracker;
-	char *cgi_pattern;
-	int cgi_limit, cgi_count;
+	char  *cgi_pattern;
+	int    cgi_limit;
+	int    cgi_count;
+
 	char *charset;
-	int max_age;
+	int   max_age;
 	char *cwd;
-	int listen4_fd, listen6_fd;
+
+	int listen4_fd;
+	int listen6_fd;
+
 	int no_log;
 	int no_symlink_check;
-	int vhost;
-	int global_passwd;
-	char *url_pattern;
-	char *local_pattern;
 	int no_empty_referers;
 	int list_dotfiles;
+	int vhost;
+	int global_passwd;
+
+	char *url_pattern;
+	char *local_pattern;
 
 	void *ctx;		/* Opaque SSL_CTX* */
 };
