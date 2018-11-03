@@ -1594,7 +1594,7 @@ static char *progname(char *arg0)
 int main(int argc, char **argv)
 {
 	int c;
-	int log_opts = LOG_PID | LOG_CONS | LOG_NDELAY;
+	int log_opts = LOG_PID | LOG_NDELAY;
 #ifdef HAVE_LIBCONFUSE
 	char *config = NULL;
 #endif
