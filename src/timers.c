@@ -40,7 +40,7 @@ static Timer *timers[HASH_SIZE];
 static Timer *free_timers;
 static int alloc_count, active_count, free_count;
 
-ClientData JunkClientData;
+arg_t noarg;
 
 #undef HAVE_CLOCK_MONO
 #if defined(HAVE_CLOCK_GETTIME) && defined(CLOCK_MONOTONIC)
@@ -164,7 +164,7 @@ void tmr_init(void)
 }
 
 
-Timer *tmr_create(struct timeval *nowP, TimerProc *timer_proc, ClientData client_data, long msecs, int periodic)
+Timer *tmr_create(struct timeval *nowP, TimerProc *timer_proc, arg_t arg, long msecs, int periodic)
 {
 	Timer *t;
 
@@ -181,7 +181,7 @@ Timer *tmr_create(struct timeval *nowP, TimerProc *timer_proc, ClientData client
 	}
 
 	t->timer_proc  = timer_proc;
-	t->client_data = client_data;
+	t->arg = arg;
 	t->msecs       = msecs;
 	t->periodic    = periodic;
 	if (nowP)
@@ -274,7 +274,7 @@ void tmr_run(struct timeval *nowP)
 							      t->time.tv_usec > nowP->tv_usec))
 				break;
 
-			(t->timer_proc) (t->client_data, nowP);
+			(t->timer_proc) (t->arg, nowP);
 			if (t->periodic) {
 				/* Reschedule. */
 				t->time.tv_sec  +=  t->msecs / 1000L;

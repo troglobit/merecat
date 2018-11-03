@@ -168,8 +168,8 @@ static void init_mime(void);
 static void figure_mime(struct httpd_conn *hc);
 
 #ifdef CGI_TIMELIMIT
-static void cgi_kill2(ClientData client_data, struct timeval *now);
-static void cgi_kill(ClientData client_data, struct timeval *now);
+static void cgi_kill2(arg_t arg, struct timeval *now);
+static void cgi_kill(arg_t arg, struct timeval *now);
 #endif
 #ifdef GENERATE_INDEXES
 static int ls(struct httpd_conn *hc);
@@ -2926,24 +2926,24 @@ done:
 
 
 #ifdef CGI_TIMELIMIT
-static void cgi_kill2(ClientData client_data, struct timeval *now)
+static void cgi_kill2(arg_t arg, struct timeval *now)
 {
 	pid_t pid;
 
-	pid = (pid_t)client_data.i;
+	pid = (pid_t)arg.i;
 	if (kill(pid, SIGKILL) == 0)
 		syslog(LOG_ERR, "hard-killed CGI process %d", pid);
 }
 
-static void cgi_kill(ClientData client_data, struct timeval *now)
+static void cgi_kill(arg_t arg, struct timeval *now)
 {
 	pid_t pid;
 
-	pid = (pid_t)client_data.i;
+	pid = (pid_t)arg.i;
 	if (kill(pid, SIGINT) == 0) {
 		syslog(LOG_ERR, "killed CGI process %d", pid);
 		/* In case this isn't enough, schedule an uncatchable kill. */
-		if (!tmr_create(now, cgi_kill2, client_data, 5 * 1000L, 0)) {
+		if (!tmr_create(now, cgi_kill2, arg, 5 * 1000L, 0)) {
 			syslog(LOG_CRIT, "tmr_create(cgi_kill2) failed");
 			exit(1);
 		}
@@ -3258,7 +3258,7 @@ static int ls(struct httpd_conn *hc)
 {
 	int r;
 	DIR *dirp;
-	ClientData client_data;
+	arg_t arg;
 
 	hc->compression_type = COMPRESSION_NONE;
 
@@ -3877,7 +3877,7 @@ int httpd_cgi_untrack(struct httpd_server *hs, pid_t pid)
 static int cgi(struct httpd_conn *hc)
 {
 	int r;
-	ClientData client_data;
+	arg_t arg;
 
 	/*
 	** We are not going to leave the socket open after a CGI ... too difficult
@@ -3913,8 +3913,8 @@ static int cgi(struct httpd_conn *hc)
 
 #ifdef CGI_TIMELIMIT
 		/* Schedule a kill for the child process, in case it runs too long */
-		client_data.i = r;
-		if (!tmr_create(NULL, cgi_kill, client_data, CGI_TIMELIMIT * 1000L, 0)) {
+		arg.i = r;
+		if (!tmr_create(NULL, cgi_kill, arg, CGI_TIMELIMIT * 1000L, 0)) {
 			syslog(LOG_CRIT, "tmr_create(cgi_kill child) failed");
 			exit(1);
 		}

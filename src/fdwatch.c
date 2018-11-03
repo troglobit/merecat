@@ -228,7 +228,7 @@ void fdwatch_put_nfiles(void)
 }
 
 /* Add a descriptor to the watch list.  rw is either FDW_READ or FDW_WRITE.  */
-void fdwatch_add_fd(int fd, void *client_data, int rw)
+void fdwatch_add_fd(int fd, void *arg, int rw)
 {
 	if (fd < 0 || fd >= nfiles || fd_rw[fd] != -1) {
 		syslog(LOG_ERR, "bad fd (%d) passed to fdwatch_add_fd(nfiles:%d)!", fd, nfiles);
@@ -237,7 +237,7 @@ void fdwatch_add_fd(int fd, void *client_data, int rw)
 
 	ADD_FD(fd, rw);
 	fd_rw[fd] = rw;
-	fd_data[fd] = client_data;
+	fd_data[fd] = arg;
 }
 
 
@@ -280,7 +280,7 @@ int fdwatch_check_fd(int fd)
 }
 
 
-void *fdwatch_get_next_client_data(void)
+void *fdwatch_get_next_arg(void)
 {
 	int fd;
 

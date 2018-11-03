@@ -33,9 +33,9 @@
 
 #ifndef INFTIM
 #define INFTIM -1
-#endif				/* INFTIM */
+#endif
 
-/* ClientData is a random value that tags along with a timer.  The client
+/* arg_t is a random value that tags along with a timer.  The client
 ** can use it for whatever, and it gets passed to the callback when the
 ** timer triggers.
 */
@@ -43,20 +43,20 @@ typedef union {
 	void *p;
 	int i;
 	long l;
-} ClientData;
+} arg_t;
 
-extern ClientData JunkClientData;	/* for use when you don't care */
+extern arg_t noarg;	/* for use when you don't care */
 
 /* The TimerProc gets called when the timer expires.  It gets passed
-** the ClientData associated with the timer, and a timeval in case
+** the arg_t associated with the timer, and a timeval in case
 ** it wants to schedule another timer.
 */
-typedef void TimerProc (ClientData client_data, struct timeval *nowP);
+typedef void TimerProc (arg_t arg, struct timeval *nowP);
 
 /* The Timer struct. */
 typedef struct TimerStruct {
 	TimerProc *timer_proc;
-	ClientData client_data;
+	arg_t arg;
 	long msecs;
 	int periodic;
 	struct timeval time;
@@ -69,7 +69,7 @@ typedef struct TimerStruct {
 extern void tmr_init(void);
 
 /* Set up a timer, either periodic or one-shot. Returns (Timer*) 0 on errors. */
-extern Timer *tmr_create(struct timeval *nowP, TimerProc *timer_proc, ClientData client_data, long msecs, int periodic);
+extern Timer *tmr_create(struct timeval *nowP, TimerProc *timer_proc, arg_t arg, long msecs, int periodic);
 
 /* Returns a timeout indicating how long until the next timer triggers.  You
 ** can just put the call to this routine right in your select().  Returns

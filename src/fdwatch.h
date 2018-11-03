@@ -63,7 +63,7 @@ extern int fdwatch_get_nfiles(void);
 extern void fdwatch_put_nfiles(void);
 
 /* Add a descriptor to the watch list.  rw is either FDW_READ or FDW_WRITE.  */
-extern void fdwatch_add_fd(int fd, void *client_data, int rw);
+extern void fdwatch_add_fd(int fd, void *arg, int rw);
 
 /* Delete a descriptor from the watch list. */
 extern void fdwatch_del_fd(int fd);
@@ -80,7 +80,7 @@ extern int fdwatch_check_fd(int fd);
 /* Get the client data for the next returned event.  Returns -1 when there
 ** are no more events.
 */
-extern void *fdwatch_get_next_client_data(void);
+extern void *fdwatch_get_next_arg(void);
 
 /* Generate debugging statistics syslog message. */
 extern void fdwatch_logstats(long secs);

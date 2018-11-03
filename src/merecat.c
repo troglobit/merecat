@@ -637,7 +637,7 @@ static void clear_throttles(connecttab *c, struct timeval *tv)
 }
 
 
-static void update_throttles(ClientData client_data, struct timeval *now)
+static void update_throttles(arg_t arg, struct timeval *now)
 {
 	int tnum, tind;
 	int cnum;
@@ -719,11 +719,11 @@ static void really_clear_connection(connecttab *c, struct timeval *tv)
 }
 
 
-static void wakeup_connection(ClientData client_data, struct timeval *now)
+static void wakeup_connection(arg_t arg, struct timeval *now)
 {
 	connecttab *c;
 
-	c = (connecttab *)client_data.p;
+	c = (connecttab *)arg.p;
 	c->wakeup_timer = NULL;
 	if (c->conn_state == CNST_PAUSING) {
 		c->conn_state = CNST_SENDING;
@@ -731,11 +731,11 @@ static void wakeup_connection(ClientData client_data, struct timeval *now)
 	}
 }
 
-static void linger_clear_connection(ClientData client_data, struct timeval *now)
+static void linger_clear_connection(arg_t arg, struct timeval *now)
 {
 	connecttab *c;
 
-	c = (connecttab *)client_data.p;
+	c = (connecttab *)arg.p;
 	c->hc->do_keep_alive = 0;
 	c->linger_timer = NULL;
 	really_clear_connection(c, now);
@@ -744,7 +744,7 @@ static void linger_clear_connection(ClientData client_data, struct timeval *now)
 
 static void clear_connection(connecttab *c, struct timeval *tv)
 {
-	ClientData client_data;
+	arg_t arg;
 
 	if (c->wakeup_timer) {
 		tmr_cancel(c->wakeup_timer);
@@ -779,7 +779,7 @@ static void clear_connection(connecttab *c, struct timeval *tv)
 		c->conn_state = CNST_READING;
 		c->next_byte_index = 0;
 
-		client_data.p = c;
+		arg.p = c;
 		if (c->linger_timer)
 			tmr_cancel(c->linger_timer);
 
@@ -799,7 +799,7 @@ static void clear_connection(connecttab *c, struct timeval *tv)
 		/* Reset the connection file descriptor to no-delay mode. */
 		httpd_set_ndelay(c->hc->conn_fd);
 
-		c->linger_timer = tmr_create(tv, linger_clear_connection, client_data, KEEPALIVE_TIMELIMIT, 0);
+		c->linger_timer = tmr_create(tv, linger_clear_connection, arg, KEEPALIVE_TIMELIMIT, 0);
 		if (!c->linger_timer) {
 			syslog(LOG_CRIT, "tmr_create(linger_clear_connection)2 failed");
 			exit(1);
@@ -812,11 +812,11 @@ static void clear_connection(connecttab *c, struct timeval *tv)
 		shutdown(c->hc->conn_fd, SHUT_WR);
 		fdwatch_add_fd(c->hc->conn_fd, c, FDW_READ);
 
-		client_data.p = c;
+		arg.p = c;
 		if (c->linger_timer) {
 			tmr_reset(tv,  c->linger_timer);
 		} else {
-			c->linger_timer = tmr_create(tv, linger_clear_connection, client_data, LINGER_TIME, 0);
+			c->linger_timer = tmr_create(tv, linger_clear_connection, arg, LINGER_TIME, 0);
 			if (!c->linger_timer) {
 				syslog(LOG_CRIT, "tmr_create(linger_clear_connection) failed");
 				exit(1);
@@ -1095,7 +1095,7 @@ static void handle_send(connecttab *c, struct timeval *tv)
 	size_t max_bytes;
 	ssize_t sz = -1;
 	int coast;
-	ClientData client_data;
+	arg_t arg;
 	time_t elapsed;
 	struct httpd_conn *hc = c->hc;
 	int tind;
@@ -1182,12 +1182,12 @@ static void handle_send(connecttab *c, struct timeval *tv)
 		c->wouldblock_delay += MIN_WOULDBLOCK_DELAY;
 		c->conn_state = CNST_PAUSING;
 		fdwatch_del_fd(hc->conn_fd);
-		client_data.p = c;
+		arg.p = c;
 
 		if (c->wakeup_timer)
 			syslog(LOG_ERR, "replacing non-null wakeup_timer!");
 
-		c->wakeup_timer = tmr_create(tv, wakeup_connection, client_data, c->wouldblock_delay, 0);
+		c->wakeup_timer = tmr_create(tv, wakeup_connection, arg, c->wouldblock_delay, 0);
 		if (!c->wakeup_timer) {
 			syslog(LOG_CRIT, "tmr_create(wakeup_connection) failed");
 			exit(1);
@@ -1279,10 +1279,10 @@ static void handle_send(connecttab *c, struct timeval *tv)
 			 ** than a second (integer math rounding), use 1/2 second.
 			 */
 			coast = c->hc->bytes_sent / c->max_limit - elapsed;
-			client_data.p = c;
+			arg.p = c;
 			if (c->wakeup_timer)
 				syslog(LOG_ERR, "replacing non-null wakeup_timer!");
-			c->wakeup_timer = tmr_create(tv, wakeup_connection, client_data,
+			c->wakeup_timer = tmr_create(tv, wakeup_connection, arg,
 						     coast > 0 ? (coast * 1000L) : 500L, 0);
 			if (!c->wakeup_timer) {
 				syslog(LOG_CRIT, "tmr_create(wakeup_connection) failed");
@@ -1313,7 +1313,7 @@ static void handle_linger(connecttab *c, struct timeval *tv)
 }
 
 
-static void idle(ClientData client_data, struct timeval *now)
+static void idle(arg_t arg, struct timeval *now)
 {
 	int cnum;
 	connecttab *c;
@@ -1341,7 +1341,7 @@ static void idle(ClientData client_data, struct timeval *now)
 }
 
 
-static void occasional(ClientData client_data, struct timeval *now)
+static void occasional(arg_t arg, struct timeval *now)
 {
 	mmc_cleanup(now);
 	tmr_cleanup();
@@ -1350,7 +1350,7 @@ static void occasional(ClientData client_data, struct timeval *now)
 
 
 #ifdef STATS_TIME
-static void show_stats(ClientData client_data, struct timeval *now)
+static void show_stats(arg_t arg, struct timeval *now)
 {
 	logstats(now);
 }
@@ -1881,20 +1881,20 @@ int main(int argc, char **argv)
 		exit(1);
 
 	/* Set up the occasional timer. */
-	if (!tmr_create(NULL, occasional, JunkClientData, OCCASIONAL_TIME * 1000L, 1)) {
+	if (!tmr_create(NULL, occasional, noarg, OCCASIONAL_TIME * 1000L, 1)) {
 		syslog(LOG_CRIT, "tmr_create(occasional) failed");
 		exit(1);
 	}
 
 	/* Set up the idle timer. */
-	if (!tmr_create(NULL, idle, JunkClientData, 5 * 1000L, 1)) {
+	if (!tmr_create(NULL, idle, noarg, 5 * 1000L, 1)) {
 		syslog(LOG_CRIT, "tmr_create(idle) failed");
 		exit(1);
 	}
 
 	if (numthrottles > 0) {
 		/* Set up the throttles timer. */
-		if (!tmr_create(NULL, update_throttles, JunkClientData, THROTTLE_TIME * 1000L, 1)) {
+		if (!tmr_create(NULL, update_throttles, noarg, THROTTLE_TIME * 1000L, 1)) {
 			syslog(LOG_CRIT, "tmr_create(update_throttles) failed");
 			exit(1);
 		}
@@ -1902,7 +1902,7 @@ int main(int argc, char **argv)
 
 #ifdef STATS_TIME
 	/* Set up the stats timer. */
-	if (!tmr_create(NULL, show_stats, JunkClientData, STATS_TIME * 1000L, 1)) {
+	if (!tmr_create(NULL, show_stats, noarg, STATS_TIME * 1000L, 1)) {
 		syslog(LOG_CRIT, "tmr_create(show_stats) failed");
 		exit(1);
 	}
@@ -2017,7 +2017,7 @@ int main(int argc, char **argv)
 		}
 
 		/* Find the connections that need servicing. */
-		while ((ct = (connecttab *)fdwatch_get_next_client_data()) != (connecttab *)-1) {
+		while ((ct = (connecttab *)fdwatch_get_next_arg()) != (connecttab *)-1) {
 			if (!ct)
 				continue;
 
