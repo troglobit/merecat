@@ -301,7 +301,8 @@ error:
 }
 #endif /* HAVE_LIBCONFUSE */
 
-static void lookup_hostname(httpd_sockaddr *sa4P, size_t sa4_len, int *gotv4P, httpd_sockaddr *sa6P, size_t sa6_len, int *gotv6P)
+static void lookup_hostname(httpd_sockaddr *sa4, size_t sa4_len, int *gotv4,
+			    httpd_sockaddr *sa6, size_t sa6_len, int *gotv6)
 {
 #ifdef USE_IPV6
 	struct addrinfo hints;
@@ -340,16 +341,16 @@ static void lookup_hostname(httpd_sockaddr *sa4P, size_t sa4_len, int *gotv4P, h
 	}
 
 	if (!aiv6) {
-		*gotv6P = 0;
+		*gotv6 = 0;
 	} else {
 		if (sa6_len < aiv6->ai_addrlen) {
 			syslog(LOG_CRIT, "%s - sockaddr too small (%lu < %lu)",
 			       hostname, (unsigned long)sa6_len, (unsigned long)aiv6->ai_addrlen);
 			exit(1);
 		}
-		memset(sa6P, 0, sa6_len);
-		memmove(sa6P, aiv6->ai_addr, aiv6->ai_addrlen);
-		*gotv6P = 1;
+		memset(sa6, 0, sa6_len);
+		memmove(sa6, aiv6->ai_addr, aiv6->ai_addrlen);
+		*gotv6 = 1;
 	}
 
 #ifdef __linux__
@@ -362,16 +363,16 @@ static void lookup_hostname(httpd_sockaddr *sa4P, size_t sa4_len, int *gotv4P, h
 #else
 	if (!aiv4)
 #endif
-		*gotv4P = 0;
+		*gotv4 = 0;
 	else {
 		if (sa4_len < aiv4->ai_addrlen) {
 			syslog(LOG_CRIT, "%s - sockaddr too small (%lu < %lu)",
 			       hostname, (unsigned long)sa4_len, (unsigned long)aiv4->ai_addrlen);
 			exit(1);
 		}
-		memset(sa4P, 0, sa4_len);
-		memmove(sa4P, aiv4->ai_addr, aiv4->ai_addrlen);
-		*gotv4P = 1;
+		memset(sa4, 0, sa4_len);
+		memmove(sa4, aiv4->ai_addr, aiv4->ai_addrlen);
+		*gotv4 = 1;
 	}
 
 	freeaddrinfo(ai);
@@ -380,15 +381,15 @@ static void lookup_hostname(httpd_sockaddr *sa4P, size_t sa4_len, int *gotv4P, h
 
 	struct hostent *he;
 
-	*gotv6P = 0;
+	*gotv6 = 0;
 
-	memset(sa4P, 0, sa4_len);
-	sa4P->sa.sa_family = AF_INET;
+	memset(sa4, 0, sa4_len);
+	sa4->sa.sa_family = AF_INET;
 	if (!hostname) {
-		sa4P->sa_in.sin_addr.s_addr = htonl(INADDR_ANY);
+		sa4->sa_in.sin_addr.s_addr = htonl(INADDR_ANY);
 	} else {
-		sa4P->sa_in.sin_addr.s_addr = inet_addr(hostname);
-		if ((int)sa4P->sa_in.sin_addr.s_addr == -1) {
+		sa4->sa_in.sin_addr.s_addr = inet_addr(hostname);
+		if ((int)sa4->sa_in.sin_addr.s_addr == -1) {
 			he = gethostbyname(hostname);
 			if (!he) {
 #ifdef HAVE_HSTRERROR
@@ -402,11 +403,11 @@ static void lookup_hostname(httpd_sockaddr *sa4P, size_t sa4_len, int *gotv4P, h
 				syslog(LOG_CRIT, "%s - non-IP network address", hostname);
 				exit(1);
 			}
-			memmove(&sa4P->sa_in.sin_addr.s_addr, he->h_addr, he->h_length);
+			memmove(&sa4->sa_in.sin_addr.s_addr, he->h_addr, he->h_length);
 		}
 	}
-	sa4P->sa_in.sin_port = htons(port);
-	*gotv4P = 1;
+	sa4->sa_in.sin_port = htons(port);
+	*gotv4 = 1;
 
 #endif /* USE_IPV6 */
 }
@@ -438,7 +439,10 @@ static void read_throttlefile(char *throttlefile)
 
 		/* Nuke trailing whitespace. */
 		len = strlen(buf);
-		while (len > 0 && (buf[len - 1] == ' ' || buf[len - 1] == '\t' || buf[len - 1] == '\n' || buf[len - 1] == '\r'))
+		while (len > 0 && (buf[len - 1] == ' '  ||
+				   buf[len - 1] == '\t' ||
+				   buf[len - 1] == '\n' ||
+				   buf[len - 1] == '\r'))
 			buf[--len] = '\0';
 
 		/* Ignore empty lines. */
@@ -499,8 +503,7 @@ static void read_throttlefile(char *throttlefile)
 static void merecat_logstats(long secs)
 {
 	if (secs > 0)
-		syslog(LOG_INFO,
-		       "  %s - %ld connections (%g/sec), %d max simultaneous, %ld bytes (%g/sec), %d httpd_conns allocated",
+		syslog(LOG_INFO, "  %s - %ld connections (%g/sec), %d max simultaneous, %ld bytes (%g/sec), %d httpd_conns allocated",
 		       PACKAGE_NAME, stats_connections, (float)stats_connections / secs,
 		       stats_simultaneous, (long int)stats_bytes, (float)stats_bytes / secs, httpd_conn_count);
 	stats_connections = 0;
@@ -510,22 +513,24 @@ static void merecat_logstats(long secs)
 
 
 /* Generate debugging statistics syslog messages for all packages. */
-static void logstats(struct timeval *nowP)
+static void logstats(struct timeval *now)
 {
 	struct timeval tv;
-	time_t now;
+	time_t sec;
 	long up_secs, stats_secs;
 
-	if (!nowP) {
+	if (!now) {
 		gettimeofday(&tv, NULL);
-		nowP = &tv;
+		now = &tv;
 	}
-	now = nowP->tv_sec;
-	up_secs = now - start_time;
-	stats_secs = now - stats_time;
+
+	sec = now->tv_sec;
+	up_secs = sec - start_time;
+	stats_secs = sec - stats_time;
 	if (stats_secs == 0)
 		stats_secs = 1;	/* fudge */
-	stats_time = now;
+
+	stats_time = sec;
 	syslog(LOG_INFO, "up %ld seconds, stats for %ld seconds:", up_secs, stats_secs);
 
 	merecat_logstats(stats_secs);
@@ -632,7 +637,7 @@ static void clear_throttles(connecttab *c, struct timeval *tv)
 }
 
 
-static void update_throttles(ClientData client_data, struct timeval *nowP)
+static void update_throttles(ClientData client_data, struct timeval *now)
 {
 	int tnum, tind;
 	int cnum;
@@ -714,7 +719,7 @@ static void really_clear_connection(connecttab *c, struct timeval *tv)
 }
 
 
-static void wakeup_connection(ClientData client_data, struct timeval *nowP)
+static void wakeup_connection(ClientData client_data, struct timeval *now)
 {
 	connecttab *c;
 
@@ -726,14 +731,14 @@ static void wakeup_connection(ClientData client_data, struct timeval *nowP)
 	}
 }
 
-static void linger_clear_connection(ClientData client_data, struct timeval *nowP)
+static void linger_clear_connection(ClientData client_data, struct timeval *now)
 {
 	connecttab *c;
 
 	c = (connecttab *)client_data.p;
 	c->hc->do_keep_alive = 0;
 	c->linger_timer = NULL;
-	really_clear_connection(c, nowP);
+	really_clear_connection(c, now);
 }
 
 
@@ -833,7 +838,7 @@ static void finish_connection(connecttab *c, struct timeval *tv)
 }
 
 
-static int handle_newconnect(struct httpd_server *hs, struct timeval *tv, int listen_fd)
+static int handle_newconnect(struct httpd_server *hs, struct timeval *tv, int fd)
 {
 	connecttab *c;
 
@@ -873,7 +878,7 @@ static int handle_newconnect(struct httpd_server *hs, struct timeval *tv, int li
 		}
 
 		/* Get the connection. */
-		switch (httpd_get_conn(hs, listen_fd, c->hc)) {
+		switch (httpd_get_conn(hs, fd, c->hc)) {
 			/* Some error happened.  Run the timers, then the
 			** existing connections.  Maybe the error will clear.
 			*/
@@ -1308,7 +1313,7 @@ static void handle_linger(connecttab *c, struct timeval *tv)
 }
 
 
-static void idle(ClientData client_data, struct timeval *nowP)
+static void idle(ClientData client_data, struct timeval *now)
 {
 	int cnum;
 	connecttab *c;
@@ -1317,18 +1322,18 @@ static void idle(ClientData client_data, struct timeval *nowP)
 		c = &connects[cnum];
 		switch (c->conn_state) {
 		case CNST_READING:
-			if (nowP->tv_sec - c->active_at >= IDLE_READ_TIMELIMIT) {
+			if (now->tv_sec - c->active_at >= IDLE_READ_TIMELIMIT) {
 				syslog(LOG_INFO, "%s connection timed out reading", c->hc->client_addr.real_ip);
 //				httpd_send_err(c->hc, 408, httpd_err408title, "", httpd_err408form, "");
-				finish_connection(c, nowP);
+				finish_connection(c, now);
 			}
 			break;
 
 		case CNST_SENDING:
 		case CNST_PAUSING:
-			if (nowP->tv_sec - c->active_at >= IDLE_SEND_TIMELIMIT) {
+			if (now->tv_sec - c->active_at >= IDLE_SEND_TIMELIMIT) {
 				syslog(LOG_INFO, "%s connection timed out sending", c->hc->client_addr.real_ip);
-				clear_connection(c, nowP);
+				clear_connection(c, now);
 			}
 			break;
 		}
@@ -1336,18 +1341,18 @@ static void idle(ClientData client_data, struct timeval *nowP)
 }
 
 
-static void occasional(ClientData client_data, struct timeval *nowP)
+static void occasional(ClientData client_data, struct timeval *now)
 {
-	mmc_cleanup(nowP);
+	mmc_cleanup(now);
 	tmr_cleanup();
 	watchdog_flag = 1;	/* let the watchdog know that we are alive */
 }
 
 
 #ifdef STATS_TIME
-static void show_stats(ClientData client_data, struct timeval *nowP)
+static void show_stats(ClientData client_data, struct timeval *now)
 {
-	logstats(nowP);
+	logstats(now);
 }
 #endif
 
