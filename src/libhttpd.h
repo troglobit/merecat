@@ -73,7 +73,7 @@ typedef union {
 } httpd_sockaddr;
 
 /* A server. */
-typedef struct {
+struct httpd_server {
 	char *binding_hostname;
 	char *server_hostname;
 	unsigned short port;
@@ -94,12 +94,12 @@ typedef struct {
 	int list_dotfiles;
 
 	void *ctx;		/* Opaque SSL_CTX* */
-} httpd_server;
+};
 
 /* A connection. */
-typedef struct {
+struct httpd_conn {
 	int initialized;
-	httpd_server *hs;
+	struct httpd_server *hs;
 	httpd_sockaddr client_addr;
 	char *read_buf;
 	size_t read_size, read_idx, checked_idx;
@@ -167,7 +167,7 @@ typedef struct {
 	char *file_address;
 
 	void *ssl;		/* Opaque SSL* */
-} httpd_conn;
+};
 
 /* Methods. */
 #define METHOD_UNKNOWN 0
@@ -198,36 +198,36 @@ typedef struct {
 #define COMPRESSION_NONE 0
 #define COMPRESSION_GZIP 1
 
-/* Initializes.  Does the socket(), bind(), and listen().   Returns an
-** httpd_server* which includes a socket fd that you can select() on.
-** Return (httpd_server*) 0 on error.
+/* Initializes main HTTPD server.  Does the socket(), bind(), and
+** listen().  Returns a struct httpd_server* which includes a socket fd
+** that you can select() on.  Returns NULL on error.
 */
-extern httpd_server *httpd_init(char *hostname, httpd_sockaddr *hsav4, httpd_sockaddr *hsav6,
-				unsigned short port, void *ssl_ctx, char *cgi_pattern, int cgi_limit,
-				char *charset, int max_age, char *cwd, int no_log,
-				int no_symlink_check, int vhost, int global_passwd, char *url_pattern,
-				char *local_pattern, int no_empty_referers, int list_dotfiles);
+extern struct httpd_server *httpd_init(char *hostname, httpd_sockaddr *hsav4, httpd_sockaddr *hsav6,
+				       unsigned short port, void *ssl_ctx, char *cgi_pattern, int cgi_limit,
+				       char *charset, int max_age, char *cwd, int no_log,
+				       int no_symlink_check, int vhost, int global_passwd, char *url_pattern,
+				       char *local_pattern, int no_empty_referers, int list_dotfiles);
 
 /* Call to shut down. */
-extern void httpd_exit(httpd_server *hs);
+extern void httpd_exit(struct httpd_server *hs);
 
 /* Call to unlisten/close socket(s) listening for new connections. */
-extern void httpd_unlisten(httpd_server *hs);
+extern void httpd_unlisten(struct httpd_server *hs);
 
 /* Used to reinitialize the connection for pipelined keep-alive requets */
-extern void httpd_init_conn_mem(httpd_conn *hc);
-extern void httpd_init_conn_content(httpd_conn *hc);
+extern void httpd_init_conn_mem(struct httpd_conn *hc);
+extern void httpd_init_conn_content(struct httpd_conn *hc);
 
-/* When a listen fd is ready to read, call this.  It does the accept() and
-** returns an httpd_conn* which includes the fd to read the request from and
-** write the response to.  Returns an indication of whether the accept()
+/* When a listen fd is ready to be read, call this.  It does the accept() and
+** returns a struct httpd_conn* which includes the fd to read the request from
+** and write the response to.  Returns an indication of whether the accept()
 ** failed, succeeded, or if there were no more connections to accept.
 **
-** In order to minimize malloc()s, the caller passes in the httpd_conn.
+** In order to minimize malloc()s, the caller passes in the struct httpd_conn.
 ** The caller is also responsible for setting initialized to zero before the
-** first call using each different httpd_conn.
+** first call using each different struct httpd_conn.
 */
-extern int httpd_get_conn(httpd_server *hs, int listen_fd, httpd_conn *hc);
+extern int httpd_get_conn(struct httpd_server *hs, int listen_fd, struct httpd_conn *hc);
 
 #define GC_FAIL 0
 #define GC_OK 1
@@ -240,7 +240,7 @@ extern int httpd_get_conn(httpd_server *hs, int listen_fd, httpd_conn *hc);
 ** indication of whether there is no complete request yet, there is a
 ** complete request, or there won't be a valid request due to a syntax error.
 */
-extern int httpd_got_request(httpd_conn *hc);
+extern int httpd_got_request(struct httpd_conn *hc);
 
 #define GR_NO_REQUEST 0
 #define GR_GOT_REQUEST 1
@@ -251,7 +251,7 @@ extern int httpd_got_request(httpd_conn *hc);
 **
 ** Returns -1 on error.
 */
-extern int httpd_parse_request(httpd_conn *hc);
+extern int httpd_parse_request(struct httpd_conn *hc);
 
 /* Starts sending data back to the client.  In some cases (directories,
 ** CGI programs), finishes sending by itself - in those cases, hc->file_fd
@@ -261,28 +261,28 @@ extern int httpd_parse_request(httpd_conn *hc);
 **
 ** Returns -1 on error.
 */
-extern int httpd_start_request(httpd_conn *hc, struct timeval *now);
+extern int httpd_start_request(struct httpd_conn *hc, struct timeval *now);
 
 /* Actually sends any buffered response text. */
-extern void httpd_send_response(httpd_conn *hc);
+extern void httpd_send_response(struct httpd_conn *hc);
 
 /* Call this to close down a connection and free the data.  A fine point,
 ** if you fork() with a connection open you should still call this in the
 ** parent process - the connection will stay open in the child.
 ** If you don't have a current timeval handy just pass in 0.
 */
-extern void httpd_close_conn(httpd_conn *hc, struct timeval *now);
+extern void httpd_close_conn(struct httpd_conn *hc, struct timeval *now);
 
 /* Call this to de-initialize a connection struct and *really* free the
 ** mallocced strings.
 */
-extern void httpd_destroy_conn(httpd_conn *hc);
+extern void httpd_destroy_conn(struct httpd_conn *hc);
 
 /* Client IP addresses can be overridden by a proxy using X-Forwarded-For */
-extern char *httpd_client(httpd_conn *hc);
+extern char *httpd_client(struct httpd_conn *hc);
 
 /* Send an error message back to the client. */
-extern void httpd_send_err(httpd_conn *hc, int status, char *title, const char *extraheads, char *form, char *arg);
+extern void httpd_send_err(struct httpd_conn *hc, int status, char *title, const char *extraheads, char *form, char *arg);
 
 /* Some error messages. */
 extern char *httpd_err400title;
@@ -308,17 +308,17 @@ extern void httpd_set_ndelay(int fd);
 extern void httpd_clear_ndelay(int fd);
 
 /* Read the requested buffer completely, accounting for interruptions. */
-extern ssize_t httpd_read(httpd_conn *hc, void *buf, size_t len);
+extern ssize_t httpd_read(struct httpd_conn *hc, void *buf, size_t len);
 
 /* Write the requested buffer completely, accounting for interruptions. */
-extern ssize_t httpd_write(httpd_conn *hc, void *buf, size_t len);
-extern ssize_t httpd_writev(httpd_conn *hc, struct iovec *iov, size_t num);
+extern ssize_t httpd_write(struct httpd_conn *hc, void *buf, size_t len);
+extern ssize_t httpd_writev(struct httpd_conn *hc, struct iovec *iov, size_t num);
 
 /* Generate debugging statistics syslog message. */
 extern void httpd_logstats(long secs);
 
 /* Track PID of CGI scripts, server calls untrack for each collected PID */
-extern int httpd_cgi_track(httpd_server *hs, pid_t pid);
-extern int httpd_cgi_untrack(httpd_server *hs, pid_t pid);
+extern int httpd_cgi_track(struct httpd_server *hs, pid_t pid);
+extern int httpd_cgi_untrack(struct httpd_server *hs, pid_t pid);
 
 #endif /* LIBHTTPD_H_ */

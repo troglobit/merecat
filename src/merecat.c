@@ -128,7 +128,7 @@ static int numthrottles, maxthrottles;
 typedef struct {
 	int conn_state;
 	int next_free_connect;
-	httpd_conn *hc;
+	struct httpd_conn *hc;
 	int tnums[MAXTHROTTLENUMS];	/* throttle indexes */
 	int numtnums;
 	long max_limit, min_limit;
@@ -161,7 +161,7 @@ static int httpd_conn_count;
 cfg_t *cfg = NULL;
 #endif
 
-static httpd_server *hs[2] = { NULL };
+static struct httpd_server *hs[2] = { NULL };
 int terminate = 0;
 time_t start_time, stats_time;
 long stats_connections;
@@ -556,7 +556,7 @@ static void shut_down(void)
 	}
 
 	for (i = 0; i < (int)NELEMS(hs); i++) {
-		httpd_server *ths = hs[i];
+		struct httpd_server *ths = hs[i];
 
 		if (!ths)
 			continue;
@@ -833,7 +833,7 @@ static void finish_connection(connecttab *c, struct timeval *tv)
 }
 
 
-static int handle_newconnect(httpd_server *hs, struct timeval *tv, int listen_fd)
+static int handle_newconnect(struct httpd_server *hs, struct timeval *tv, int listen_fd)
 {
 	connecttab *c;
 
@@ -862,7 +862,7 @@ static int handle_newconnect(httpd_server *hs, struct timeval *tv, int listen_fd
 		/* Make the httpd_conn if necessary. */
 		c = &connects[first_free_connect];
 		if (!c->hc) {
-			c->hc = NEW(httpd_conn, 1);
+			c->hc = NEW(struct httpd_conn, 1);
 			if (!c->hc) {
 				syslog(LOG_CRIT, "Out of memory allocating an httpd_conn");
 				exit(1);
@@ -912,7 +912,7 @@ static int handle_newconnect(httpd_server *hs, struct timeval *tv, int listen_fd
 static void handle_read(connecttab *c, struct timeval *tv)
 {
 	int sz;
-	httpd_conn *hc = c->hc;
+	struct httpd_conn *hc = c->hc;
 
 	/* Is there room in our buffer to read more bytes? */
 	if (hc->read_idx >= hc->read_size) {
@@ -1092,7 +1092,7 @@ static void handle_send(connecttab *c, struct timeval *tv)
 	int coast;
 	ClientData client_data;
 	time_t elapsed;
-	httpd_conn *hc = c->hc;
+	struct httpd_conn *hc = c->hc;
 	int tind;
 
 	if (c->max_limit == THROTTLE_NOLIMIT)
@@ -1395,7 +1395,7 @@ static void handle_chld(int signo)
 
 		/* Decrement CGI count.  Ignore PID from any CGI children */
 		for (i = 0; i < (int)NELEMS(hs); i++) {
-			httpd_server *ths = hs[i];
+			struct httpd_server *ths = hs[i];
 
 			if (ths && !httpd_cgi_untrack(ths, pid))
 				break;
@@ -1606,7 +1606,7 @@ int main(int argc, char **argv)
 	int num_ready;
 	int cnum;
 	connecttab *ct;
-	httpd_conn *hc;
+	struct httpd_conn *hc;
 	httpd_sockaddr sa4;
 	httpd_sockaddr sa6;
 	int gotv4, gotv6;
