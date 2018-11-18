@@ -301,7 +301,8 @@ error:
 }
 #endif /* HAVE_LIBCONFUSE */
 
-static void lookup_hostname(httpd_sockaddr *sa4, size_t sa4_len, int *gotv4,
+static void lookup_hostname(char *hostname,
+			    httpd_sockaddr *sa4, size_t sa4_len, int *gotv4,
 			    httpd_sockaddr *sa6, size_t sa6_len, int *gotv6)
 {
 #ifdef USE_IPV6
@@ -1724,7 +1725,7 @@ int main(int argc, char **argv)
 	tzset();
 
 	/* Look up hostname now, in case we chroot(). */
-	lookup_hostname(&sa4, sizeof(sa4), &gotv4, &sa6, sizeof(sa6), &gotv6);
+	lookup_hostname(hostname, &sa4, sizeof(sa4), &gotv4, &sa6, sizeof(sa6), &gotv6);
 	if (!(gotv4 || gotv6)) {
 		syslog(LOG_ERR, "cannot find any valid address");
 		exit(1);
