@@ -1398,37 +1398,44 @@ static int loglvl(char *level)
 
 static int usage(int code)
 {
-	printf("\n"
-	       "Usage: %s [OPTIONS] [WEBROOT] [HOSTNAME]\n"
+	printf("Usage: %s [OPTIONS] [WEBROOT] [HOSTNAME]\n"
 	       "\n"
+#ifndef HAVE_LIBCONFUSE
 	       "  -c CGI     CGI pattern to allow, e.g. \"**\", \"**.cgi\", \"/cgi-bin/*\",\n"
-	       "             the built-in default is: \"" CGI_PATTERN "\"\n"
+	       "             built-in default: \"" CGI_PATTERN "\"\n"
 	       "  -d DIR     Optional DIR to change into after chrooting to WEBROOT\n"
-#ifdef HAVE_LIBCONFUSE
-	       "  -f FILE    Configuration file. Default uses IDENT: " CONFDIR "/%s.conf\n"
-#endif
 	       "  -g         Use global password, .htpasswd, and access, .htaccess files\n"
+#else
+	       "  -f FILE    Configuration file, default: " CONFDIR "/%s.conf\n"
+#endif
 	       "  -h         This help text\n"
 	       "  -I IDENT   Identity for log messages, .conf, PID file, default: %s\n"
 	       "  -l LEVEL   Set log level: none, err, info, notice*, debug\n"
 	       "  -n         Run in foreground, do not detach from controlling terminal\n"
+#ifndef HAVE_LIBCONFUSE
 	       "  -p PORT    Port to listen to, default 80, or 443 if HTTPS is enabled\n"
-	       "  -P PIDFN   Absolute path to PID file.  Default uses IDENT, /run/%s.pid\n"
+#endif
+	       "  -P PIDFN   Absolute path to PID file, default: " RUNDIR "/%s.pid\n"
+#ifndef HAVE_LIBCONFUSE
 	       "  -r         Chroot into WEBROOT\n"
 	       "  -s         Check symlinks so they don't point outside WEBROOT\n"
+#endif
 	       "  -t FILE    Throttle file\n"
+#ifndef HAVE_LIBCONFUSE
 	       "  -u USER    Username to drop to, default: nobody\n"
 	       "  -v         Enable virtual hosting with WEBROOT as base\n"
+#endif
 	       "  -V         Show Merecat httpd version\n"
 	       "\n", prognm,
 #ifdef HAVE_LIBCONFUSE
-	       prognm,
+	       ident,
 #endif
-	       prognm, prognm);
+	       prognm, ident);
 	printf("The optional 'WEBROOT' defaults to the current directory and 'HOSTNAME' is only\n"
 	       "for virtual hosting, to run one httpd per hostname.  The '-d DIR' is not needed\n"
 	       "in virtual hosting mode, see merecat(8) for more information on virtual hosting\n"
-	       "\nBug report address: %-40s\n\n", PACKAGE_BUGREPORT);
+	       "\n"
+	       "Bug report address: %-40s\n", PACKAGE_BUGREPORT);
 
 	return code;
 }
@@ -1457,9 +1464,7 @@ int main(int argc, char **argv)
 {
 	int c;
 	int log_opts = LOG_PID | LOG_NDELAY;
-#ifdef HAVE_LIBCONFUSE
 	char *config = NULL;
-#endif
 	struct passwd *pwd;
 	uid_t uid = 32767;
 	gid_t gid = 32767;
@@ -1479,15 +1484,7 @@ int main(int argc, char **argv)
 	ident = prognm = progname(argv[0]);
 	while ((c = getopt(argc, argv, "c:d:f:ghI:l:np:P:rsu:vV")) != EOF) {
 		switch (c) {
-		case 'f':
 #ifndef HAVE_LIBCONFUSE
-			syslog(LOG_ERR, "%s is not built with .conf file support", PACKAGE_NAME);
-			return 1;
-#else
-			config = optarg;
-#endif
-			break;
-
 		case 'c':
 			cgi_pattern = optarg;
 			break;
@@ -1498,6 +1495,16 @@ int main(int argc, char **argv)
 
 		case 'g':
 			do_global_passwd = 1;
+			break;
+#endif
+
+		case 'f':
+#ifndef HAVE_LIBCONFUSE
+			syslog(LOG_ERR, "%s is not built with .conf file support", PACKAGE_NAME);
+			return 1;
+#else
+			config = optarg;
+#endif
 			break;
 
 		case 'h':
@@ -1517,14 +1524,17 @@ int main(int argc, char **argv)
 			background = 0;
 			break;
 
+#ifndef HAVE_LIBCONFUSE
 		case 'p':
 			port = (unsigned short)atoi(optarg);
 			break;
+#endif
 
 		case 'P':
 			pidfn = optarg;
 			break;
 
+#ifndef HAVE_LIBCONFUSE
 		case 'r':
 			do_chroot = 1;
 			no_symlink_check = 1;
@@ -1533,11 +1543,13 @@ int main(int argc, char **argv)
 		case 's':
 			no_symlink_check = 0;
 			break;
+#endif
 
 		case 't':
 			throttlefile = optarg;
 			break;
 
+#ifndef HAVE_LIBCONFUSE
 		case 'u':
 			user = optarg;
 			break;
@@ -1545,6 +1557,7 @@ int main(int argc, char **argv)
 		case 'v':
 			do_vhost = 1;
 			break;
+#endif
 
 		case 'V':
 			return version();
