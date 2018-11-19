@@ -28,7 +28,6 @@
 
 #include <config.h>
 
-#include <errno.h>
 #ifdef HAVE_FCNTL_H
 #include <fcntl.h>
 #endif
@@ -37,11 +36,8 @@
 #ifdef HAVE_GRP_H
 #include <grp.h>
 #endif
-#include <signal.h>
 #include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <unistd.h>
+#include <signal.h>
 
 #define SYSLOG_NAMES
 #include <syslog.h>
@@ -52,14 +48,11 @@
 #include <sys/wait.h>
 #include <sys/uio.h>
 
-#ifdef HAVE_LIBCONFUSE
-#include <confuse.h>
-#endif
-
 #ifdef HAVE_ZLIB_H
 #include <zlib.h>
 #endif
 
+#include "conf.h"
 #include "fdwatch.h"
 #include "libhttpd.h"
 #include "match.h"
@@ -80,37 +73,38 @@
 #define DEFAULT_COMPRESSION  0
 #endif
 
-/* Instead of non-portable __progname */
-char        *prognm;
+char        *prognm;		/* Instead of non-portable __progname */
 char        *ident;		/* Used for logging */
 
+/* Global config settings */
+uint16_t     port              = 0;
+int          max_age           = DEFAULT_MAX_AGE;
+int          compression_level = DEFAULT_COMPRESSION; /* For content-encoding: gzip */
+int          do_chroot         = 0;
+int          do_ssl            = 0;
+int          do_vhost          = 0;
+int          do_global_passwd  = 0;
+int          do_list_dotfiles  = 0;
+int          no_symlink_check  = 1;
+int          no_empty_referers = 0;
+int          cgi_limit         = CGI_LIMIT;
+char        *cgi_pattern       = CGI_PATTERN;
+char        *local_pattern     = NULL;
+char        *url_pattern       = NULL;
+char        *dir               = NULL;
+char        *data_dir          = NULL;
+char        *certfile          = NULL;
+char        *keyfile           = NULL;
+char        *dhfile            = NULL;
+char        *hostname          = NULL;
+char        *user              = DEFAULT_USER;    /* Usually www-data or nobody */
+char        *charset           = DEFAULT_CHARSET;
+
+/* Global options */
 static int   background        = 1;
 static int   loglevel          = LOG_NOTICE;
-static unsigned short port     = 0;
-static char *dir               = NULL;            /* SERVER_DIR_DEFUALT: /var/www */
-static char *data_dir          = NULL;
-static int   do_chroot         = 0;
-static int   do_ssl            = 0;
-static char *certfile          = NULL;
-static char *keyfile           = NULL;
-static char *dhfile            = NULL;
 static int   no_log            = 0;
-static int   no_symlink_check  = 1;
-static int   do_vhost          = 0;
-static int   do_global_passwd  = 0;
-static char *cgi_pattern       = CGI_PATTERN;
-static int   cgi_limit         = CGI_LIMIT;
-static char *url_pattern       = NULL;
-static int   no_empty_referers = 0;
-static int   list_dotfiles     = 0;
-static char *local_pattern     = NULL;
 static char *throttlefile      = NULL;
-static char *hostname          = NULL;
-static char *user              = DEFAULT_USER;    /* Usually www-data or nobody */
-static char *charset           = DEFAULT_CHARSET;
-static int   max_age           = DEFAULT_MAX_AGE;
-static int   compression_level = DEFAULT_COMPRESSION; /* For content-encoding: gzip */
-
 
 typedef struct {
 	char *pattern;
@@ -119,6 +113,7 @@ typedef struct {
 	off_t bytes_since_avg;
 	int num_sending;
 } throttletab;
+
 static throttletab *throttles;
 static int numthrottles, maxthrottles;
 
@@ -157,10 +152,6 @@ static int httpd_conn_count;
 #define CNST_PAUSING 3
 #define CNST_LINGERING 4
 
-#ifdef HAVE_LIBCONFUSE
-cfg_t *cfg = NULL;
-#endif
-
 static struct httpd_server *server_list = NULL;
 int terminate = 0;
 time_t start_time, stats_time;
@@ -173,133 +164,6 @@ static volatile int got_hup, got_bus, got_usr1, watchdog_flag;
 /* External functions */
 extern int pidfile(const char *basename);
 
-#ifdef HAVE_LIBCONFUSE
-static void conf_errfunc(cfg_t *cfg, const char *format, va_list args)
-{
-	char fmt[80];
-
-	if (cfg && cfg->filename && cfg->line)
-		snprintf(fmt, sizeof(fmt), "%s:%d: %s", cfg->filename, cfg->line, format);
-	else if (cfg && cfg->filename)
-		snprintf(fmt, sizeof(fmt), "%s: %s", cfg->filename, format);
-	else
-		snprintf(fmt, sizeof(fmt), "%s", format);
-
-	vsyslog(LOG_ERR, fmt, args);
-}
-
-static int read_config(char *filename)
-{
-	int rc = 0;
-	cfg_opt_t opts[] = {
-		CFG_INT ("port", port, CFGF_NONE),
-		CFG_BOOL("chroot", do_chroot, CFGF_NONE),
-		CFG_INT ("compression-level", compression_level, CFGF_NONE),
-		CFG_STR ("directory", dir, CFGF_NONE),
-		CFG_STR ("data-directory", data_dir, CFGF_NONE),
-		CFG_BOOL("global-passwd", do_global_passwd, CFGF_NONE),
-		CFG_BOOL("check-symlinks", !no_symlink_check, CFGF_NONE),
-		CFG_BOOL("check-referer", cfg_false, CFGF_NONE),
-		CFG_STR ("charset", charset, CFGF_NONE),
-		CFG_INT ("cgi-limit", CGI_LIMIT, CFGF_NONE),
-		CFG_STR ("cgi-pattern", cgi_pattern, CFGF_NONE),
-		CFG_BOOL("list-dotfiles", cfg_false, CFGF_NONE),
-		CFG_STR ("local-pattern", NULL, CFGF_NONE),
-		CFG_STR ("url-pattern", NULL, CFGF_NONE),
-		CFG_INT ("max-age", max_age, CFGF_NONE), /* 0: Disabled */
-		CFG_STR ("username", user, CFGF_NONE),
-		CFG_STR ("hostname", hostname, CFGF_NONE),
-		CFG_BOOL("virtual-host", do_vhost, CFGF_NONE),
-		CFG_BOOL("ssl", do_ssl, CFGF_NONE),
-		CFG_STR ("certfile", certfile, CFGF_NONE),
-		CFG_STR ("keyfile", keyfile, CFGF_NONE),
-		CFG_STR ("dhfile", dhfile, CFGF_NONE),
-		CFG_END()
-	};
-
-	if (access(filename, F_OK))
-		return 0;
-
-	cfg = cfg_init(opts, CFGF_NONE);
-	if (!cfg) {
-		syslog(LOG_ERR, "Failed initializing configuration file parser: %s", strerror(errno));
-		return 1;
-	}
-
-	/* Custom logging, rather than default Confuse stderr logging */
-	cfg_set_error_function(cfg, conf_errfunc);
-
-	rc = cfg_parse(cfg, filename);
-	switch (rc) {
-	case CFG_FILE_ERROR:
-		syslog(LOG_ERR, "Cannot read configuration file %s", filename);
-		goto error;
-
-	case CFG_PARSE_ERROR:
-		syslog(LOG_ERR, "Parse error in %s", filename);
-		goto error;
-
-	case CFG_SUCCESS:
-		break;
-	}
-
-	port = cfg_getint(cfg, "port");
-	do_chroot = cfg_getbool(cfg, "chroot");
-	if (do_chroot)
-		no_symlink_check = 1;
-	dir = cfg_getstr(cfg, "directory");
-	data_dir = cfg_getstr(cfg, "data-directory");
-
-	if (cfg_getbool(cfg, "check-symlinks"))
-		no_symlink_check = 0;
-
-	user = cfg_getstr(cfg, "username");
-	cgi_pattern = cfg_getstr(cfg, "cgi-pattern");
-	cgi_limit = cfg_getint(cfg, "cgi-limit");
-	url_pattern = cfg_getstr(cfg, "url-pattern");
-	local_pattern = cfg_getstr(cfg, "local-pattern");
-
-	no_empty_referers = cfg_getbool(cfg, "check-referer");
-	list_dotfiles = cfg_getbool(cfg, "list-dotfiles");
-
-	hostname = cfg_getstr(cfg, "hostname");
-	do_vhost = cfg_getbool(cfg, "virtual-host");
-	do_global_passwd = cfg_getbool(cfg, "global-passwd");
-
-	charset = cfg_getstr(cfg, "charset");
-	max_age = cfg_getint(cfg, "max-age");
-
-	do_ssl = cfg_getbool(cfg, "ssl");
-	if (do_ssl) {
-#ifndef ENABLE_SSL
-		syslog(LOG_ERR, "%s is not built with HTTPS support", PACKAGE_NAME);
-		goto error;
-#endif
-		certfile = cfg_getstr(cfg, "certfile");
-		keyfile  = cfg_getstr(cfg, "keyfile");
-		dhfile   = cfg_getstr(cfg, "dhfile"); /* Optional */
-		if (!certfile || !keyfile) {
-			syslog(LOG_ERR, "Missing SSL certificate file(s)");
-			goto error;
-		}
-	}
-
-#ifdef HAVE_ZLIB_H
-	compression_level = cfg_getint(cfg, "compression-level");
-	if (compression_level < Z_DEFAULT_COMPRESSION)
-		compression_level = Z_DEFAULT_COMPRESSION;
-	if (compression_level > Z_BEST_COMPRESSION)
-		compression_level = Z_BEST_COMPRESSION;
-#endif
-
-	return 0;
-error:
-	cfg_free(cfg);
-	cfg = NULL;
-
-	return 1;
-}
-#endif /* HAVE_LIBCONFUSE */
 
 static void lookup_hostname(char *hostname,
 			    httpd_sockaddr *sa4, size_t sa4_len, int *gotv4,
@@ -572,9 +436,7 @@ static void shut_down(void)
 		httpd_exit(server);
 	}
 
-#ifdef HAVE_LIBCONFUSE
-	cfg_free(cfg);
-#endif
+	conf_exit();
 	fdwatch_put_nfiles();
 	mmc_destroy();
 	tmr_destroy();
@@ -1705,17 +1567,8 @@ int main(int argc, char **argv)
 	openlog(ident, log_opts, LOG_FACILITY);
 	setlogmask(LOG_UPTO(loglevel));
 
-#ifdef HAVE_LIBCONFUSE
-	if (!config) {
-		snprintf(path, sizeof(path), "%s/%s.conf", CONFDIR, ident);
-		config = path;
-	}
-
-	if (read_config(config)) {
-		fprintf(stderr, "%s: Failed reading config file '%s'\n", prognm, config);
-		return 1;
-	}
-#endif
+	/* Read merecat.conf, if available */
+	conf_init(config);
 
 	/* Resolve default port */
 	if (!port)
@@ -1872,7 +1725,7 @@ int main(int argc, char **argv)
 	server = httpd_init(hostname, gotv4 ? &sa4 : NULL, gotv6 ? &sa6 : NULL, port, ctx,
 			    cgi_pattern, cgi_limit, charset, max_age, path, no_log,
 			    no_symlink_check, do_vhost, do_global_passwd, url_pattern, local_pattern,
-			    no_empty_referers, list_dotfiles);
+			    no_empty_referers, do_list_dotfiles);
 	if (!server)
 		exit(1);
 

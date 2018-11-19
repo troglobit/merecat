@@ -3,8 +3,15 @@ if ENABLE_HTPASSWD
 sbin_PROGRAMS      += htpasswd
 endif
 
-# in.httpd 
+# in.httpd
 SYMLINK             = httpd
+merecat_CFLAGS      = -fPIC -W -Wall -Wextra -std=gnu99
+merecat_CFLAGS     += -Wno-unused-result -Wno-unused-parameter -Wno-unused-variable
+merecat_CFLAGS     += $(zlib_CFLAGS)
+merecat_CPPFLAGS    = -D_POSIX_SOURCE -D_BSD_SOURCE -D_GNU_SOURCE -D_DEFAULT_SOURCE
+merecat_CPPFLAGS   += -DCONFDIR='"$(sysconfdir)"' -DLOCALSTATEDIR='"$(localstatedir)"'
+merecat_CPPFLAGS   += -DRUNDIR='"$(runstatedir)"'
+merecat_LDADD       = libmatch.a $(zlib_LIBS)
 merecat_SOURCES     = base64.c		base64.h	\
 		      fdwatch.c		fdwatch.h	\
 		      file.c		file.h		\
@@ -18,13 +25,15 @@ merecat_SOURCES     = base64.c		base64.h	\
 		      mime_encodings.h	mime_types.h
 if ENABLE_SSL
 merecat_SOURCES    += ssl.c ssl.h
+merecat_CFLAGS     += $(OpenSSL_CFLAGS)
+merecat_LDADD      += $(OpenSSL_LIBS)
 endif
-merecat_CFLAGS      = -fPIC -W -Wall -Wextra
-merecat_CFLAGS     += -Wno-unused-result -Wno-unused-parameter -Wno-unused-variable
-merecat_CFLAGS     += -std=gnu99 $(confuse_CFLAGS) $(zlib_CFLAGS) $(OpenSSL_CFLAGS)
-merecat_CPPFLAGS    = -D_POSIX_SOURCE -D_BSD_SOURCE -D_GNU_SOURCE -D_DEFAULT_SOURCE
-merecat_CPPFLAGS   += -DCONFDIR='"$(sysconfdir)"' -DLOCALSTATEDIR='"$(localstatedir)"'
-merecat_LDADD       = libmatch.a $(confuse_LIBS) $(zlib_LIBS) $(OpenSSL_LIBS)
+
+if HAVE_CONFUSE
+merecat_SOURCES    += conf.c conf.h
+merecat_CFLAGS     += $(confuse_CFLAGS)
+merecat_LDADD      += $(confuse_LIBS)
+endif
 
 if ENABLE_HTPASSWD
 htpasswd_CFLAGS      = -W -Wall -Wextra -Wno-unused-result -Wno-unused-parameter

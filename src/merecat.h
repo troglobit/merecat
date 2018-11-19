@@ -29,6 +29,12 @@
 #ifndef MERECAT_H_
 #define MERECAT_H_
 
+#include <errno.h>
+#include <stdio.h>
+#include <stdint.h>
+#include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
 
 /* The following configuration settings are sorted in order of decreasing
 ** likelihood that you'd want to change them - most likely first, least
@@ -405,8 +411,41 @@
 */
 #define MAX_LINKS 32
 
-/* CONFIGURE: You don't even want to know.
+/*
+** CONFIGURE: You don't even want to know.
 */
 #define MIN_WOULDBLOCK_DELAY 100L
+
+/*
+** Global variables
+*/
+extern char *prognm;
+extern char *ident;
+
+/*
+** Global config settings
+*/
+extern uint16_t  port;
+extern int       max_age;
+extern int       compression_level;
+extern int       do_chroot;
+extern int       do_ssl;
+extern int       do_vhost;
+extern int       do_global_passwd;
+extern int       do_list_dotfiles;
+extern int       no_symlink_check;
+extern int       no_empty_referers;
+extern int       cgi_limit;
+extern char     *cgi_pattern;
+extern char     *local_pattern;
+extern char     *url_pattern;
+extern char     *dir;
+extern char     *data_dir;
+extern char     *certfile;
+extern char     *keyfile;
+extern char     *dhfile;
+extern char     *hostname;
+extern char     *user;
+extern char     *charset;
 
 #endif /* MERECAT_H_ */
