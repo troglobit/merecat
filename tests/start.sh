@@ -1,8 +1,14 @@
 #!/bin/sh -e
 
+if [ x"${srcdir}" = x ]; then
+    srcdir=.
+fi
+
 cd ../www
 
-../src/merecat -n -p 8086 -l none -f ${srcdir}/../merecat.conf &
+cp ${srcdir}/../merecat.conf .
+echo "port = 8086" >> merecat.conf
+../src/merecat -n -l none -f merecat.conf &
 echo $! >/tmp/merecat.test
 
 if [ ! -e main.css ]; then

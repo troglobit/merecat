@@ -9,3 +9,4 @@ fi
 
 kill `cat /tmp/merecat.test`
 rm /tmp/merecat.test
+rm merecat.conf
