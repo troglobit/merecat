@@ -25,11 +25,17 @@
 ** THE POSSIBILITY OF SUCH DAMAGE.
 */
 
+#include <config.h>
+
 #include <errno.h>
 #include <stdio.h>
 #include <syslog.h>
 #include <sys/param.h>
 #include <confuse.h>
+
+#ifdef HAVE_ZLIB_H
+#include <zlib.h>
+#endif
 
 #include "conf.h"
 #include "merecat.h"
