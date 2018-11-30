@@ -1294,9 +1294,7 @@ static int usage(int code)
 	       "  -I IDENT   Identity for log messages, .conf, PID file, default: %s\n"
 	       "  -l LEVEL   Set log level: none, err, info, notice*, debug\n"
 	       "  -n         Run in foreground, do not detach from controlling terminal\n"
-#ifndef HAVE_LIBCONFUSE
 	       "  -p PORT    Port to listen to, default 80, or 443 if HTTPS is enabled\n"
-#endif
 	       "  -P PIDFN   Absolute path to PID file, default: " RUNDIR "/%s.pid\n"
 #ifndef HAVE_LIBCONFUSE
 	       "  -r         Chroot into WEBROOT\n"
@@ -1402,11 +1400,9 @@ int main(int argc, char **argv)
 			background = 0;
 			break;
 
-#ifndef HAVE_LIBCONFUSE
 		case 'p':
 			port = (unsigned short)atoi(optarg);
 			break;
-#endif
 
 		case 'P':
 			pidfn = optarg;

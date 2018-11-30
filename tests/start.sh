@@ -6,9 +6,7 @@ fi
 
 cd ../www
 
-cp ${srcdir}/../merecat.conf .
-echo "port = 8086" >> merecat.conf
-../src/merecat -n -l none -f merecat.conf &
+../src/merecat -n -l none -p 8086 &
 echo $! >/tmp/merecat.test
 
 if [ ! -e main.css ]; then
