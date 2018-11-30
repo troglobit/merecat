@@ -340,6 +340,9 @@ extern void httpd_realloc_str(char **str, size_t *curr_len, size_t new_len);
 /* Format a network socket to a string representation. */
 extern char *httpd_ntoa(httpd_sockaddr *hsa);
 
+/* Return port from sockaddr */
+extern short httpd_port(httpd_sockaddr *hsa);
+
 /* Set NDELAY mode on a socket. */
 extern void httpd_set_ndelay(int fd);
 

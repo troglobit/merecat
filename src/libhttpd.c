@@ -389,7 +389,7 @@ static int initialize_listen_socket(httpd_sockaddr *hsa)
 	/* Create socket. */
 	listen_fd = socket(hsa->sa.sa_family, SOCK_STREAM, 0);
 	if (listen_fd < 0) {
-		syslog(LOG_CRIT, "socket %s: %s", httpd_ntoa(hsa), strerror(errno));
+		syslog(LOG_CRIT, "Failed opening socket for %s: %s", httpd_ntoa(hsa), strerror(errno));
 		return -1;
 	}
 	fcntl(listen_fd, F_SETFD, 1);
@@ -401,7 +401,7 @@ static int initialize_listen_socket(httpd_sockaddr *hsa)
 #endif
 	/* Bind to it. */
 	if (bind(listen_fd, &hsa->sa, sockaddr_len(hsa)) < 0) {
-		syslog(LOG_CRIT, "bind %s: %s", httpd_ntoa(hsa), strerror(errno));
+		syslog(LOG_CRIT, "Failed binding to %s port %d: %s", httpd_ntoa(hsa), httpd_port(hsa), strerror(errno));
 		close(listen_fd);
 		return -1;
 	}
@@ -4424,6 +4424,14 @@ char *httpd_ntoa(httpd_sockaddr *hsa)
 #else
 	return inet_ntoa(hsa->sa_in.sin_addr);
 #endif
+}
+
+short httpd_port(httpd_sockaddr *hsa)
+{
+    if (hsa->sa.sa_family == AF_INET)
+	    return ntohs(hsa->sa_in.sin_port);
+
+    return htons(hsa->sa_in6.sin6_port);
 }
 
 char *httpd_client(struct httpd_conn *hc)
