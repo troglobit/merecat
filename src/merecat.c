@@ -103,6 +103,7 @@ char        *charset           = DEFAULT_CHARSET;
 
 /* Global options */
 static int   background        = 1;
+static int   do_syslog         = 1;
 static int   loglevel          = LOG_NOTICE;
 static char *throttlefile      = NULL;
 
@@ -1298,8 +1299,9 @@ static int usage(int code)
 	       "  -P PIDFN   Absolute path to PID file, default: " RUNDIR "/%s.pid\n"
 #ifndef HAVE_LIBCONFUSE
 	       "  -r         Chroot into WEBROOT\n"
-	       "  -s         Check symlinks so they don't point outside WEBROOT\n"
+	       "  -S         Check symlinks so they don't point outside WEBROOT\n"
 #endif
+	       "  -s         Use only syslog, even though running in foreground, -n\n"
 	       "  -t FILE    Throttle file\n"
 #ifndef HAVE_LIBCONFUSE
 	       "  -u USER    Username to drop to, default: nobody\n"
@@ -1358,7 +1360,7 @@ int main(int argc, char **argv)
 	struct timeval tv;
 
 	ident = prognm = progname(argv[0]);
-	while ((c = getopt(argc, argv, "c:d:f:ghI:l:np:P:rsu:vV")) != EOF) {
+	while ((c = getopt(argc, argv, "c:d:f:ghI:l:np:P:rsSu:vV")) != EOF) {
 		switch (c) {
 #ifndef HAVE_LIBCONFUSE
 		case 'c':
@@ -1398,6 +1400,7 @@ int main(int argc, char **argv)
 
 		case 'n':
 			background = 0;
+			do_syslog--;
 			break;
 
 		case 'p':
@@ -1408,13 +1411,17 @@ int main(int argc, char **argv)
 			pidfn = optarg;
 			break;
 
+		case 's':
+			do_syslog++;
+			break;
+
 #ifndef HAVE_LIBCONFUSE
 		case 'r':
 			do_chroot = 1;
 			no_symlink_check = 1;
 			break;
 
-		case 's':
+		case 'S':
 			no_symlink_check = 0;
 			break;
 #endif
@@ -1448,7 +1455,7 @@ int main(int argc, char **argv)
 		hostname = argv[optind++];
 
 #ifdef LOG_PERROR
-	if (!background && loglevel == LOG_DEBUG)
+	if (!background && !do_syslog)
 		log_opts |= LOG_PERROR;
 #endif
 	openlog(ident, log_opts, LOG_FACILITY);
