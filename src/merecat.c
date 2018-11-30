@@ -58,6 +58,7 @@
 #include "match.h"
 #include "mmc.h"
 #include "merecat.h"
+#include "srv.h"
 #include "ssl.h"
 #include "timers.h"
 
@@ -103,7 +104,6 @@ char        *charset           = DEFAULT_CHARSET;
 /* Global options */
 static int   background        = 1;
 static int   loglevel          = LOG_NOTICE;
-static int   no_log            = 0;
 static char *throttlefile      = NULL;
 
 typedef struct {
@@ -163,119 +163,6 @@ static volatile int got_hup, got_bus, got_usr1, watchdog_flag;
 
 /* External functions */
 extern int pidfile(const char *basename);
-
-
-static void lookup_hostname(char *hostname,
-			    httpd_sockaddr *sa4, size_t sa4_len, int *gotv4,
-			    httpd_sockaddr *sa6, size_t sa6_len, int *gotv6)
-{
-#ifdef USE_IPV6
-	struct addrinfo hints;
-	char service[10];
-	int gaierr;
-	struct addrinfo *ai;
-	struct addrinfo *ptr;
-	struct addrinfo *aiv6;
-	struct addrinfo *aiv4;
-
-	memset(&hints, 0, sizeof(hints));
-	hints.ai_family = PF_UNSPEC;
-	hints.ai_flags = AI_PASSIVE;
-	hints.ai_socktype = SOCK_STREAM;
-	snprintf(service, sizeof(service), "%d", port);
-	if ((gaierr = getaddrinfo(hostname, service, &hints, &ai)) != 0) {
-		syslog(LOG_CRIT, "getaddrinfo %s: %s", hostname, gai_strerror(gaierr));
-		exit(1);
-	}
-
-	/* Find the first IPv6 and IPv4 entries. */
-	aiv6 = NULL;
-	aiv4 = NULL;
-	for (ptr = ai; ptr; ptr = ptr->ai_next) {
-		switch (ptr->ai_family) {
-		case AF_INET6:
-			if (!aiv6)
-				aiv6 = ptr;
-			break;
-
-		case AF_INET:
-			if (!aiv4)
-				aiv4 = ptr;
-			break;
-		}
-	}
-
-	if (!aiv6) {
-		*gotv6 = 0;
-	} else {
-		if (sa6_len < aiv6->ai_addrlen) {
-			syslog(LOG_CRIT, "%s - sockaddr too small (%lu < %lu)",
-			       hostname, (unsigned long)sa6_len, (unsigned long)aiv6->ai_addrlen);
-			exit(1);
-		}
-		memset(sa6, 0, sa6_len);
-		memmove(sa6, aiv6->ai_addr, aiv6->ai_addrlen);
-		*gotv6 = 1;
-	}
-
-#ifdef __linux__
-	/*
-	 * On Linux listening to IN6ADDR_ANY_INIT means also listening
-	 * to INADDR_ANY, so for this special case we do not need to
-	 * try to bind() to both.  In fact, it will cause an error.
-	 */
-	if (!aiv4 || (aiv6 && !hostname))
-#else
-	if (!aiv4)
-#endif
-		*gotv4 = 0;
-	else {
-		if (sa4_len < aiv4->ai_addrlen) {
-			syslog(LOG_CRIT, "%s - sockaddr too small (%lu < %lu)",
-			       hostname, (unsigned long)sa4_len, (unsigned long)aiv4->ai_addrlen);
-			exit(1);
-		}
-		memset(sa4, 0, sa4_len);
-		memmove(sa4, aiv4->ai_addr, aiv4->ai_addrlen);
-		*gotv4 = 1;
-	}
-
-	freeaddrinfo(ai);
-
-#else /* USE_IPV6 */
-
-	struct hostent *he;
-
-	*gotv6 = 0;
-
-	memset(sa4, 0, sa4_len);
-	sa4->sa.sa_family = AF_INET;
-	if (!hostname) {
-		sa4->sa_in.sin_addr.s_addr = htonl(INADDR_ANY);
-	} else {
-		sa4->sa_in.sin_addr.s_addr = inet_addr(hostname);
-		if ((int)sa4->sa_in.sin_addr.s_addr == -1) {
-			he = gethostbyname(hostname);
-			if (!he) {
-#ifdef HAVE_HSTRERROR
-				syslog(LOG_CRIT, "gethostbyname %s: %s", hostname, hstrerror(h_errno));
-#else
-				syslog(LOG_CRIT, "gethostbyname %s failed", hostname);
-#endif
-				exit(1);
-			}
-			if (he->h_addrtype != AF_INET) {
-				syslog(LOG_CRIT, "%s - non-IP network address", hostname);
-				exit(1);
-			}
-			memmove(&sa4->sa_in.sin_addr.s_addr, he->h_addr, he->h_length);
-		}
-	}
-	sa4->sa_in.sin_port = htons(port);
-	*gotv4 = 1;
-
-#endif /* USE_IPV6 */
-}
 
 
 static void read_throttlefile(char *throttlefile)
@@ -428,12 +315,7 @@ static void shut_down(void)
 
 	LIST_FOREACH(server, server_list) {
 		LIST_REMOVE(server, server_list);
-
-		if (server->listen4_fd != -1)
-			fdwatch_del_fd(server->listen4_fd);
-		if (server->listen6_fd != -1)
-			fdwatch_del_fd(server->listen6_fd);
-		httpd_exit(server);
+		srv_exit(server);
 	}
 
 	conf_exit();
@@ -698,7 +580,7 @@ static void finish_connection(connecttab *c, struct timeval *tv)
 }
 
 
-static int handle_newconnect(struct httpd_server *hs, struct timeval *tv, int fd)
+int handle_newconnect(struct httpd_server *hs, struct timeval *tv, int fd)
 {
 	connecttab *c;
 
@@ -1475,11 +1357,7 @@ int main(int argc, char **argv)
 	connecttab *ct;
 	struct httpd_server *server;
 	struct httpd_conn *hc;
-	httpd_sockaddr sa4;
-	httpd_sockaddr sa6;
-	int gotv4, gotv6;
 	struct timeval tv;
-	void *ctx = NULL;
 
 	ident = prognm = progname(argv[0]);
 	while ((c = getopt(argc, argv, "c:d:f:ghI:l:np:P:rsu:vV")) != EOF) {
@@ -1583,19 +1461,8 @@ int main(int argc, char **argv)
 	/* Read merecat.conf, if available */
 	conf_init(config);
 
-	/* Resolve default port */
-	if (!port)
-		port = do_ssl ? DEFAULT_HTTPS_PORT : DEFAULT_HTTP_PORT;
-
 	/* Read zone info now, in case we chroot(). */
 	tzset();
-
-	/* Look up hostname now, in case we chroot(). */
-	lookup_hostname(hostname, &sa4, sizeof(sa4), &gotv4, &sa6, sizeof(sa6), &gotv6);
-	if (!(gotv4 || gotv6)) {
-		syslog(LOG_ERR, "cannot find any valid address");
-		exit(1);
-	}
 
 	/* Throttle file. */
 	numthrottles = 0;
@@ -1615,15 +1482,6 @@ int main(int argc, char **argv)
 		}
 		uid = pwd->pw_uid;
 		gid = pwd->pw_gid;
-	}
-
-	/* Initialize SSL library and load cert files before we chroot */
-	if (do_ssl) {
-		ctx = httpd_ssl_init(certfile, keyfile, dhfile);
-		if (!ctx) {
-			syslog(LOG_ERR, "Failed initializing SSL");
-			exit(1);
-		}
 	}
 
 	/* Switch directories if requested. */
@@ -1732,15 +1590,8 @@ int main(int argc, char **argv)
 	/* Initialize the timer package. */
 	tmr_init();
 
-	/* Initialize the HTTP layer.  Got to do this before giving up root,
-	** so that we can bind to a privileged port.
-	*/
-	server = httpd_init(hostname, gotv4 ? &sa4 : NULL, gotv6 ? &sa6 : NULL, port, ctx,
-			    cgi_pattern, cgi_limit, charset, max_age, path, no_log,
-			    no_symlink_check, do_vhost, do_global_passwd, url_pattern, local_pattern,
-			    no_empty_referers, do_list_dotfiles);
-	if (!server)
-		exit(1);
+	/* Create the server */
+	server = srv_init(hostname, path, port, do_ssl);
 
 	/* Add to list of servers */
 	LIST_INSERT(server, server_list);
@@ -1832,14 +1683,15 @@ int main(int argc, char **argv)
 	num_connects = 0;
 	httpd_conn_count = 0;
 
-	if (server->listen4_fd != -1)
-		fdwatch_add_fd(server->listen4_fd, NULL, FDW_READ);
-	if (server->listen6_fd != -1)
-		fdwatch_add_fd(server->listen6_fd, NULL, FDW_READ);
+	/* Start socket watchers for all servers */
+	LIST_FOREACH(server, server_list)
+		srv_start(server);
 
 	/* Main loop. */
 	tmr_prepare_timeval(&tv);
 	while ((!terminate) || num_connects > 0) {
+		int got = 0;
+
 		/* Do we need to re-open the log file? */
 		if (got_hup)
 			got_hup = 0;
@@ -1861,25 +1713,18 @@ int main(int argc, char **argv)
 			continue;
 		}
 
-		/* Is it a new connection? */
-		if (server && server->listen6_fd != -1 && fdwatch_check_fd(server->listen6_fd)) {
-			if (handle_newconnect(server, &tv, server->listen6_fd))
-				/* Go around the loop and do another fdwatch,
-				** rather than dropping through and processing
-				** existing connections.  New connections
-				** always get priority.
-				*/
-				continue;
+		LIST_FOREACH(server, server_list) {
+			if ((got = srv_connect(server, &tv)))
+				break;
 		}
 
-		if (server && server->listen4_fd != -1 && fdwatch_check_fd(server->listen4_fd)) {
-			if (handle_newconnect(server, &tv, server->listen4_fd))
-				/* Go around the loop and do another fdwatch, rather than
-				** dropping through and processing existing connections.
-				** New connections always get priority.
-				*/
-				continue;
-		}
+		/* Go around the loop and do another fdwatch,
+		** rather than dropping through and processing
+		** existing connections.  New connections
+		** always get priority.
+		*/
+		if (got)
+			continue;
 
 		/* Find the connections that need servicing. */
 		while ((ct = (connecttab *)fdwatch_get_next_arg()) != (connecttab *)-1) {
@@ -1911,13 +1756,8 @@ int main(int argc, char **argv)
 
 		if (got_usr1 && !terminate) {
 			terminate = 1;
-			if (server) {
-				if (server->listen4_fd != -1)
-					fdwatch_del_fd(server->listen4_fd);
-				if (server->listen6_fd != -1)
-					fdwatch_del_fd(server->listen6_fd);
-				httpd_unlisten(server);
-			}
+			LIST_FOREACH(server, server_list)
+				srv_stop(server);
 		}
 
 		/* From handle_send()/writev; see handle_sigbus(). */
