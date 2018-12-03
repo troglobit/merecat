@@ -1281,22 +1281,24 @@ static int loglvl(char *level)
 
 static int usage(int code)
 {
+#ifdef HAVE_LIBCONFUSE
+	printf("Usage: %s [OPTIONS] [WEBROOT]\n"
+	       "\n"
+	       "  -f FILE    Configuration file, default: " CONFDIR "/%s.conf\n"
+#else
 	printf("Usage: %s [OPTIONS] [WEBROOT] [HOSTNAME]\n"
 	       "\n"
-#ifndef HAVE_LIBCONFUSE
 	       "  -c CGI     CGI pattern to allow, e.g. \"**\", \"**.cgi\", \"/cgi-bin/*\",\n"
 	       "             built-in default: \"" CGI_PATTERN "\"\n"
 	       "  -d DIR     Optional DIR to change into after chrooting to WEBROOT\n"
-	       "  -g         Use global password, .htpasswd, and access, .htaccess files\n"
-#else
-	       "  -f FILE    Configuration file, default: " CONFDIR "/%s.conf\n"
+	       "  -g         Use global password, .htpasswd, and .htaccess files\n"
 #endif
 	       "  -h         This help text\n"
-	       "  -I IDENT   Identity for log messages, .conf, PID file, default: %s\n"
+	       "  -I IDENT   Identity for syslog, .conf, and PID file, default: %s\n"
 	       "  -l LEVEL   Set log level: none, err, info, notice*, debug\n"
 	       "  -n         Run in foreground, do not detach from controlling terminal\n"
 	       "  -p PORT    Port to listen to, default 80, or 443 if HTTPS is enabled\n"
-	       "  -P PIDFN   Absolute path to PID file, default: " RUNDIR "/%s.pid\n"
+	       "  -P PIDFN   Path to PID file, default: " RUNDIR "/%s.pid\n"
 #ifndef HAVE_LIBCONFUSE
 	       "  -r         Chroot into WEBROOT\n"
 	       "  -S         Check symlinks so they don't point outside WEBROOT\n"
@@ -1313,10 +1315,14 @@ static int usage(int code)
 	       ident,
 #endif
 	       prognm, ident);
-	printf("The optional 'WEBROOT' defaults to the current directory and 'HOSTNAME' is only\n"
-	       "for virtual hosting, to run one httpd per hostname.  The '-d DIR' is not needed\n"
-	       "in virtual hosting mode, see merecat(8) for more information on virtual hosting\n"
-	       "\n"
+
+	printf(
+#ifndef HAVE_LIBCONFUSE
+		"WEBROOT defaults to the current directory.  HOSTNAME is for virtual\n"
+		"hosting, one httpd per hostname.  Note, '-d DIR' is not required in\n"
+		"virtual hosting mode, see merecat(8) for details.\n"
+		"\n"
+#endif
 	       "Bug report address: %-40s\n", PACKAGE_BUGREPORT);
 
 	return code;
