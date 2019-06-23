@@ -317,6 +317,14 @@ Enable HTTPS, disabled by default.
 Public part of HTTPS certificate, required for HTTPS.
 .It Cm keyfile = Ar /path/to/key.pem
 Private key of HTTPS certificate, required for HTTPS.
+.It Cm user-agent-deny = Qq Ar PATTERN
+Wildcard pattern to deny access to illicit hammering bots.  When set a
+matching user-agent will receive a 403 for all its requests.  Use for
+instance
+.Qq **SemrushBot**
+or
+.Qq **SemrushBot**|**MJ12Bot**|**DotBot**
+to match multiple user-agents.  The default is to allow all user-agents.
 .El
 .Sh "CHROOT"
 chroot() is a system call that restricts the program's view of the

@@ -82,6 +82,7 @@ static int read_config(char *fn)
 		CFG_STR ("certfile", certfile, CFGF_NONE),
 		CFG_STR ("keyfile", keyfile, CFGF_NONE),
 		CFG_STR ("dhfile", dhfile, CFGF_NONE),
+		CFG_STR ("user-agent-deny", useragent_deny, CFGF_NONE),
 		CFG_END()
 	};
 
@@ -126,6 +127,7 @@ static int read_config(char *fn)
 	cgi_limit = cfg_getint(cfg, "cgi-limit");
 	url_pattern = cfg_getstr(cfg, "url-pattern");
 	local_pattern = cfg_getstr(cfg, "local-pattern");
+	useragent_deny = cfg_getstr(cfg, "user-agent-deny");
 
 	no_empty_referers = cfg_getbool(cfg, "check-referer");
 	do_list_dotfiles = cfg_getbool(cfg, "list-dotfiles");

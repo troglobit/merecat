@@ -2581,6 +2581,15 @@ int httpd_parse_request(struct httpd_conn *hc)
 		}
 	}
 
+	if (match(useragent_deny, hc->useragent)) {
+		syslog(LOG_INFO, "%s matches pattern, denied!", hc->useragent);
+		httpd_send_err(hc, 403, err403title, "",
+			       ERROR_FORM(err403form,
+					  "The requested URL '%.80s' is denied!"),
+			       hc->encodedurl);
+		return -1;
+	}
+
 	if (hc->one_one) {
 		/* Check that HTTP/1.1 requests specify a host, as required. */
 		if (hc->reqhost[0] == '\0' && hc->hdrhost[0] == '\0') {

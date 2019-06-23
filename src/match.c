@@ -37,6 +37,9 @@ int match(const char *pattern, const char *string)
 {
 	const char *or;
 
+	if (!pattern)
+		return 0;
+
 	for (;;) {
 		or = strchr(pattern, '|');
 		if (!or)

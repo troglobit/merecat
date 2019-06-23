@@ -447,5 +447,6 @@ extern char     *dhfile;
 extern char     *hostname;
 extern char     *user;
 extern char     *charset;
+extern char     *useragent_deny;
 
 #endif /* MERECAT_H_ */

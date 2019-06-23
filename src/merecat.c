@@ -100,6 +100,7 @@ char        *dhfile            = NULL;
 char        *hostname          = NULL;
 char        *user              = DEFAULT_USER;    /* Usually www-data or nobody */
 char        *charset           = DEFAULT_CHARSET;
+char        *useragent_deny    = NULL;
 
 /* Global options */
 static int   background        = 1;

@@ -53,6 +53,7 @@ struct conf {
 	int       cgi_limit;	/* CGI_LIMIT */
 	char     *url_pattern;
 	char     *local_pattern;
+	char     *useragent_deny;
 
 	char     *charset;	/* DEFAULT_CHARSET */
 	int       max_age;	/* DEFAULT_MAX_AGE */
