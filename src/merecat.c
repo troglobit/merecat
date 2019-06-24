@@ -1304,7 +1304,7 @@ static int usage(int code)
 	       "  -r         Chroot into WEBROOT\n"
 	       "  -S         Check symlinks so they don't point outside WEBROOT\n"
 #endif
-	       "  -s         Use only syslog, even though running in foreground, -n\n"
+	       "  -s         Log to syslog, even though running in foreground, -n\n"
 	       "  -t FILE    Throttle file\n"
 #ifndef HAVE_LIBCONFUSE
 	       "  -u USER    Username to drop to, default: nobody\n"
