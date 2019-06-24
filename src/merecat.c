@@ -1296,7 +1296,7 @@ static int usage(int code)
 #endif
 	       "  -h         This help text\n"
 	       "  -I IDENT   Identity for syslog, .conf, and PID file, default: %s\n"
-	       "  -l LEVEL   Set log level: none, err, info, notice*, debug\n"
+	       "  -l LEVEL   Set log level: none, err, warning, notice*, info, debug\n"
 	       "  -n         Run in foreground, do not detach from controlling terminal\n"
 	       "  -p PORT    Port to listen to, default 80, or 443 if HTTPS is enabled\n"
 	       "  -P PIDFN   Path to PID file, default: " RUNDIR "/%s.pid\n"
@@ -1324,7 +1324,9 @@ static int usage(int code)
 		"virtual hosting mode, see merecat(8) for details.\n"
 		"\n"
 #endif
-	       "Bug report address: %-40s\n", PACKAGE_BUGREPORT);
+		"*) Default log level\n"
+		"\n"
+		"Bug report address: %-40s\n", PACKAGE_BUGREPORT);
 
 	return code;
 }
