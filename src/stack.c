@@ -36,8 +36,8 @@ static char *addr2line(char *addr)
 {
 	FILE *fp;
 	char *tmp;
-	char exec[256];
-	static char buf[256];
+	char exec[256] = { 0 };
+	static char buf[512];
 
 	readlink("/proc/self/exe", exec, sizeof(exec));
 	tmp = tmpnam(NULL);
