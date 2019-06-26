@@ -93,14 +93,14 @@
 
 /* A multi-family sockaddr. */
 typedef union {
-	struct sockaddr sa;
-	struct sockaddr_in sa_in;
+	struct sockaddr         sa;
+	struct sockaddr_in      sa_in;
 #ifdef USE_IPV6
-	struct sockaddr_in6 sa_in6;
+	struct sockaddr_in6     sa_in6;
 	struct sockaddr_storage sa_stor;
 #endif
-	char real_ip[200];
-} httpd_sockaddr;
+	char                    sa_addr[200]; /* Real IP address */
+} sockaddr_t;
 
 /* A server. */
 struct httpd {
@@ -139,7 +139,7 @@ struct httpd {
 struct http_conn {
 	int initialized;
 	struct httpd *hs;
-	httpd_sockaddr client_addr;
+	sockaddr_t client_addr;
 	char *read_buf;
 	size_t read_size, read_idx, checked_idx;
 	int checked_state;
@@ -241,7 +241,7 @@ struct http_conn {
 ** listen().  Returns a struct httpd* which includes a socket fd
 ** that you can select() on.  Returns NULL on error.
 */
-extern struct httpd *httpd_init(char *hostname, httpd_sockaddr *hsav4, httpd_sockaddr *hsav6,
+extern struct httpd *httpd_init(char *hostname, sockaddr_t *sav4, sockaddr_t *sav6,
 				unsigned short port, void *ssl_ctx, char *cgi_pattern, int cgi_limit,
 				char *charset, int max_age, char *cwd, int no_log,
 				int no_symlink_check, int vhost, int global_passwd, char *url_pattern,
@@ -339,10 +339,10 @@ extern char *httpd_method_str(int method);
 extern void httpd_realloc_str(char **str, size_t *curr_len, size_t new_len);
 
 /* Format a network socket to a string representation. */
-extern char *httpd_ntoa(httpd_sockaddr *hsa);
+extern char *httpd_ntoa(sockaddr_t *sa);
 
 /* Return port from sockaddr */
-extern short httpd_port(httpd_sockaddr *hsa);
+extern short httpd_port(sockaddr_t *sa);
 
 /* Set NDELAY mode on a socket. */
 extern void httpd_set_ndelay(int fd);

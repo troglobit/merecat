@@ -127,7 +127,7 @@ extern char *crypt(const char *key, const char *setting);
 /* Forwards. */
 static void check_options(void);
 static void free_httpd_server(struct httpd *hs);
-static int initialize_listen_socket(httpd_sockaddr *hsa);
+static int initialize_listen_socket(sockaddr_t *sa);
 static void add_response(struct http_conn *hc, const char *str);
 static void send_mime(struct http_conn *hc, int status, char *title, char *encodings, const char *extraheads, const char *type, off_t length,
 		      time_t mod);
@@ -190,8 +190,8 @@ static int really_start_request(struct http_conn *hc, struct timeval *now);
 static void make_log_entry(struct http_conn *hc);
 static int check_referer(struct http_conn *hc);
 static int really_check_referer(struct http_conn *hc);
-static int sockaddr_check(httpd_sockaddr *hsa);
-static size_t sockaddr_len(httpd_sockaddr *hsa);
+static int sockaddr_check(sockaddr_t *sa);
+static size_t sockaddr_len(sockaddr_t *sa);
 
 #ifndef HAVE_ATOLL
 static long long atoll(const char *str);
@@ -235,7 +235,7 @@ static void free_httpd_server(struct httpd *hs)
 }
 
 
-struct httpd *httpd_init(char *hostname, httpd_sockaddr *hsav4, httpd_sockaddr *hsav6,
+struct httpd *httpd_init(char *hostname, sockaddr_t *sav4, sockaddr_t *sav6,
 				unsigned short port, void *ssl_ctx, char *cgi_pattern, int cgi_limit,
 				char *charset, int max_age, char *cwd, int no_log,
 				int no_symlink_check, int vhost, int global_passwd, char *url_pattern,
@@ -347,14 +347,14 @@ struct httpd *httpd_init(char *hostname, httpd_sockaddr *hsav4, httpd_sockaddr *
 	** like some other systems, it has magical v6 sockets that also listen for
 	** v4, but in Linux if you bind a v4 socket first then the v6 bind fails.
 	*/
-	if (!hsav6)
+	if (!sav6)
 		hs->listen6_fd = -1;
 	else
-		hs->listen6_fd = initialize_listen_socket(hsav6);
-	if (!hsav4)
+		hs->listen6_fd = initialize_listen_socket(sav6);
+	if (!sav4)
 		hs->listen4_fd = -1;
 	else
-		hs->listen4_fd = initialize_listen_socket(hsav4);
+		hs->listen4_fd = initialize_listen_socket(sav4);
 
 	/* If we didn't get any valid sockets, fail. */
 	if (hs->listen4_fd == -1 && hs->listen6_fd == -1) {
@@ -369,27 +369,27 @@ struct httpd *httpd_init(char *hostname, httpd_sockaddr *hsav4, httpd_sockaddr *
 		syslog(LOG_NOTICE, "%s starting on port %d, vhost: %d", PACKAGE_STRING, hs->port, vhost);
 	else
 		syslog(LOG_NOTICE, "%s starting on %s, port %d, vhost: %d", PACKAGE_STRING,
-		       httpd_ntoa(hs->listen4_fd != -1 ? hsav4 : hsav6), (int)hs->port, vhost);
+		       httpd_ntoa(hs->listen4_fd != -1 ? sav4 : sav6), (int)hs->port, vhost);
 
 	return hs;
 }
 
 
-static int initialize_listen_socket(httpd_sockaddr *hsa)
+static int initialize_listen_socket(sockaddr_t *sa)
 {
 	int listen_fd;
 	int flags;
 
 	/* Check sockaddr. */
-	if (!sockaddr_check(hsa)) {
+	if (!sockaddr_check(sa)) {
 		syslog(LOG_CRIT, "unknown sockaddr family on listen socket");
 		return -1;
 	}
 
 	/* Create socket. */
-	listen_fd = socket(hsa->sa.sa_family, SOCK_STREAM, 0);
+	listen_fd = socket(sa->sa.sa_family, SOCK_STREAM, 0);
 	if (listen_fd < 0) {
-		syslog(LOG_CRIT, "Failed opening socket for %s: %s", httpd_ntoa(hsa), strerror(errno));
+		syslog(LOG_CRIT, "Failed opening socket for %s: %s", httpd_ntoa(sa), strerror(errno));
 		return -1;
 	}
 	fcntl(listen_fd, F_SETFD, 1);
@@ -400,8 +400,8 @@ static int initialize_listen_socket(httpd_sockaddr *hsa)
 	SETSOCKOPT(listen_fd, SOL_SOCKET, SO_REUSEPORT);
 #endif
 	/* Bind to it. */
-	if (bind(listen_fd, &hsa->sa, sockaddr_len(hsa)) < 0) {
-		syslog(LOG_CRIT, "Failed binding to %s port %d: %s", httpd_ntoa(hsa), httpd_port(hsa), strerror(errno));
+	if (bind(listen_fd, &sa->sa, sockaddr_len(sa)) < 0) {
+		syslog(LOG_CRIT, "Failed binding to %s port %d: %s", httpd_ntoa(sa), httpd_port(sa), strerror(errno));
 		close(listen_fd);
 		return -1;
 	}
@@ -1612,7 +1612,7 @@ static int is_vhost_shared(char *path)
 /* Virtual host mapping. */
 static int vhost_map(struct http_conn *hc)
 {
-	httpd_sockaddr sa;
+	sockaddr_t sa;
 	socklen_t sz;
 	char *cp1, *temp;
 	size_t len;
@@ -2054,9 +2054,9 @@ void httpd_init_conn_content(struct http_conn *hc)
 
 int httpd_get_conn(struct httpd *hs, int listen_fd, struct http_conn *hc)
 {
-	httpd_sockaddr sa;
+	sockaddr_t sa;
 	socklen_t sz;
-	char *real_ip;
+	char *sa_addr;
 
 	httpd_init_conn_mem(hc);
 
@@ -2088,9 +2088,9 @@ int httpd_get_conn(struct httpd *hs, int listen_fd, struct http_conn *hc)
 	 * Slightly ugly workaround to handle X-Forwarded-For better for IPv6
 	 * Idea from https://blog.steve.fi/IPv6_and_thttpd.html
 	 */
-	real_ip = httpd_ntoa(&hc->client_addr);
-	memset(hc->client_addr.real_ip, 0, sizeof(hc->client_addr.real_ip));
-	strncpy(hc->client_addr.real_ip, real_ip, sizeof(hc->client_addr.real_ip));
+	sa_addr = httpd_ntoa(&hc->client_addr);
+	memset(hc->client_addr.sa_addr, 0, sizeof(hc->client_addr.sa_addr));
+	strncpy(hc->client_addr.sa_addr, sa_addr, sizeof(hc->client_addr.sa_addr));
 
 	if (httpd_ssl_open(hc)) {
 		syslog(LOG_CRIT, "Failed creating new SSL connection");
@@ -2533,11 +2533,11 @@ int httpd_parse_request(struct http_conn *hc)
 				cp = &buf[16];
 				cp += strspn(cp, " \t");
 				for (i = 0; cp[i]; i++) {
-					hc->client_addr.real_ip[i] = cp[i];
+					hc->client_addr.sa_addr[i] = cp[i];
 					if (isblank(cp[i]))
 						break;
 				}
-				hc->client_addr.real_ip[i] = 0;
+				hc->client_addr.sa_addr[i] = 0;
 			}
 			/*
 			 * Possibly add support for X-Real-IP: here?
@@ -4416,41 +4416,41 @@ static int really_check_referer(struct http_conn *hc)
 }
 
 
-char *httpd_ntoa(httpd_sockaddr *hsa)
+char *httpd_ntoa(sockaddr_t *sa)
 {
 #ifdef USE_IPV6
 	static char str[200];
 
-	if (getnameinfo(&hsa->sa, sockaddr_len(hsa), str, sizeof(str), 0, 0, NI_NUMERICHOST) != 0) {
+	if (getnameinfo(&sa->sa, sockaddr_len(sa), str, sizeof(str), 0, 0, NI_NUMERICHOST) != 0) {
 		str[0] = '?';
 		str[1] = '\0';
-	} else if (IN6_IS_ADDR_V4MAPPED(&hsa->sa_in6.sin6_addr) && strncmp(str, "::ffff:", 7) == 0) {
+	} else if (IN6_IS_ADDR_V4MAPPED(&sa->sa_in6.sin6_addr) && strncmp(str, "::ffff:", 7) == 0) {
 		/* Elide IPv6ish prefix for IPv4 addresses. */
 		memmove(str, &str[7], strlen(str) - 6);
 	}
 
 	return str;
 #else
-	return inet_ntoa(hsa->sa_in.sin_addr);
+	return inet_ntoa(sa->sa_in.sin_addr);
 #endif
 }
 
-short httpd_port(httpd_sockaddr *hsa)
+short httpd_port(sockaddr_t *sa)
 {
-    if (hsa->sa.sa_family == AF_INET)
-	    return ntohs(hsa->sa_in.sin_port);
+    if (sa->sa.sa_family == AF_INET)
+	    return ntohs(sa->sa_in.sin_port);
 
-    return htons(hsa->sa_in6.sin6_port);
+    return htons(sa->sa_in6.sin6_port);
 }
 
 char *httpd_client(struct http_conn *hc)
 {
-	return hc->client_addr.real_ip;
+	return hc->client_addr.sa_addr;
 }
 
-static int sockaddr_check(httpd_sockaddr *hsa)
+static int sockaddr_check(sockaddr_t *sa)
 {
-	switch (hsa->sa.sa_family) {
+	switch (sa->sa.sa_family) {
 	case AF_INET:
 		return 1;
 
@@ -4465,9 +4465,9 @@ static int sockaddr_check(httpd_sockaddr *hsa)
 }
 
 
-static size_t sockaddr_len(httpd_sockaddr *hsa)
+static size_t sockaddr_len(sockaddr_t *sa)
 {
-	switch (hsa->sa.sa_family) {
+	switch (sa->sa.sa_family) {
 	case AF_INET:
 		return sizeof(struct sockaddr_in);
 

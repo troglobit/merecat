@@ -41,8 +41,8 @@
 extern int handle_newconnect(struct httpd *hs, struct timeval *tv, int fd);
 
 static void lookup_hostname(char *hostname, uint16_t port,
-			    httpd_sockaddr *sa4, size_t sa4_len, int *gotv4,
-			    httpd_sockaddr *sa6, size_t sa6_len, int *gotv6)
+			    sockaddr_t *sa4, size_t sa4_len, int *gotv4,
+			    sockaddr_t *sa6, size_t sa6_len, int *gotv6)
 {
 #ifdef USE_IPV6
 	struct addrinfo hints;
@@ -155,8 +155,8 @@ static void lookup_hostname(char *hostname, uint16_t port,
 struct httpd *srv_init(struct srv *srv)
 {
 	struct httpd *hs;
-	httpd_sockaddr sa4;
-	httpd_sockaddr sa6;
+	sockaddr_t sa4;
+	sockaddr_t sa6;
 	void *ctx = NULL;
 	int gotv4, gotv6;
 
