@@ -208,15 +208,15 @@ int conf_srv(struct srv arr[], size_t len)
 	size_t i;
 
 	if (cfg_size(cfg, "server") == 0) {
-		arr[i].title = "default";
-		arr[i].host  = cfg_getstr(cfg, "hostname");
-		arr[i].port  = cfg_getint(cfg, "port");
-		arr[i].path  = path;
+		arr[0].title = "default";
+		arr[0].host  = cfg_getstr(cfg, "hostname");
+		arr[0].port  = cfg_getint(cfg, "port");
+		arr[0].path  = path;
 
-		arr[i].ssl      = cfg_getbool(cfg, "ssl");
-		arr[i].certfile = cfg_getstr(cfg, "certfile");
-		arr[i].keyfile  = cfg_getstr(cfg, "keyfile");
-		arr[i].dhfile   = cfg_getstr(cfg, "dhfile");
+		arr[0].ssl      = cfg_getbool(cfg, "ssl");
+		arr[0].certfile = cfg_getstr(cfg, "certfile");
+		arr[0].keyfile  = cfg_getstr(cfg, "keyfile");
+		arr[0].dhfile   = cfg_getstr(cfg, "dhfile");
 
 		return 1;
 	}
