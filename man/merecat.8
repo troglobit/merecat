@@ -321,7 +321,17 @@ Enable HTTPS, disabled by default.
 .It Cm certfile = Ar /path/to/cert.pem
 Public part of HTTPS certificate, required for HTTPS.
 .It Cm keyfile = Ar /path/to/key.pem
-Private key of HTTPS certificate, required for HTTPS.
+Private key of HTTPS certificate, required for HTTPS.  This file must
+be kept private and should not be in the WEBROOT directory.
+.It Cm dhparm = Ar /path/th/dhparam.pem
+Optional Diffie-Hellman parameters.  Not secret, unlike the
+.Cm keyfile
+the
+.Cm dhparm
+can be published online, if necessary.  Create one like this:
+.Bd -unfilled -offset indent
+openssl dhparam -out dhparam.pem 2048
+.Ed
 .It Cm user-agent-deny = Qq Ar PATTERN
 Wildcard pattern to deny access to illicit hammering bots.  When set a
 matching user-agent will receive a 403 for all its requests.  Use for
