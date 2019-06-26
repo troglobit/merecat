@@ -207,6 +207,16 @@ int conf_srv(struct srv arr[], size_t len)
 {
 	size_t i;
 
+	if (!cfg) {
+		arr[0].title = "default";
+		arr[0].host  = hostname;
+		arr[0].port  = port;
+		arr[0].path  = path;
+		arr[0].ssl   = 0;
+
+		return 1;
+	}
+
 	if (cfg_size(cfg, "server") == 0) {
 		arr[0].title = "default";
 		arr[0].host  = cfg_getstr(cfg, "hostname");
