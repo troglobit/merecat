@@ -69,16 +69,21 @@ Built-in gzip deflate using zlib
 HTTPS support using OpenSSL/LibreSSL
 .El
 .Pp
-The resulting footprint (~100 kiB) makes Merecat suitable for small and
+The resulting footprint (~140 kiB) makes Merecat suitable for small and
 embedded systems, even those smaller than a Raspberry Pi!
 .Sh OPTIONS
-This program follows the usual UNIX command line syntax.  The options
-are as follows:
+This program follows the usual UNIX command line syntax.  Some options
+are, however, not availble when
+.Nm
+is built with support for
+.Pa /etc/merecat.conf .
+The options, in their entirety, are as follows:
 .Bl -tag -width Ds
 .It Fl c Ar CGI
-Wildcard pattern for CGI programs.  This pattern can be set using the
-command line or the config file, any pattern found in the config file
-wins.  The default is
+Wildcard pattern for CGI programs.  The config file setting for this
+flag is
+.Cm cgi-pattern = Ar PATTERN .
+The default is
 .Qq Ar **.cgi|/cgi-bin/* .
 .Pp
 For more details, see below.
