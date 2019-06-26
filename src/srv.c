@@ -153,7 +153,7 @@ static void lookup_hostname(char *hostname, uint16_t port,
 
 struct httpd_server *srv_init(char *hostname, char *path, uint16_t port, int ssl)
 {
-	struct httpd_server *srv;
+	struct httpd_server *hs;
 	httpd_sockaddr sa4;
 	httpd_sockaddr sa6;
 	void *ctx = NULL;
@@ -182,57 +182,57 @@ struct httpd_server *srv_init(char *hostname, char *path, uint16_t port, int ssl
 	/* Initialize the HTTP layer.  Got to do this before giving up root,
 	** so that we can bind to a privileged port.
 	*/
-	srv = httpd_init(hostname, gotv4 ? &sa4 : NULL, gotv6 ? &sa6 : NULL, port, ctx,
-			 cgi_pattern, cgi_limit, charset, max_age, path, 0,
-			 no_symlink_check, do_vhost, do_global_passwd, url_pattern, local_pattern,
-			 no_empty_referers, do_list_dotfiles);
-	if (!srv)
+	hs = httpd_init(hostname, gotv4 ? &sa4 : NULL, gotv6 ? &sa6 : NULL, srv->port, ctx,
+			cgi_pattern, cgi_limit, charset, max_age, srv->path, 0,
+			no_symlink_check, do_vhost, do_global_passwd, url_pattern, local_pattern,
+			no_empty_referers, do_list_dotfiles);
+	if (!hs)
 		exit(1);
 
-	return srv;
+	return hs;
 }
 
-void srv_start(struct httpd_server *srv)
+void srv_start(struct httpd_server *hs)
 {
-	if (srv->listen4_fd != -1)
-		fdwatch_add_fd(srv->listen4_fd, NULL, FDW_READ);
-	if (srv->listen6_fd != -1)
-		fdwatch_add_fd(srv->listen6_fd, NULL, FDW_READ);
+	if (hs->listen4_fd != -1)
+		fdwatch_add_fd(hs->listen4_fd, NULL, FDW_READ);
+	if (hs->listen6_fd != -1)
+		fdwatch_add_fd(hs->listen6_fd, NULL, FDW_READ);
 }
 
-void srv_stop(struct httpd_server *srv)
+void srv_stop(struct httpd_server *hs)
 {
-	if (srv->listen4_fd != -1)
-		fdwatch_del_fd(srv->listen4_fd);
-	if (srv->listen6_fd != -1)
-		fdwatch_del_fd(srv->listen6_fd);
-	httpd_unlisten(srv);
+	if (hs->listen4_fd != -1)
+		fdwatch_del_fd(hs->listen4_fd);
+	if (hs->listen6_fd != -1)
+		fdwatch_del_fd(hs->listen6_fd);
+	httpd_unlisten(hs);
 }
 
-int srv_connect(struct httpd_server *srv, struct timeval *tv)
+int srv_connect(struct httpd_server *hs, struct timeval *tv)
 {
-	if (!srv)
+	if (!hs)
 		return 0;
 
 	/* Is it a new connection? */
-	if (srv->listen6_fd != -1 && fdwatch_check_fd(srv->listen6_fd)) {
-		if (handle_newconnect(srv, tv, srv->listen6_fd))
+	if (hs->listen6_fd != -1 && fdwatch_check_fd(hs->listen6_fd)) {
+		if (handle_newconnect(hs, tv, hs->listen6_fd))
 			return 1;
 	}
 
-	if (srv->listen4_fd != -1 && fdwatch_check_fd(srv->listen4_fd)) {
-		if (handle_newconnect(srv, tv, srv->listen4_fd))
+	if (hs->listen4_fd != -1 && fdwatch_check_fd(hs->listen4_fd)) {
+		if (handle_newconnect(hs, tv, hs->listen4_fd))
 			return 1;
 	}
 
 	return 0;
 }
 
-void srv_exit(struct httpd_server *srv)
+void srv_exit(struct httpd_server *hs)
 {
-	if (srv->listen4_fd != -1)
-		fdwatch_del_fd(srv->listen4_fd);
-	if (srv->listen6_fd != -1)
-		fdwatch_del_fd(srv->listen6_fd);
-	httpd_exit(srv);
+	if (hs->listen4_fd != -1)
+		fdwatch_del_fd(hs->listen4_fd);
+	if (hs->listen6_fd != -1)
+		fdwatch_del_fd(hs->listen6_fd);
+	httpd_exit(hs);
 }
