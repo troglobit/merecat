@@ -38,7 +38,7 @@
 #include "srv.h"
 #include "ssl.h"
 
-extern int handle_newconnect(struct httpd_server *hs, struct timeval *tv, int fd);
+extern int handle_newconnect(struct httpd *hs, struct timeval *tv, int fd);
 
 static void lookup_hostname(char *hostname, uint16_t port,
 			    httpd_sockaddr *sa4, size_t sa4_len, int *gotv4,
@@ -152,9 +152,9 @@ static void lookup_hostname(char *hostname, uint16_t port,
 #endif /* USE_IPV6 */
 }
 
-struct httpd_server *srv_init(struct srv *srv)
+struct httpd *srv_init(struct srv *srv)
 {
-	struct httpd_server *hs;
+	struct httpd *hs;
 	httpd_sockaddr sa4;
 	httpd_sockaddr sa6;
 	void *ctx = NULL;
@@ -196,7 +196,7 @@ struct httpd_server *srv_init(struct srv *srv)
 	return hs;
 }
 
-void srv_start(struct httpd_server *hs)
+void srv_start(struct httpd *hs)
 {
 	if (hs->listen4_fd != -1)
 		fdwatch_add_fd(hs->listen4_fd, NULL, FDW_READ);
@@ -204,7 +204,7 @@ void srv_start(struct httpd_server *hs)
 		fdwatch_add_fd(hs->listen6_fd, NULL, FDW_READ);
 }
 
-void srv_stop(struct httpd_server *hs)
+void srv_stop(struct httpd *hs)
 {
 	if (hs->listen4_fd != -1)
 		fdwatch_del_fd(hs->listen4_fd);
@@ -213,7 +213,7 @@ void srv_stop(struct httpd_server *hs)
 	httpd_unlisten(hs);
 }
 
-int srv_connect(struct httpd_server *hs, struct timeval *tv)
+int srv_connect(struct httpd *hs, struct timeval *tv)
 {
 	if (!hs)
 		return 0;
@@ -232,7 +232,7 @@ int srv_connect(struct httpd_server *hs, struct timeval *tv)
 	return 0;
 }
 
-void srv_exit(struct httpd_server *hs)
+void srv_exit(struct httpd *hs)
 {
 	if (hs->listen4_fd != -1)
 		fdwatch_del_fd(hs->listen4_fd);

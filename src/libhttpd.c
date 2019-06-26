@@ -126,7 +126,7 @@ extern char *crypt(const char *key, const char *setting);
 
 /* Forwards. */
 static void check_options(void);
-static void free_httpd_server(struct httpd_server *hs);
+static void free_httpd_server(struct httpd *hs);
 static int initialize_listen_socket(httpd_sockaddr *hsa);
 static void add_response(struct http_conn *hc, const char *str);
 static void send_mime(struct http_conn *hc, int status, char *title, char *encodings, const char *extraheads, const char *type, off_t length,
@@ -217,7 +217,7 @@ static void check_options(void)
 }
 
 
-static void free_httpd_server(struct httpd_server *hs)
+static void free_httpd_server(struct httpd *hs)
 {
 	if (hs->binding_hostname)
 		free(hs->binding_hostname);
@@ -235,21 +235,21 @@ static void free_httpd_server(struct httpd_server *hs)
 }
 
 
-struct httpd_server *httpd_init(char *hostname, httpd_sockaddr *hsav4, httpd_sockaddr *hsav6,
+struct httpd *httpd_init(char *hostname, httpd_sockaddr *hsav4, httpd_sockaddr *hsav6,
 				unsigned short port, void *ssl_ctx, char *cgi_pattern, int cgi_limit,
 				char *charset, int max_age, char *cwd, int no_log,
 				int no_symlink_check, int vhost, int global_passwd, char *url_pattern,
 				char *local_pattern, int no_empty_referers, int list_dotfiles)
 {
-	struct httpd_server *hs;
+	struct httpd *hs;
 	static char ghnbuf[256];
 	char *cp;
 
 	check_options();
 
-	hs = NEW(struct httpd_server, 1);
+	hs = NEW(struct httpd, 1);
 	if (!hs) {
-		syslog(LOG_CRIT, "out of memory allocating struct httpd_server");
+		syslog(LOG_CRIT, "out of memory allocating struct httpd");
 		return NULL;
 	}
 
@@ -446,7 +446,7 @@ static int initialize_listen_socket(httpd_sockaddr *hsa)
 }
 
 
-void httpd_exit(struct httpd_server *hs)
+void httpd_exit(struct httpd *hs)
 {
 	httpd_ssl_exit(hs);
 	httpd_unlisten(hs);
@@ -454,7 +454,7 @@ void httpd_exit(struct httpd_server *hs)
 }
 
 
-void httpd_unlisten(struct httpd_server *hs)
+void httpd_unlisten(struct httpd *hs)
 {
 	if (hs->listen4_fd != -1) {
 		close(hs->listen4_fd);
@@ -2052,7 +2052,7 @@ void httpd_init_conn_content(struct http_conn *hc)
 }
 
 
-int httpd_get_conn(struct httpd_server *hs, int listen_fd, struct http_conn *hc)
+int httpd_get_conn(struct httpd *hs, int listen_fd, struct http_conn *hc)
 {
 	httpd_sockaddr sa;
 	socklen_t sz;
@@ -3849,7 +3849,7 @@ static void cgi_child(struct http_conn *hc)
 	exit(1);
 }
 
-int httpd_cgi_track(struct httpd_server *hs, pid_t pid)
+int httpd_cgi_track(struct httpd *hs, pid_t pid)
 {
 	int i;
 
@@ -3866,7 +3866,7 @@ int httpd_cgi_track(struct httpd_server *hs, pid_t pid)
 	return 1;		/* Error, no space? */
 }
 
-int httpd_cgi_untrack(struct httpd_server *hs, pid_t pid)
+int httpd_cgi_untrack(struct httpd *hs, pid_t pid)
 {
 	int i;
 
@@ -4349,7 +4349,7 @@ static int check_referer(struct http_conn *hc)
 /* Returns 1 if ok to serve the url, 0 if not. */
 static int really_check_referer(struct http_conn *hc)
 {
-	struct httpd_server *hs;
+	struct httpd *hs;
 	char *cp1;
 	char *cp2;
 	char *cp3;

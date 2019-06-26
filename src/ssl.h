@@ -38,7 +38,7 @@
 void *httpd_ssl_init(char *cert, char *key, char *dhparm);
 
 /* Unload SSL, called automatically at httpd_exit() */
-void httpd_ssl_exit(struct httpd_server *hs);
+void httpd_ssl_exit(struct httpd *hs);
 
 /* Open a new HTTPS connection */
 int httpd_ssl_open(struct http_conn *hc);

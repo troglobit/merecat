@@ -103,8 +103,8 @@ typedef union {
 } httpd_sockaddr;
 
 /* A server. */
-struct httpd_server {
-	struct httpd_server *prev, *next;
+struct httpd {
+	struct httpd *prev, *next;
 
 	char *binding_hostname;
 	char *server_hostname;
@@ -138,7 +138,7 @@ struct httpd_server {
 /* A connection. */
 struct http_conn {
 	int initialized;
-	struct httpd_server *hs;
+	struct httpd *hs;
 	httpd_sockaddr client_addr;
 	char *read_buf;
 	size_t read_size, read_idx, checked_idx;
@@ -238,20 +238,20 @@ struct http_conn {
 #define COMPRESSION_GZIP 1
 
 /* Initializes main HTTPD server.  Does the socket(), bind(), and
-** listen().  Returns a struct httpd_server* which includes a socket fd
+** listen().  Returns a struct httpd* which includes a socket fd
 ** that you can select() on.  Returns NULL on error.
 */
-extern struct httpd_server *httpd_init(char *hostname, httpd_sockaddr *hsav4, httpd_sockaddr *hsav6,
-				       unsigned short port, void *ssl_ctx, char *cgi_pattern, int cgi_limit,
-				       char *charset, int max_age, char *cwd, int no_log,
-				       int no_symlink_check, int vhost, int global_passwd, char *url_pattern,
-				       char *local_pattern, int no_empty_referers, int list_dotfiles);
+extern struct httpd *httpd_init(char *hostname, httpd_sockaddr *hsav4, httpd_sockaddr *hsav6,
+				unsigned short port, void *ssl_ctx, char *cgi_pattern, int cgi_limit,
+				char *charset, int max_age, char *cwd, int no_log,
+				int no_symlink_check, int vhost, int global_passwd, char *url_pattern,
+				char *local_pattern, int no_empty_referers, int list_dotfiles);
 
 /* Call to shut down. */
-extern void httpd_exit(struct httpd_server *hs);
+extern void httpd_exit(struct httpd *hs);
 
 /* Call to unlisten/close socket(s) listening for new connections. */
-extern void httpd_unlisten(struct httpd_server *hs);
+extern void httpd_unlisten(struct httpd *hs);
 
 /* Used to reinitialize the connection for pipelined keep-alive requets */
 extern void httpd_init_conn_mem(struct http_conn *hc);
@@ -266,7 +266,7 @@ extern void httpd_init_conn_content(struct http_conn *hc);
 ** The caller is also responsible for setting initialized to zero before the
 ** first call using each different struct http_conn.
 */
-extern int httpd_get_conn(struct httpd_server *hs, int listen_fd, struct http_conn *hc);
+extern int httpd_get_conn(struct httpd *hs, int listen_fd, struct http_conn *hc);
 
 #define GC_FAIL 0
 #define GC_OK 1
@@ -321,7 +321,8 @@ extern void httpd_destroy_conn(struct http_conn *hc);
 extern char *httpd_client(struct http_conn *hc);
 
 /* Send an error message back to the client. */
-extern void httpd_send_err(struct http_conn *hc, int status, char *title, const char *extraheads, char *form, char *arg);
+extern void httpd_send_err(struct http_conn *hc, int status, char *title,
+			   const char *extraheads, char *form, char *arg);
 
 /* Some error messages. */
 extern char *httpd_err400title;
@@ -360,7 +361,7 @@ extern ssize_t httpd_writev(struct http_conn *hc, struct iovec *iov, size_t num)
 extern void httpd_logstats(long secs);
 
 /* Track PID of CGI scripts, server calls untrack for each collected PID */
-extern int httpd_cgi_track(struct httpd_server *hs, pid_t pid);
-extern int httpd_cgi_untrack(struct httpd_server *hs, pid_t pid);
+extern int httpd_cgi_track(struct httpd *hs, pid_t pid);
+extern int httpd_cgi_untrack(struct httpd *hs, pid_t pid);
 
 #endif /* LIBHTTPD_H_ */

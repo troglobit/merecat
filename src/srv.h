@@ -41,12 +41,12 @@ struct srv {
 	char      *dhfile;
 };
 
-struct httpd_server *srv_init(struct srv *srv);
-void                 srv_exit(struct httpd_server *hs);
+struct httpd *srv_init   (struct srv *srv);
+void          srv_exit   (struct httpd *hs);
 
-void srv_start (struct httpd_server *hs);
-void srv_stop  (struct httpd_server *hs);
+void          srv_start  (struct httpd *hs);
+void          srv_stop   (struct httpd *hs);
 
-int srv_connect(struct httpd_server *hs, struct timeval *tv);
+int           srv_connect(struct httpd *hs, struct timeval *tv);
 
 #endif /*  SRV_H_ */

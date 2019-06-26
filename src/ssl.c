@@ -104,7 +104,7 @@ error:
 	return NULL;
 }
 
-void httpd_ssl_exit(struct httpd_server *hs)
+void httpd_ssl_exit(struct httpd *hs)
 {
 	if (!hs || !hs->ctx)
 		return;

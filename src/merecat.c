@@ -156,7 +156,7 @@ static int httpd_conn_count;
 #define CNST_PAUSING 3
 #define CNST_LINGERING 4
 
-static struct httpd_server *server_list = NULL;
+static struct httpd *server_list = NULL;
 int terminate = 0;
 time_t start_time, stats_time;
 long stats_connections;
@@ -302,7 +302,7 @@ static void logstats(struct timeval *now)
 
 static void shut_down(void)
 {
-	struct httpd_server *server;
+	struct httpd *server;
 	struct timeval tv;
 	int i;
 
@@ -587,7 +587,7 @@ static void finish_connection(connecttab *c, struct timeval *tv)
 }
 
 
-int handle_newconnect(struct httpd_server *hs, struct timeval *tv, int fd)
+int handle_newconnect(struct httpd *hs, struct timeval *tv, int fd)
 {
 	connecttab *c;
 
@@ -1119,7 +1119,7 @@ static void handle_term(int signo)
 /* SIGCHLD - a chile process exitted, so we need to reap the zombie */
 static void handle_chld(int signo)
 {
-	struct httpd_server *server;
+	struct httpd *server;
 	const int oerrno = errno;
 	pid_t pid;
 	int status;
@@ -1368,7 +1368,7 @@ int main(int argc, char **argv)
 	int num_ready;
 	int num, cnum;
 	connecttab *ct;
-	struct httpd_server *server;
+	struct httpd *server;
 	struct http_conn *hc;
 	struct timeval tv;
 
