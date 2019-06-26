@@ -1,10 +1,12 @@
 - - - - - - - - - - before release - - - - - - - - - -
 
-Add ??? sections to config file,
+Add 'server' sections to config file,
 
-host site.tla:port {
+server title {
+     host = virual-host.name
      port = PORT
      ssl  = BOOL
+     redirect = site.tla:port
 }
 
 Let command line options override port/host etc. that
