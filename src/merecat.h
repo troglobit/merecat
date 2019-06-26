@@ -421,6 +421,7 @@
 */
 extern char *prognm;
 extern char *ident;
+extern char  path[];
 
 /*
 ** Global config settings

@@ -58,7 +58,16 @@ static void conf_errfunc(cfg_t *cfg, const char *format, va_list args)
 
 static int read_config(char *fn)
 {
-	int rc = 0;
+	cfg_opt_t server_opts[] = {
+		CFG_STR ("hostname", hostname, CFGF_NONE),
+		CFG_INT ("port", port, CFGF_NONE),
+		CFG_STR ("path", path, CFGF_NONE),
+		CFG_BOOL("ssl",  do_ssl, CFGF_NONE),
+		CFG_STR ("certfile", certfile, CFGF_NONE),
+		CFG_STR ("keyfile", keyfile, CFGF_NONE),
+		CFG_STR ("dhfile", dhfile, CFGF_NONE),
+		CFG_END ()
+	};
 	cfg_opt_t opts[] = {
 		CFG_INT ("port", port, CFGF_NONE),
 		CFG_BOOL("chroot", do_chroot, CFGF_NONE),
@@ -83,8 +92,10 @@ static int read_config(char *fn)
 		CFG_STR ("keyfile", keyfile, CFGF_NONE),
 		CFG_STR ("dhfile", dhfile, CFGF_NONE),
 		CFG_STR ("user-agent-deny", useragent_deny, CFGF_NONE),
-		CFG_END()
+		CFG_SEC ("server", server_opts, CFGF_MULTI | CFGF_TITLE),
+		CFG_END ()
 	};
+	int rc = 0;
 
 	if (access(fn, F_OK))
 		return 0;
@@ -190,4 +201,43 @@ int conf_init(char *file)
 void conf_exit(void)
 {
 	cfg_free(cfg);
+}
+
+int conf_srv(struct srv arr[], size_t len)
+{
+	size_t i;
+
+	if (cfg_size(cfg, "server") == 0) {
+		arr[i].title = "default";
+		arr[i].host  = cfg_getstr(cfg, "hostname");
+		arr[i].port  = cfg_getint(cfg, "port");
+		arr[i].path  = path;
+
+		arr[i].ssl      = cfg_getbool(cfg, "ssl");
+		arr[i].certfile = cfg_getstr(cfg, "certfile");
+		arr[i].keyfile  = cfg_getstr(cfg, "keyfile");
+		arr[i].dhfile   = cfg_getstr(cfg, "dhfile");
+
+		return 1;
+	}
+
+	for (i = 0; i < cfg_size(cfg, "server") && i < len; i++) {
+		cfg_t *srv;
+
+		srv = cfg_getnsec(cfg, "server", i);
+		if (!srv)
+			return -1;
+
+		arr[i].title = (char *)cfg_title(srv);
+		arr[i].host  = cfg_getstr(srv, "hostname");
+		arr[i].port  = cfg_getint(srv, "port");
+		arr[i].path  = cfg_getstr(srv, "path");
+
+		arr[i].ssl      = cfg_getbool(srv, "ssl");
+		arr[i].certfile = cfg_getstr(srv, "certfile");
+		arr[i].keyfile  = cfg_getstr(srv, "keyfile");
+		arr[i].dhfile   = cfg_getstr(srv, "dhfile");
+	}
+
+	return (int)i;
 }

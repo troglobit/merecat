@@ -29,12 +29,24 @@
 #ifndef SRV_H_
 #define SRV_H_
 
-struct httpd_server *srv_init(char *hostname, char *path, uint16_t port, int ssl);
-void                 srv_exit(struct httpd_server *srv);
+struct srv {
+	char      *title;
+	char      *host;	/* specific virtual-host, unused for now */
+	uint16_t   port;	/* Server listening port */
+	char      *path;	/* path within chroot/server dir, unused for now */
 
-void srv_start (struct httpd_server *srv);
-void srv_stop  (struct httpd_server *srv);
+	int        ssl;		/* HTTPS or HTTP */
+	char      *certfile;
+	char      *keyfile;
+	char      *dhfile;
+};
 
-int srv_connect(struct httpd_server *srv, struct timeval *tv);
+struct httpd_server *srv_init(struct srv *srv);
+void                 srv_exit(struct httpd_server *hs);
+
+void srv_start (struct httpd_server *hs);
+void srv_stop  (struct httpd_server *hs);
+
+int srv_connect(struct httpd_server *hs, struct timeval *tv);
 
 #endif /*  SRV_H_ */

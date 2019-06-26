@@ -31,6 +31,7 @@
 #include <config.h>
 #include <stdint.h>
 #include <stdbool.h>
+#include "srv.h"
 
 /* Command line argument always wins */
 struct conf {
@@ -68,9 +69,19 @@ struct conf {
 #ifdef HAVE_LIBCONFUSE
 int     conf_init(char *file);
 void    conf_exit(void);
+
+int     conf_srv(struct srv *arr, size_t len);
 #else
 #define conf_init(foo)
 #define conf_exit()
+
+#define conf_srv(arr, len) {			\
+		arr[0].port = port;		\
+		arr[0].ssl  = do_ssl;		\
+		arr[0].host = hostname;		\
+		arr[0].path = data_dir;		\
+		1;				\
+	}
 #endif
 
 #endif /* MERECAT_CONF_H_ */

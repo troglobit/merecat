@@ -35,6 +35,7 @@
 #include "fdwatch.h"
 #include "libhttpd.h"
 #include "merecat.h"
+#include "srv.h"
 #include "ssl.h"
 
 extern int handle_newconnect(struct httpd_server *hs, struct timeval *tv, int fd);
@@ -151,7 +152,7 @@ static void lookup_hostname(char *hostname, uint16_t port,
 #endif /* USE_IPV6 */
 }
 
-struct httpd_server *srv_init(char *hostname, char *path, uint16_t port, int ssl)
+struct httpd_server *srv_init(struct srv *srv)
 {
 	struct httpd_server *hs;
 	httpd_sockaddr sa4;
@@ -159,20 +160,23 @@ struct httpd_server *srv_init(char *hostname, char *path, uint16_t port, int ssl
 	void *ctx = NULL;
 	int gotv4, gotv6;
 
+	syslog(LOG_DEBUG, "Initializing server %s: port %d, ssl %s, path %s",
+	       srv->title, srv->port, srv->ssl ? "on" : "off", srv->path);
+
 	/* Resolve default port */
-	if (!port)
-		port = ssl ? DEFAULT_HTTPS_PORT : DEFAULT_HTTP_PORT;
+	if (!srv->port)
+		srv->port = srv->ssl ? DEFAULT_HTTPS_PORT : DEFAULT_HTTP_PORT;
 
 	/* Look up hostname now, in case we chroot(). */
-	lookup_hostname(hostname, port, &sa4, sizeof(sa4), &gotv4, &sa6, sizeof(sa6), &gotv6);
+	lookup_hostname(srv->host, srv->port, &sa4, sizeof(sa4), &gotv4, &sa6, sizeof(sa6), &gotv6);
 	if (!(gotv4 || gotv6)) {
 		syslog(LOG_ERR, "cannot find any valid address");
 		exit(1);
 	}
 
 	/* Initialize SSL library and load cert files before we chroot */
-	if (ssl) {
-		ctx = httpd_ssl_init(certfile, keyfile, dhfile);
+	if (srv->ssl) {
+		ctx = httpd_ssl_init(srv->certfile, srv->keyfile, srv->dhfile);
 		if (!ctx) {
 			syslog(LOG_ERR, "Failed initializing SSL");
 			exit(1);

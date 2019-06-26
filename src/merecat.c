@@ -77,6 +77,8 @@
 char        *prognm;		/* Instead of non-portable __progname */
 char        *ident;		/* Used for logging */
 
+char         path[MAXPATHLEN + 1];
+
 /* Global config settings */
 uint16_t     port              = 0;
 int          max_age           = DEFAULT_MAX_AGE;
@@ -160,6 +162,9 @@ time_t start_time, stats_time;
 long stats_connections;
 off_t stats_bytes;
 int stats_simultaneous;
+
+/* Configured by conf_srv(), or globals if no .conf support */
+static struct srv srvtab[2];
 
 static volatile int got_hup, got_bus, got_usr1, watchdog_flag;
 
@@ -1360,9 +1365,8 @@ int main(int argc, char **argv)
 	uid_t uid = 32767;
 	gid_t gid = 32767;
 	char *pidfn = NULL;
-	char path[MAXPATHLEN + 1];
 	int num_ready;
-	int cnum;
+	int num, cnum;
 	connecttab *ct;
 	struct httpd_server *server;
 	struct httpd_conn *hc;
@@ -1470,9 +1474,6 @@ int main(int argc, char **argv)
 	openlog(ident, log_opts, LOG_FACILITY);
 	setlogmask(LOG_UPTO(loglevel));
 
-	/* Read merecat.conf, if available */
-	conf_init(config);
-
 	/* Read zone info now, in case we chroot(). */
 	tzset();
 
@@ -1558,11 +1559,6 @@ int main(int argc, char **argv)
 #endif
 	}
 
-	/* Create PID file */
-	if (!pidfn)
-		pidfn = ident;
-	pidfile(pidfn);
-
 	/* Initialize the fdwatch package.  We have to do this before
 	** chrooting, if /dev/poll is used.
 	*/
@@ -1601,12 +1597,6 @@ int main(int argc, char **argv)
 
 	/* Initialize the timer package. */
 	tmr_init();
-
-	/* Create the server */
-	server = srv_init(hostname, path, port, do_ssl);
-
-	/* Add to list of servers */
-	LIST_INSERT(server, server_list);
 
 	/* Set up the occasional timer. */
 	if (!tmr_create(NULL, occasional, noarg, OCCASIONAL_TIME * 1000L, 1)) {
@@ -1694,6 +1684,29 @@ int main(int argc, char **argv)
 	first_free_connect = 0;
 	num_connects = 0;
 	httpd_conn_count = 0;
+
+	/* Read merecat.conf, if available */
+	conf_init(config);
+
+	/* Create PID file */
+	if (!pidfn)
+		pidfn = ident;
+	pidfile(pidfn);
+
+	/* Get servers from .conf file */
+	num = conf_srv(srvtab, 2);
+	if (num == -1) {
+		syslog(LOG_CRIT, "No server{} directive in .conf file and no valid global settings ...");
+		exit(1);
+	}
+
+	for (int i = 0; i < num; i++) {
+		/* Create the server */
+		server = srv_init(&srvtab[i]);
+
+		/* Add to list of servers */
+		LIST_INSERT(server, server_list);
+	}
 
 	/* Start socket watchers for all servers */
 	LIST_FOREACH(server, server_list)
