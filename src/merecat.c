@@ -127,7 +127,7 @@ static int numthrottles, maxthrottles;
 typedef struct {
 	int conn_state;
 	int next_free_connect;
-	struct httpd_conn *hc;
+	struct http_conn *hc;
 	int tnums[MAXTHROTTLENUMS];	/* throttle indexes */
 	int numtnums;
 	long max_limit, min_limit;
@@ -616,7 +616,7 @@ int handle_newconnect(struct httpd_server *hs, struct timeval *tv, int fd)
 		/* Make the httpd_conn if necessary. */
 		c = &connects[first_free_connect];
 		if (!c->hc) {
-			c->hc = NEW(struct httpd_conn, 1);
+			c->hc = NEW(struct http_conn, 1);
 			if (!c->hc) {
 				syslog(LOG_CRIT, "Out of memory allocating an httpd_conn");
 				exit(1);
@@ -666,7 +666,7 @@ int handle_newconnect(struct httpd_server *hs, struct timeval *tv, int fd)
 static void handle_read(connecttab *c, struct timeval *tv)
 {
 	int sz;
-	struct httpd_conn *hc = c->hc;
+	struct http_conn *hc = c->hc;
 
 	/* Is there room in our buffer to read more bytes? */
 	if (hc->read_idx >= hc->read_size) {
@@ -846,7 +846,7 @@ static void handle_send(connecttab *c, struct timeval *tv)
 	int coast;
 	arg_t arg;
 	time_t elapsed;
-	struct httpd_conn *hc = c->hc;
+	struct http_conn *hc = c->hc;
 	int tind;
 
 	if (c->max_limit == THROTTLE_NOLIMIT)
@@ -1369,7 +1369,7 @@ int main(int argc, char **argv)
 	int num, cnum;
 	connecttab *ct;
 	struct httpd_server *server;
-	struct httpd_conn *hc;
+	struct http_conn *hc;
 	struct timeval tv;
 
 	ident = prognm = progname(argv[0]);

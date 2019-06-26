@@ -125,7 +125,7 @@ void httpd_ssl_exit(struct httpd_server *hs)
 	COMP_zlib_cleanup();
 }
 
-int httpd_ssl_open(struct httpd_conn *hc)
+int httpd_ssl_open(struct http_conn *hc)
 {
 	SSL *ssl;
 	SSL_CTX *ctx = NULL;
@@ -157,7 +157,7 @@ error:
 	return 1;
 }
 
-void httpd_ssl_close(struct httpd_conn *hc)
+void httpd_ssl_close(struct http_conn *hc)
 {
 	if (hc->ssl) {
 		SSL_free(hc->ssl);
@@ -166,7 +166,7 @@ void httpd_ssl_close(struct httpd_conn *hc)
 	close(hc->conn_fd);
 }
 
-void httpd_ssl_shutdown(struct httpd_conn *hc)
+void httpd_ssl_shutdown(struct http_conn *hc)
 {
 	if (hc->ssl)
 		SSL_shutdown(hc->ssl);
@@ -191,7 +191,7 @@ void httpd_ssl_log_errors(void)
 	ERR_print_errors_cb(ssl_error_cb, NULL);
 }
 
-ssize_t httpd_ssl_read(struct httpd_conn *hc, void *buf, size_t len)
+ssize_t httpd_ssl_read(struct http_conn *hc, void *buf, size_t len)
 {
 	if (hc->ssl)
 		return SSL_read(hc->ssl, buf, len);
@@ -200,7 +200,7 @@ ssize_t httpd_ssl_read(struct httpd_conn *hc, void *buf, size_t len)
 	return read(hc->conn_fd, buf, len);
 }
 
-ssize_t httpd_ssl_write(struct httpd_conn *hc, void *buf, size_t len)
+ssize_t httpd_ssl_write(struct http_conn *hc, void *buf, size_t len)
 {
 	if (hc->ssl)
 		return SSL_write(hc->ssl, buf, len);
@@ -208,7 +208,7 @@ ssize_t httpd_ssl_write(struct httpd_conn *hc, void *buf, size_t len)
 	return file_write(hc->conn_fd, buf, len);
 }
 
-ssize_t httpd_ssl_writev(struct httpd_conn *hc, struct iovec *iov, size_t num)
+ssize_t httpd_ssl_writev(struct http_conn *hc, struct iovec *iov, size_t num)
 {
 	if (hc->ssl) {
 		char *buf;

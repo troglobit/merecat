@@ -128,26 +128,26 @@ extern char *crypt(const char *key, const char *setting);
 static void check_options(void);
 static void free_httpd_server(struct httpd_server *hs);
 static int initialize_listen_socket(httpd_sockaddr *hsa);
-static void add_response(struct httpd_conn *hc, const char *str);
-static void send_mime(struct httpd_conn *hc, int status, char *title, char *encodings, const char *extraheads, const char *type, off_t length,
+static void add_response(struct http_conn *hc, const char *str);
+static void send_mime(struct http_conn *hc, int status, char *title, char *encodings, const char *extraheads, const char *type, off_t length,
 		      time_t mod);
-static void send_response(struct httpd_conn *hc, int status, char *title, const char *extraheads, char *form, char *arg);
-static void send_response_tail(struct httpd_conn *hc);
+static void send_response(struct http_conn *hc, int status, char *title, const char *extraheads, char *form, char *arg);
+static void send_response_tail(struct http_conn *hc);
 static void defang(char *str, char *dfstr, int dfsize);
 
 #ifdef ERR_DIR
-static int send_err_file(struct httpd_conn *hc, int status, char *title, const char *extraheads, char *filename);
+static int send_err_file(struct http_conn *hc, int status, char *title, const char *extraheads, char *filename);
 #endif
 #ifdef AUTH_FILE
-static void send_authenticate(struct httpd_conn *hc, char *realm);
-static int auth_check(struct httpd_conn *hc, char *dir);
-static int auth_check2(struct httpd_conn *hc, char *dir);
+static void send_authenticate(struct http_conn *hc, char *realm);
+static int auth_check(struct http_conn *hc, char *dir);
+static int auth_check2(struct http_conn *hc, char *dir);
 #endif
 #ifdef ACCESS_FILE
-static int access_check(struct httpd_conn *hc, char *dir);
-static int access_check2(struct httpd_conn *hc, char *dir);
+static int access_check(struct http_conn *hc, char *dir);
+static int access_check2(struct http_conn *hc, char *dir);
 #endif
-static void send_dirredirect(struct httpd_conn *hc);
+static void send_dirredirect(struct http_conn *hc);
 static int hexit(char c);
 static void strdecode(char *to, char *from);
 
@@ -155,41 +155,41 @@ static void strdecode(char *to, char *from);
 static void strencode(char *to, int tosize, char *from);
 #endif
 #ifdef TILDE_MAP_1
-static int tilde_map_1(struct httpd_conn *hc);
+static int tilde_map_1(struct http_conn *hc);
 #endif
 #ifdef TILDE_MAP_2
-static int tilde_map_2(struct httpd_conn *hc);
+static int tilde_map_2(struct http_conn *hc);
 #endif
-static int vhost_map(struct httpd_conn *hc);
+static int vhost_map(struct http_conn *hc);
 static char *expand_symlinks(char *path, char **trailer, int no_symlink_check, int tildemapped);
-static char *bufgets(struct httpd_conn *hc);
+static char *bufgets(struct http_conn *hc);
 static void de_dotdot(char *file);
 static void init_mime(void);
-static void figure_mime(struct httpd_conn *hc);
+static void figure_mime(struct http_conn *hc);
 
 #ifdef CGI_TIMELIMIT
 static void cgi_kill2(arg_t arg, struct timeval *now);
 static void cgi_kill(arg_t arg, struct timeval *now);
 #endif
 #ifdef GENERATE_INDEXES
-static int ls(struct httpd_conn *hc);
+static int ls(struct http_conn *hc);
 #endif
 static char *build_env(char *fmt, char *arg);
 
 #ifdef SERVER_NAME_LIST
 static char *hostname_map(char *hostname);
 #endif
-static char **make_envp(struct httpd_conn *hc);
-static char **make_argp(struct httpd_conn *hc);
-static void cgi_interpose_input(struct httpd_conn *hc, int wfd);
-static void post_post_garbage_hack(struct httpd_conn *hc);
-static void cgi_interpose_output(struct httpd_conn *hc, int rfd);
-static void cgi_child(struct httpd_conn *hc);
-static int cgi(struct httpd_conn *hc);
-static int really_start_request(struct httpd_conn *hc, struct timeval *now);
-static void make_log_entry(struct httpd_conn *hc);
-static int check_referer(struct httpd_conn *hc);
-static int really_check_referer(struct httpd_conn *hc);
+static char **make_envp(struct http_conn *hc);
+static char **make_argp(struct http_conn *hc);
+static void cgi_interpose_input(struct http_conn *hc, int wfd);
+static void post_post_garbage_hack(struct http_conn *hc);
+static void cgi_interpose_output(struct http_conn *hc, int rfd);
+static void cgi_child(struct http_conn *hc);
+static int cgi(struct http_conn *hc);
+static int really_start_request(struct http_conn *hc, struct timeval *now);
+static void make_log_entry(struct http_conn *hc);
+static int check_referer(struct http_conn *hc);
+static int really_check_referer(struct http_conn *hc);
 static int sockaddr_check(httpd_sockaddr *hsa);
 static size_t sockaddr_len(httpd_sockaddr *hsa);
 
@@ -518,7 +518,7 @@ char *httpd_err503form = "The requested URL '%s' is temporarily overloaded.  Ple
 
 
 /* Append a string to the buffer waiting to be sent as response. */
-static void add_response(struct httpd_conn *hc, const char *str)
+static void add_response(struct http_conn *hc, const char *str)
 {
 	size_t len;
 
@@ -559,7 +559,7 @@ const char *httpd_css_default(void)
 }
 
 /* Send the buffered response. */
-void httpd_send_response(struct httpd_conn *hc)
+void httpd_send_response(struct http_conn *hc)
 {
 	/* If we are in a sub-process, turn off no-delay mode. */
 	if (sub_process)
@@ -601,7 +601,7 @@ void httpd_clear_ndelay(int fd)
 	}
 }
 
-static int content_encoding(struct httpd_conn *hc, char *encodings, char *buf, size_t len)
+static int content_encoding(struct http_conn *hc, char *encodings, char *buf, size_t len)
 {
 	int gz, ret = 0, addgz = 0, hasenc = 0;
 
@@ -620,7 +620,7 @@ static int content_encoding(struct httpd_conn *hc, char *encodings, char *buf, s
 }
 
 static void
-send_mime(struct httpd_conn *hc, int status, char *title, char *encodings, const char *extraheads, const char *type, off_t length, time_t mod)
+send_mime(struct http_conn *hc, int status, char *title, char *encodings, const char *extraheads, const char *type, off_t length, time_t mod)
 {
 	time_t now;
 	const char *rfc1123fmt = "%a, %d %b %Y %H:%M:%S GMT";
@@ -773,7 +773,7 @@ void httpd_realloc_str(char **str, size_t *curr_len, size_t new_len)
 }
 
 
-static void send_response(struct httpd_conn *hc, int status, char *title, const char *extraheads, char *form, char *arg)
+static void send_response(struct http_conn *hc, int status, char *title, const char *extraheads, char *form, char *arg)
 {
 	char defanged_arg[1000], buf[2000];
 
@@ -810,7 +810,7 @@ static void send_response(struct httpd_conn *hc, int status, char *title, const 
 	send_response_tail(hc);
 }
 
-static char *get_hostname(struct httpd_conn *hc)
+static char *get_hostname(struct http_conn *hc)
 {
 	char *host;
 	static char *fallback = "";
@@ -825,7 +825,7 @@ static char *get_hostname(struct httpd_conn *hc)
 	return host;
 }
 
-static void send_response_tail(struct httpd_conn *hc)
+static void send_response_tail(struct http_conn *hc)
 {
 	char buf[1000];
 
@@ -901,7 +901,7 @@ static void defang(char *str, char *dfstr, int dfsize)
 }
 
 
-void httpd_send_err(struct httpd_conn *hc, int status, char *title, const char *extraheads, char *form, char *arg)
+void httpd_send_err(struct http_conn *hc, int status, char *title, const char *extraheads, char *form, char *arg)
 {
 #ifdef ERR_DIR
 	char filename[1000];
@@ -927,7 +927,7 @@ void httpd_send_err(struct httpd_conn *hc, int status, char *title, const char *
 
 
 #ifdef ERR_DIR
-static int send_err_file(struct httpd_conn *hc, int status, char *title, const char *extraheads, char *filename)
+static int send_err_file(struct http_conn *hc, int status, char *title, const char *extraheads, char *filename)
 {
 	FILE *fp;
 	char buf[1000];
@@ -1007,7 +1007,7 @@ static char *find_htfile(char *topdir, char *dir, char *htfile)
 
 #ifdef ACCESS_FILE
 /* Returns -1 == unauthorized, 0 == no access file, 1 = authorized. */
-static int access_check(struct httpd_conn *hc, char *dir)
+static int access_check(struct http_conn *hc, char *dir)
 {
 	int rc = 0;
 	char *topdir, *tmp = NULL;
@@ -1067,7 +1067,7 @@ static int access_check(struct httpd_conn *hc, char *dir)
 }
 
 /* Returns -1 == unauthorized, 0 == no access file, 1 = authorized. */
-static int access_check2(struct httpd_conn *hc, char *dir)
+static int access_check2(struct http_conn *hc, char *dir)
 {
 	struct in_addr ipv4_addr, ipv4_mask = { 0xffffffff };
 	FILE *fp;
@@ -1182,7 +1182,7 @@ static int access_check2(struct httpd_conn *hc, char *dir)
 #endif /* ACCESS_FILE */
 
 #ifdef AUTH_FILE
-static void send_authenticate(struct httpd_conn *hc, char *realm)
+static void send_authenticate(struct http_conn *hc, char *realm)
 {
 	static char *header;
 	static size_t maxheader = 0;
@@ -1200,7 +1200,7 @@ static void send_authenticate(struct httpd_conn *hc, char *realm)
 
 
 /* Returns -1 == unauthorized, 0 == no auth file, 1 = authorized. */
-static int auth_check(struct httpd_conn *hc, char *dir)
+static int auth_check(struct http_conn *hc, char *dir)
 {
 	int rc = 0;
 	char *topdir, *tmp = NULL;
@@ -1261,7 +1261,7 @@ static int auth_check(struct httpd_conn *hc, char *dir)
 
 
 /* Returns -1 == unauthorized, 0 == no auth file, 1 = authorized. */
-static int auth_check2(struct httpd_conn *hc, char *dir)
+static int auth_check2(struct http_conn *hc, char *dir)
 {
 	struct stat sb;
 	char authinfo[550];
@@ -1398,7 +1398,7 @@ static int auth_check2(struct httpd_conn *hc, char *dir)
 #endif /* AUTH_FILE */
 
 
-static void send_dirredirect(struct httpd_conn *hc)
+static void send_dirredirect(struct http_conn *hc)
 {
 	static char *location;
 	static char *header;
@@ -1512,7 +1512,7 @@ static void strencode(char *to, int tosize, char *from)
 
 #ifdef TILDE_MAP_1
 /* Map a ~username/whatever URL into <prefix>/username. */
-static int tilde_map_1(struct httpd_conn *hc)
+static int tilde_map_1(struct http_conn *hc)
 {
 	static char *temp;
 	static size_t maxtemp = 0;
@@ -1533,7 +1533,7 @@ static int tilde_map_1(struct httpd_conn *hc)
 
 #ifdef TILDE_MAP_2
 /* Map a ~username/whatever URL into <user's homedir>/<postfix>. */
-static int tilde_map_2(struct httpd_conn *hc)
+static int tilde_map_2(struct http_conn *hc)
 {
 	static char *temp;
 	static size_t maxtemp = 0;
@@ -1610,7 +1610,7 @@ static int is_vhost_shared(char *path)
 
 
 /* Virtual host mapping. */
-static int vhost_map(struct httpd_conn *hc)
+static int vhost_map(struct http_conn *hc)
 {
 	httpd_sockaddr sa;
 	socklen_t sz;
@@ -1902,7 +1902,7 @@ static char *expand_symlinks(char *path, char **trailer, int no_symlink_check, i
 }
 
 
-void httpd_close_conn(struct httpd_conn *hc, struct timeval *now)
+void httpd_close_conn(struct http_conn *hc, struct timeval *now)
 {
 	if (hc->file_address) {
 		mmc_unmap(hc->file_address, &(hc->sb), now);
@@ -1916,7 +1916,7 @@ void httpd_close_conn(struct httpd_conn *hc, struct timeval *now)
 }
 
 
-void httpd_destroy_conn(struct httpd_conn *hc)
+void httpd_destroy_conn(struct http_conn *hc)
 {
 	if (hc->initialized) {
 		free(hc->read_buf);
@@ -1950,7 +1950,7 @@ void httpd_destroy_conn(struct httpd_conn *hc)
 	}
 }
 
-void httpd_init_conn_mem(struct httpd_conn *hc)
+void httpd_init_conn_mem(struct http_conn *hc)
 {
 	if (hc->initialized)
 		return;
@@ -1999,7 +1999,7 @@ void httpd_init_conn_mem(struct httpd_conn *hc)
 }
 
 
-void httpd_init_conn_content(struct httpd_conn *hc)
+void httpd_init_conn_content(struct http_conn *hc)
 {
 	hc->read_idx = 0;
 	hc->checked_idx = 0;
@@ -2052,7 +2052,7 @@ void httpd_init_conn_content(struct httpd_conn *hc)
 }
 
 
-int httpd_get_conn(struct httpd_server *hs, int listen_fd, struct httpd_conn *hc)
+int httpd_get_conn(struct httpd_server *hs, int listen_fd, struct http_conn *hc)
 {
 	httpd_sockaddr sa;
 	socklen_t sz;
@@ -2110,7 +2110,7 @@ int httpd_get_conn(struct httpd_server *hs, int listen_fd, struct httpd_conn *hc
 ** have checked so far; and hc->checked_state is the current state of the
 ** finite state machine.
 */
-int httpd_got_request(struct httpd_conn *hc)
+int httpd_got_request(struct http_conn *hc)
 {
 	char c;
 
@@ -2298,7 +2298,7 @@ int httpd_got_request(struct httpd_conn *hc)
 }
 
 
-int httpd_parse_request(struct httpd_conn *hc)
+int httpd_parse_request(struct http_conn *hc)
 {
 	char *buf;
 	char *method_str;
@@ -2735,7 +2735,7 @@ int httpd_parse_request(struct httpd_conn *hc)
 }
 
 
-static char *bufgets(struct httpd_conn *hc)
+static char *bufgets(struct http_conn *hc)
 {
 	int i;
 	char c;
@@ -2860,7 +2860,7 @@ static void init_mime(void)
 ** encodings are separated by commas, and are listed in the order in
 ** which they were applied to the file.
 */
-static void figure_mime(struct httpd_conn *hc)
+static void figure_mime(struct http_conn *hc)
 {
 	char *prev_dot;
 	char *dot;
@@ -3021,7 +3021,7 @@ char **b;
 	return strcmp(*a, *b);
 }
 
-static int child_ls_read_names(struct httpd_conn *hc, DIR *dirp, FILE *fp, int onlydir)
+static int child_ls_read_names(struct http_conn *hc, DIR *dirp, FILE *fp, int onlydir)
 {
 	int i, namlen, nnames = 0;
 	static int maxnames = 0;
@@ -3188,7 +3188,7 @@ static int child_ls_read_names(struct httpd_conn *hc, DIR *dirp, FILE *fp, int o
 }
 
 /* Forked child process from ls() */
-static int child_ls(struct httpd_conn *hc, DIR *dirp)
+static int child_ls(struct http_conn *hc, DIR *dirp)
 {
 	FILE *fp;
 	long len;
@@ -3263,7 +3263,7 @@ error:
 	return 0;
 }
 
-static int ls(struct httpd_conn *hc)
+static int ls(struct http_conn *hc)
 {
 	int r;
 	DIR *dirp;
@@ -3348,7 +3348,7 @@ static char *hostname_map(char *hostname)
 ** letting malicious clients overrun a buffer.  We don't have
 ** to worry about freeing stuff since we're a sub-process.
 */
-static char **make_envp(struct httpd_conn *hc)
+static char **make_envp(struct http_conn *hc)
 {
 	static char *envp[50];
 	int envn;
@@ -3438,7 +3438,7 @@ static char **make_envp(struct httpd_conn *hc)
 ** since we're a sub-process.  This gets done after make_envp() because we
 ** scribble on hc->query.
 */
-static char **make_argp(struct httpd_conn *hc)
+static char **make_argp(struct http_conn *hc)
 {
 	char **argp;
 	int argn;
@@ -3493,7 +3493,7 @@ static char **make_argp(struct httpd_conn *hc)
 ** directly is that we have already read part of the data into our
 ** buffer.
 */
-static void cgi_interpose_input(struct httpd_conn *hc, int wfd)
+static void cgi_interpose_input(struct http_conn *hc, int wfd)
 {
 	size_t c;
 	ssize_t r;
@@ -3532,7 +3532,7 @@ static void cgi_interpose_input(struct httpd_conn *hc, int wfd)
 ** unacceptably expensive.  The eventual fix will come when interposing
 ** gets integrated into the main loop as a tasklet instead of a process.
 */
-static void post_post_garbage_hack(struct httpd_conn *hc)
+static void post_post_garbage_hack(struct http_conn *hc)
 {
 	char buf[2];
 
@@ -3554,7 +3554,7 @@ static void post_post_garbage_hack(struct httpd_conn *hc)
 ** and check for the special ones before writing the status.  Then we write
 ** out the saved headers and proceed to echo the rest of the response.
 */
-static void cgi_interpose_output(struct httpd_conn *hc, int rfd)
+static void cgi_interpose_output(struct http_conn *hc, int rfd)
 {
 	ssize_t r;
 	char buf[1024];
@@ -3674,7 +3674,7 @@ static void cgi_interpose_output(struct httpd_conn *hc, int rfd)
 
 
 /* CGI child process. */
-static void cgi_child(struct httpd_conn *hc)
+static void cgi_child(struct http_conn *hc)
 {
 	int r;
 	char **argp;
@@ -3883,7 +3883,7 @@ int httpd_cgi_untrack(struct httpd_server *hs, pid_t pid)
 	return 1;		/* Not found in this server */
 }
 
-static int cgi(struct httpd_conn *hc)
+static int cgi(struct http_conn *hc)
 {
 	int r;
 	arg_t arg;
@@ -3946,7 +3946,7 @@ static int cgi(struct httpd_conn *hc)
  * CGI pattern, taking into account if the filename is prefixed with
  * a VHOST.
  */
-static int is_cgi(struct httpd_conn *hc)
+static int is_cgi(struct http_conn *hc)
 {
 	char *fn = hc->expnfilename;
 
@@ -3971,7 +3971,7 @@ static int is_cgi(struct httpd_conn *hc)
 ** https://www.maxcdn.com/blog/accept-encoding-its-vary-important/
 ** TODO: Refactor, too much focus on finding .gz files
 */
-static char *mod_headers(struct httpd_conn *hc)
+static char *mod_headers(struct http_conn *hc)
 {
 	int serve_dotgz = 0;
 	char *fn = NULL;
@@ -4031,7 +4031,7 @@ done:
 	return header;
 }
 
-static int really_start_request(struct httpd_conn *hc, struct timeval *now)
+static int really_start_request(struct http_conn *hc, struct timeval *now)
 {
 	int is_icon;
 	char *cp, *pi;
@@ -4270,7 +4270,7 @@ sneaky:
 }
 
 
-int httpd_start_request(struct httpd_conn *hc, struct timeval *now)
+int httpd_start_request(struct http_conn *hc, struct timeval *now)
 {
 	int r;
 
@@ -4282,7 +4282,7 @@ int httpd_start_request(struct httpd_conn *hc, struct timeval *now)
 }
 
 
-static void make_log_entry(struct httpd_conn *hc)
+static void make_log_entry(struct http_conn *hc)
 {
 	char *ru;
 	char url[305];
@@ -4325,7 +4325,7 @@ static void make_log_entry(struct httpd_conn *hc)
 
 
 /* Returns 1 if ok to serve the url, 0 if not. */
-static int check_referer(struct httpd_conn *hc)
+static int check_referer(struct http_conn *hc)
 {
 	int r;
 
@@ -4347,7 +4347,7 @@ static int check_referer(struct httpd_conn *hc)
 
 
 /* Returns 1 if ok to serve the url, 0 if not. */
-static int really_check_referer(struct httpd_conn *hc)
+static int really_check_referer(struct http_conn *hc)
 {
 	struct httpd_server *hs;
 	char *cp1;
@@ -4443,7 +4443,7 @@ short httpd_port(httpd_sockaddr *hsa)
     return htons(hsa->sa_in6.sin6_port);
 }
 
-char *httpd_client(struct httpd_conn *hc)
+char *httpd_client(struct http_conn *hc)
 {
 	return hc->client_addr.real_ip;
 }
@@ -4519,19 +4519,19 @@ static long long atoll(const char *str)
 
 
 /* Read the requested buffer completely, accounting for interruptions. */
-ssize_t httpd_read(struct httpd_conn *hc, void *buf, size_t len)
+ssize_t httpd_read(struct http_conn *hc, void *buf, size_t len)
 {
 	return httpd_ssl_read(hc, buf, len);
 }
 
 
 /* Write the requested buffer completely, accounting for interruptions. */
-ssize_t httpd_write(struct httpd_conn *hc, void *buf, size_t len)
+ssize_t httpd_write(struct http_conn *hc, void *buf, size_t len)
 {
 	return httpd_ssl_write(hc, buf, len);
 }
 
-ssize_t httpd_writev(struct httpd_conn *hc, struct iovec *iov, size_t num)
+ssize_t httpd_writev(struct http_conn *hc, struct iovec *iov, size_t num)
 {
 	return httpd_ssl_writev(hc, iov, num);
 }
