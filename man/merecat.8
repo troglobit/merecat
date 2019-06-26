@@ -67,6 +67,8 @@ HTTP/1.1 Keep-alive
 Built-in gzip deflate using zlib
 .It
 HTTPS support using OpenSSL/LibreSSL
+.It
+Dual server support, both HTTP/HTTPS from one process
 .El
 .Pp
 The resulting footprint (~140 kiB) makes Merecat suitable for small and
@@ -340,6 +342,25 @@ instance
 or
 .Qq **SemrushBot**|**MJ12Bot**|**DotBot**
 to match multiple user-agents.  The default is to allow all user-agents.
+.It Cm server Ar name {
+.Bl -tag -offset indent
+.It Cm port = Ar PORT
+Server port to listen to.
+.It Cm ssl = Ar <true | false>
+Enable HTTPS, disabled by default.
+.It Cm certfile = Ar /path/to/cert.pem
+Public part of HTTPS certificate, required for HTTPS.
+.It Cm keyfile = Ar /path/to/key.pem
+Private key of HTTPS certificate, required for HTTPS.  This file must
+be kept private and should not be in the WEBROOT directory.
+.It Cm dhparm = Ar /path/th/dhparam.pem
+Optional Diffie-Hellman parameters.  Not secret, unlike the
+.Cm keyfile
+the
+.Cm dhparm
+can be published online, if necessary.
+.El
+}
 .El
 .Sh "CHROOT"
 chroot() is a system call that restricts the program's view of the
