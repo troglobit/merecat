@@ -1631,40 +1631,6 @@ int main(int argc, char **argv)
 	stats_bytes = 0;
 	stats_simultaneous = 0;
 
-	/* If we're root, try to become someone else. */
-	if (getuid() == 0) {
-		/* Set aux groups to null. */
-		if (setgroups(0, NULL) < 0) {
-			syslog(LOG_CRIT, "setgroups: %s", strerror(errno));
-			exit(1);
-		}
-
-		/* Set primary group. */
-		if (setgid(gid) < 0) {
-			syslog(LOG_CRIT, "setgid: %s", strerror(errno));
-			exit(1);
-		}
-
-		/* Try setting aux groups correctly - not critical if this fails. */
-		if (initgroups(user, gid) < 0)
-			syslog(LOG_WARNING, "initgroups: %s", strerror(errno));
-
-#ifdef HAVE_SETLOGIN
-		/* Set login name. */
-		setlogin(user);
-#endif
-
-		/* Set uid. */
-		if (setuid(uid) < 0) {
-			syslog(LOG_CRIT, "setuid: %s", strerror(errno));
-			exit(1);
-		}
-
-		/* Check for unnecessary security exposure. */
-		if (!do_chroot)
-			syslog(LOG_WARNING, "Started as root without requesting chroot(), warning only");
-	}
-
 	/* Initialize our connections table. */
 	connects = NEW(connecttab, max_connects);
 	if (!connects) {
@@ -1711,6 +1677,40 @@ int main(int argc, char **argv)
 	/* Start socket watchers for all servers */
 	LIST_FOREACH(server, server_list)
 		srv_start(server);
+
+	/* If we're root, try to become someone else. */
+	if (getuid() == 0) {
+		/* Set aux groups to null. */
+		if (setgroups(0, NULL) < 0) {
+			syslog(LOG_CRIT, "setgroups: %s", strerror(errno));
+			exit(1);
+		}
+
+		/* Set primary group. */
+		if (setgid(gid) < 0) {
+			syslog(LOG_CRIT, "setgid: %s", strerror(errno));
+			exit(1);
+		}
+
+		/* Try setting aux groups correctly - not critical if this fails. */
+		if (initgroups(user, gid) < 0)
+			syslog(LOG_WARNING, "initgroups: %s", strerror(errno));
+
+#ifdef HAVE_SETLOGIN
+		/* Set login name. */
+		setlogin(user);
+#endif
+
+		/* Set uid. */
+		if (setuid(uid) < 0) {
+			syslog(LOG_CRIT, "setuid: %s", strerror(errno));
+			exit(1);
+		}
+
+		/* Check for unnecessary security exposure. */
+		if (!do_chroot)
+			syslog(LOG_WARNING, "Started as root without requesting chroot(), warning only");
+	}
 
 	/* Main loop. */
 	tmr_prepare_timeval(&tv);
