@@ -3422,9 +3422,13 @@ static char **make_envp(struct http_conn *hc)
 	}
 	if (hc->remoteuser[0] != '\0')
 		envp[envn++] = build_env("REMOTE_USER=%s", hc->remoteuser);
-	if (hc->authorization[0] != '\0')
+	if (hc->authorization[0] != '\0') {
+		/* We only support Basic auth at the moment. */
 		envp[envn++] = build_env("AUTH_TYPE=%s", "Basic");
-	/* We only support Basic auth at the moment. */
+		/* known workaround for Apache & php5-cgi, now it works in Merecat too */
+		envp[envn++] = build_env("HTTP_AUTHORIZATION=%s", hc->authorization);
+	}
+
 	if (getenv("TZ"))
 		envp[envn++] = build_env("TZ=%s", getenv("TZ"));
 	envp[envn++] = build_env("CGI_PATTERN=%s", hc->hs->cgi_pattern);
