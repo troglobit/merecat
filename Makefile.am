@@ -1,6 +1,6 @@
 SUBDIRS                   = src man scripts tests www
 doc_DATA                  = README.md LICENSE ChangeLog.md
-EXTRA_DIST                = README.md README.thttpd LICENSE ChangeLog.md throttle.conf
+EXTRA_DIST                = README.md LICENSE ChangeLog.md throttle.conf merecat.conf
 DISTCHECK_CONFIGURE_FLAGS = --with-systemd=$$dc_install_base/$(systemd)
 
 if HAVE_CONFUSE
