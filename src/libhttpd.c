@@ -235,12 +235,37 @@ static void free_httpd_server(struct httpd *hs)
 	free(hs);
 }
 
+#define ENA(t) t ? "enabled" : "disabled"
+static struct httpd *httpd_greeting(struct httpd *hs, sockaddr_t *sav4, sockaddr_t *sav6)
+{
+	char name[202] = { 0 };
+	char buf[128];
+
+	if (hs->binding_hostname) {
+		sockaddr_t *sa;
+
+		if (hs->listen4_fd != -1)
+			sa = sav4;
+		else
+			sa = sav6;
+
+		snprintf(name, sizeof(name), "%s, ", httpd_ntoa(sa));
+	}
+
+	/* Port and enabled features in this server */
+	snprintf(buf, sizeof(buf), "port %d, vhost: %s, php: %s",
+		 (int)hs->port, ENA(hs->vhost), ENA(hs->php_cgi));
+
+	syslog(LOG_NOTICE, "%s starting on %s%s", PACKAGE_STRING, name, buf);
+
+	return hs;
+}
 
 struct httpd *httpd_init(char *hostname, sockaddr_t *sav4, sockaddr_t *sav6,
-				unsigned short port, void *ssl_ctx, char *cgi_pattern, int cgi_limit,
-				char *charset, int max_age, char *cwd, int no_log,
-				int no_symlink_check, int vhost, int global_passwd, char *url_pattern,
-				char *local_pattern, int no_empty_referers, int list_dotfiles)
+			 unsigned short port, void *ssl_ctx, char *cgi_pattern, int cgi_limit,
+			 char *charset, int max_age, char *cwd, int no_log,
+			 int no_symlink_check, int vhost, int global_passwd, char *url_pattern,
+			 char *local_pattern, int no_empty_referers, int list_dotfiles)
 {
 	struct httpd *hs;
 	static char ghnbuf[256];
@@ -368,14 +393,7 @@ struct httpd *httpd_init(char *hostname, sockaddr_t *sav4, sockaddr_t *sav6,
 
 	init_mime();
 
-	/* Done initializing. */
-	if (!hs->binding_hostname)
-		syslog(LOG_NOTICE, "%s starting on port %d, vhost: %d", PACKAGE_STRING, hs->port, vhost);
-	else
-		syslog(LOG_NOTICE, "%s starting on %s, port %d, vhost: %d", PACKAGE_STRING,
-		       httpd_ntoa(hs->listen4_fd != -1 ? sav4 : sav6), (int)hs->port, vhost);
-
-	return hs;
+	return httpd_greeting(hs, sav4, sav6);
 }
 
 
