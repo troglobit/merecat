@@ -33,6 +33,7 @@
 #include <sys/param.h>
 #include <sys/stat.h>
 
+#include <assert.h>
 #include <ctype.h>
 #include <errno.h>
 #include <fcntl.h>
@@ -342,6 +343,9 @@ struct httpd *httpd_init(char *hostname, sockaddr_t *sav4, sockaddr_t *sav6,
 	hs->global_passwd = global_passwd;
 	hs->no_empty_referers = no_empty_referers;
 	hs->list_dotfiles = list_dotfiles;
+
+	hs->php_pattern = php_pattern;
+	hs->php_cgi = php_cgi;
 
 	/* Initialize listen sockets.  Try v6 first because of a Linux peculiarity;
 	** like some other systems, it has magical v6 sockets that also listen for
@@ -3302,6 +3306,19 @@ static int ls(struct http_conn *hc)
 
 #endif /* GENERATE_INDEXES */
 
+static int is_php(struct http_conn *hc, char *fn)
+{
+	assert(hc);
+	assert(hc->hs);
+
+	if (!fn)
+		fn = hc->encodedurl;
+
+	if (hc->hs->php_pattern && match(hc->hs->php_pattern, fn))
+		return 1;
+
+	return 0;
+}
 
 static char *build_env(char *fmt, char *arg)
 {
@@ -3385,16 +3402,27 @@ static char **make_envp(struct http_conn *hc)
 	}
 	envp[envn++] = build_env("SCRIPT_NAME=/%s", strcmp(hc->origfilename, ".") == 0 ? "" : hc->origfilename);
 
-	/*
-	 * php-cgi needs SCRIPT_FILENAME environement variable to be
-	 * defined to detect it was invoqued as CGI script.  Patch by
-	 * Fanfan <francois@cerbelle.net>
-	 */
-	if (hc->expnfilename[0] == '/')
-		snprintf(buf, sizeof(buf), "%s", strcmp(hc->expnfilename, ".") == 0 ? "" : hc->expnfilename);
-	else
-		snprintf(buf, sizeof(buf), "%s%s", hc->hs->cwd, strcmp(hc->expnfilename, ".") == 0 ? "" : hc->expnfilename);
-	envp[envn++] = build_env("SCRIPT_FILENAME=%s", buf);
+	/* php-cgi needs non-std SCRIPT_FILENAME to be defined to detect
+	** it was invoked as CGI script.
+	*/
+	if (is_php(hc, NULL)) {
+		char *dedot;
+
+		if (strcmp(hc->expnfilename, ".") == 0)
+			dedot = "";
+		else
+			dedot = hc->expnfilename;
+
+		if (hc->expnfilename[0] == '/')
+			snprintf(buf, sizeof(buf), "%s", dedot);
+		else
+			snprintf(buf, sizeof(buf), "%s%s", hc->hs->cwd, dedot);
+
+		envp[envn++] = build_env("SCRIPT_FILENAME=%s", buf);
+
+		/* See more about this at https://php.net/security.cgi-bin */
+		envp[envn++] = build_env("REDIRECT_STATUS=%s", "1");
+	}
 
 	if (hc->query[0] != '\0')
 		envp[envn++] = build_env("QUERY_STRING=%s", hc->query);
@@ -3445,26 +3473,39 @@ static char **make_envp(struct http_conn *hc)
 static char **make_argp(struct http_conn *hc)
 {
 	char **argp;
-	int argn;
+	char *php = NULL;
 	char *cp1;
 	char *cp2;
+	int argn = 0;
+	int num = 2;
+
+	if (is_php(hc, NULL)) {
+		php = hc->hs->php_cgi;
+		num++;
+	}
 
 	/* By allocating an arg slot for every character in the query, plus
 	** one for the filename and one for the NULL, we are guaranteed to
 	** have enough.  We could actually use strlen/2.
 	*/
-	argp = NEW(char *, strlen(hc->query) + 2);
-
+	argp = NEW(char *, strlen(hc->query) + num);
 	if (!argp)
 		return NULL;
 
-	argp[0] = strrchr(hc->expnfilename, '/');
-	if (argp[0])
-		++argp[0];
-	else
-		argp[0] = hc->expnfilename;
+	if (php) {
+		cp1 = strrchr(php, '/');
+		if (cp1)
+			argp[argn++] = ++cp1;
+		else
+			argp[argn++] = php;
+	}
 
-	argn = 1;
+	argp[argn] = strrchr(hc->expnfilename, '/');
+	if (argp[argn])
+		++argp[argn++];
+	else
+		argp[argn++] = hc->expnfilename;
+
 	/* According to the CGI spec at http://hoohoo.ncsa.uiuc.edu/cgi/cl.html,
 	** "The server should search the query information for a non-encoded =
 	** character to determine if the command line is to be used, if it finds
@@ -3832,6 +3873,10 @@ static void cgi_child(struct http_conn *hc)
 		}
 	}
 
+	/* argp[0] is already set up with the basename of php_cgi */
+	if (is_php(hc, NULL))
+		binary = hc->hs->php_cgi;
+
 	/* Default behavior for SIGPIPE. */
 	signal(SIGPIPE, SIG_DFL);
 
@@ -3952,8 +3997,12 @@ static int cgi(struct http_conn *hc)
  */
 static int is_cgi(struct http_conn *hc)
 {
-	char *fn = hc->expnfilename;
+	char *fn;
 
+	assert(hc);
+	assert(hc->hs);
+
+	fn = hc->expnfilename;
 	if (hc->hs->vhost) {
 		int len;
 		char buf[256];
@@ -3965,6 +4014,9 @@ static int is_cgi(struct http_conn *hc)
 
 	/* With the vhost prefix out of the way we can match CGI patterns */
 	if (hc->hs->cgi_pattern && match(hc->hs->cgi_pattern, fn))
+		return 1;
+
+	if (is_php(hc, fn))
 		return 1;
 
 	return 0;
@@ -4223,7 +4275,7 @@ sneaky:
 
 	/* Is it world-executable and in the CGI area? */
 	if (is_cgi(hc)) {
-		if (hc->sb.st_mode & S_IXOTH)
+		if (hc->sb.st_mode & S_IXOTH || is_php(hc, NULL))
 			return cgi(hc);
 
 		syslog(LOG_DEBUG, "%s URL \"%s\" is a CGI but not executable, rejecting.", httpd_client(hc), hc->encodedurl);

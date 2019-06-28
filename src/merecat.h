@@ -439,6 +439,8 @@ extern int       no_empty_referers;
 extern int       cgi_limit;
 extern char     *cgi_pattern;
 extern char     *local_pattern;
+extern char     *php_cgi;
+extern char     *php_pattern;
 extern char     *url_pattern;
 extern char     *dir;
 extern char     *data_dir;

@@ -56,6 +56,23 @@ static void conf_errfunc(cfg_t *cfg, const char *format, va_list args)
 	vsyslog(LOG_ERR, fmt, args);
 }
 
+static void conf_php(cfg_t *cfg)
+{
+	if (!cfg || !cfg_getbool(cfg, "enabled")) {
+	err:
+		php_pattern = NULL;
+		php_cgi     = NULL;
+		return;
+	}
+
+	php_pattern = cfg_getstr(cfg, "pattern");
+	php_cgi     = cfg_getstr(cfg, "cgi-path");
+	if (!php_pattern || !php_cgi || access(php_cgi, X_OK)) {
+		syslog(LOG_WARNING, "Invalid PHP settings, check your php-cgi path and pattern!");
+		goto err;
+	}
+}
+
 static int read_config(char *fn)
 {
 	cfg_opt_t server_opts[] = {
@@ -66,6 +83,12 @@ static int read_config(char *fn)
 		CFG_STR ("certfile", certfile, CFGF_NONE),
 		CFG_STR ("keyfile", keyfile, CFGF_NONE),
 		CFG_STR ("dhfile", dhfile, CFGF_NONE),
+		CFG_END ()
+	};
+	cfg_opt_t php_opts[] = {
+		CFG_BOOL("enabled", 0, CFGF_NONE),
+		CFG_STR ("pattern", "**.php", CFGF_NONE),
+		CFG_STR ("cgi-path", "/usr/bin/php-cgi", CFGF_NONE),
 		CFG_END ()
 	};
 	cfg_opt_t opts[] = {
@@ -92,6 +115,7 @@ static int read_config(char *fn)
 		CFG_STR ("keyfile", keyfile, CFGF_NONE),
 		CFG_STR ("dhfile", dhfile, CFGF_NONE),
 		CFG_STR ("user-agent-deny", useragent_deny, CFGF_NONE),
+		CFG_SEC ("php", php_opts, CFGF_MULTI),
 		CFG_SEC ("server", server_opts, CFGF_MULTI | CFGF_TITLE),
 		CFG_END ()
 	};
@@ -172,6 +196,8 @@ static int read_config(char *fn)
 	if (compression_level > Z_BEST_COMPRESSION)
 		compression_level = Z_BEST_COMPRESSION;
 #endif
+
+	conf_php(cfg_getnsec(cfg, "php", 0));
 
 	return 0;
 error:

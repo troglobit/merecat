@@ -115,6 +115,9 @@ struct httpd {
 	int    cgi_limit;
 	int    cgi_count;
 
+	char *php_cgi;
+	char *php_pattern;
+
 	char *charset;
 	int   max_age;
 	char *cwd;
