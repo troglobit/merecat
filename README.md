@@ -19,6 +19,8 @@ still has a very limited feature set:
 - HTTP/1.1 Keep-alive
 - Built-in gzip deflate using zlib
 - HTTPS support using OpenSSL/LibreSSL
+- Dual server support, both HTTP/HTTPS from one process
+- Native PHP support, using `php-cgi` if enabled in `merecat.conf`
 
 The resulting footprint (~100 kiB) makes it quick and suitable for small
 and embedded systems, even those smaller than a Raspberry Pi!

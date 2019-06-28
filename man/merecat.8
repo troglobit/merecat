@@ -69,6 +69,9 @@ Built-in gzip deflate using zlib
 HTTPS support using OpenSSL/LibreSSL
 .It
 Dual server support, both HTTP/HTTPS from one process
+.It
+Native PHP support, using php-cgi, if enabled in
+.Pa merecat.conf
 .El
 .Pp
 The resulting footprint (~140 kiB) makes Merecat suitable for small and
@@ -342,6 +345,22 @@ instance
 or
 .Qq **SemrushBot**|**MJ12Bot**|**DotBot**
 to match multiple user-agents.  The default is to allow all user-agents.
+.It Cm php Ar {
+.Bl -tag -offset indent
+.It Cm enabled = Ar <true | false>
+The PHP module is disabled by default.
+.It Cm pattern = Ar PATTERN
+Wildcard pattern for PHP scripts, for instance
+.Qq **.php
+or
+.Qq **.php5|**.php4|**.php ,
+the default is to allow any script ending in
+.Cm .php
+.It Cm cgi-path = Qq Pa /path/to/php-cgi
+Default is
+.Qq Pa /usr/bin/php-cgi
+.El
+}
 .It Cm server Ar name {
 .Bl -tag -offset indent
 .It Cm port = Ar PORT
