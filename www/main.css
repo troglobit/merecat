@@ -75,9 +75,6 @@ code.Nm, code.Fl, code.Cm, code.Ic, code.In, code.Fd, code.Fn,
 code.Cd { font-weight: bold; font-family: inherit; }
 
 @media screen and (max-width: 1023px) {
-    html {
-	font-size: 1.375em;
-    }
     #wrapper {
 	width:      480px;
 	text-align: left;
@@ -95,11 +92,8 @@ code.Cd { font-weight: bold; font-family: inherit; }
 }
 
 @media screen and (min-width: 1024px) {
-    html {
-	font-size: 1.1em;
-    }
     #wrapper {
-	width:      1024px;
+	width:      800px;
 	text-align: left;
 
 	position: absolute;
