@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name=viewport content="width=device-width, initial-scale=0.8">
+  <title>ssi.8</title>
+  <link rel="stylesheet" type="text/css" href="main.css">
+  <link rel="icon" type="image/x-icon" href="/icons/favicon.ico">
+</head>
+<body>
+  <div id="wrapper">
+<!DOCTYPE html>
+<html>
+<!-- This is an automatically generated file.  Do not edit.
+   The Merecat web server stems from both sthttpd and thttpd, both of
+   which are free software under the 2-clause simplified BSD license.
+  
+   Copyright (c) 1995-2015  Jef Poskanzer <jef@mail.acme.com>
+   All rights reserved.
+  
+   Redistribution and use in source and binary forms, with or without
+   modification, are permitted provided that the following conditions
+   are met:
+   1. Redistributions of source code must retain the above copyright
+      notice, this list of conditions and the following disclaimer.
+   2. Redistributions in binary form must reproduce the above copyright
+      notice, this list of conditions and the following disclaimer in the
+      documentation and/or other materials provided with the distribution.
+  
+   THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+   AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+   IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+   ARE DISCLAIMED.  IN NO EVENT SHALL THE COPYRIGHT OWNERS OR CONTRIBUTORS BE
+   LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+   CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+   SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+   INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+   CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+   ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
+   THE POSSIBILITY OF SUCH DAMAGE.
+ -->
+<head>
+  <meta charset="utf-8"/>
+  <style>
+    table.head, table.foot { width: 100%; }
+    td.head-rtitle, td.foot-os { text-align: right; }
+    td.head-vol { text-align: center; }
+    div.Pp { margin: 1ex 0ex; }
+    div.Nd, div.Bf, div.Op { display: inline; }
+    span.Pa, span.Ad { font-style: italic; }
+    span.Ms { font-weight: bold; }
+    dl.Bl-diag > dt { font-weight: bold; }
+    code.Nm, code.Fl, code.Cm, code.Ic, code.In, code.Fd, code.Fn,
+    code.Cd { font-weight: bold; font-family: inherit; }
+  </style>
+  <title>SSI(8) (smm)</title>
+</head>
+<body>
+<table class="head">
+  <tr>
+    <td class="head-ltitle">SSI(8)</td>
+    <td class="head-vol">System Manager's Manual (smm)</td>
+    <td class="head-rtitle">SSI(8)</td>
+  </tr>
+</table>
+<div class="manual-text">
+<h1 class="Sh" title="Sh" id="NAME"><a class="permalink" href="#NAME">NAME</a></h1>
+<code class="Nm" title="Nm">ssi</code> &#x2014;
+<div class="Nd" title="Nd">Server-Side-Includes CGI program</div>
+<h1 class="Sh" title="Sh" id="SYNOPSIS"><a class="permalink" href="#SYNOPSIS">SYNOPSIS</a></h1>
+<table class="Nm">
+  <tr>
+    <td><code class="Nm" title="Nm">ssi</code></td>
+    <td></td>
+  </tr>
+</table>
+<h1 class="Sh" title="Sh" id="DESCRIPTION"><a class="permalink" href="#DESCRIPTION">DESCRIPTION</a></h1>
+This is an external CGI program that gives you the same functionality as the
+  built-in server-side-includes feature in some HTTP daemons. It is written for
+  use with <a class="Xr" title="Xr" href="merecat.8.html">merecat(8)</a>, but
+  should be easy to adapt to other systems.
+<div class="Pp"></div>
+To use this program, first make sure it is installed in your server's CGI area,
+  and that CGI is enabled. Then set up your URLs with the path to the document
+  you want parsed as the &quot;pathinfo&quot;. That's the part of the URL that
+  comes after the CGI program name. For example, if the URL to this program is:
+<div class="Pp"></div>
+<div class="Bd">
+<pre class="Li">
+
+    http://www.acme.com/cgi-bin/ssi 
+
+</pre>
+</div>
+and the url for your document is:
+<div class="Pp"></div>
+<div class="Bd">
+<pre class="Li">
+
+    http://www.acme.com/users/wecoyote/doc.html 
+
+</pre>
+</div>
+then the compound URL that gives you the document filtered through the program
+  would be:
+<div class="Pp"></div>
+<div class="Bd">
+<pre class="Li">
+
+    http://www.acme.com/cgi-bin/ssi/users/wecoyote/doc.html 
+
+</pre>
+</div>
+The format description below is adapted from
+  &#x27E8;http://hoohoo.ncsa.uiuc.edu/docs/tutorials/includes.html&#x27E9;
+<h1 class="Sh" title="Sh" id="INCLUDE_FORMAT"><a class="permalink" href="#INCLUDE_FORMAT">INCLUDE
+  FORMAT</a></h1>
+All directives are formatted as SGML comments within the document. This is in
+  case the document should ever find itself in the client's hands unparsed. Each
+  directive has the following format:
+<div class="Pp"></div>
+<div class="Bd">
+<pre class="Li">
+
+    &lt;!--#command tag1=&quot;value1&quot; tag2=&quot;value2&quot; --&gt; 
+
+</pre>
+</div>
+Each command takes different arguments, most only accept one tag at a time. Here
+  is a breakdown of the commands and their associated tags:
+<dl class="Bl-tag">
+  <dt><a class="permalink" href="#config"><code class="Cm" title="Cm" id="config">config</code></a></dt>
+  <dd>The config directive controls various aspects of the file parsing. There
+      are two valid tags:
+    <dl class="Bl-tag">
+      <dt><a class="permalink" href="#timefmt"><code class="Cm" title="Cm" id="timefmt">timefmt</code></a></dt>
+      <dd>gives the server a new format to use when providing dates. This is a
+          string compatible with the
+          <a class="Xr" title="Xr" href="strftime.3.html">strftime(3)</a>
+          library call.</dd>
+      <dt><a class="permalink" href="#sizefmt"><code class="Cm" title="Cm" id="sizefmt">sizefmt</code></a></dt>
+      <dd>determines the formatting to be used when displaying the size of a
+          file. Valid choices are bytes, for a formatted byte count (formatted
+          as 1,234,567), or abbrev for an abbreviated version displaying the
+          number of kilobytes or megabytes the file occupies.</dd>
+    </dl>
+  </dd>
+  <dt><a class="permalink" href="#include"><code class="Cm" title="Cm" id="include">include</code></a></dt>
+  <dd>Inserts the text of another document into the parsed document. The
+      inserted file is parsed recursively, so it can contain server-side-include
+      directives too. This command accepts two tags:
+    <dl class="Bl-tag">
+      <dt><a class="permalink" href="#virtual"><code class="Cm" title="Cm" id="virtual">virtual</code></a></dt>
+      <dd>Gives a virtual path to a document on the server.</dd>
+      <dt><a class="permalink" href="#file"><code class="Cm" title="Cm" id="file">file</code></a></dt>
+      <dd>Gives a pathname relative to the current directory. ../ cannot be used
+          in this pathname, nor can absolute paths be used.</dd>
+    </dl>
+  </dd>
+  <dt><a class="permalink" href="#echo"><code class="Cm" title="Cm" id="echo">echo</code></a></dt>
+  <dd>Prints the value of one of the include variables (defined below). Any
+      dates are printed subject to the currently configured timefmt. The only
+      valid tag to this command is var, whose value is the name of the variable
+      you wish to echo.</dd>
+  <dt><a class="permalink" href="#fsize"><code class="Cm" title="Cm" id="fsize">fsize</code></a></dt>
+  <dd>prints the size of the specified file, subject to the sizefmt parameter to
+      the config command. Valid tags are the same as with the include
+    command.</dd>
+  <dt><a class="permalink" href="#flastmod"><code class="Cm" title="Cm" id="flastmod">flastmod</code></a></dt>
+  <dd>prints the last modification date of the specified file, subject to the
+      formatting preference given by the timefmt parameter to config. Valid tags
+      are the same as with the include command.</dd>
+</dl>
+<h1 class="Sh" title="Sh" id="VARIABLES"><a class="permalink" href="#VARIABLES">VARIABLES</a></h1>
+A number of variables are made available to parsed documents. In addition to the
+  CGI variable set, the following variables are made available:
+<dl class="Bl-tag">
+  <dt><a class="permalink" href="#DOCUMENT_NAME"><code class="Cm" title="Cm" id="DOCUMENT_NAME">DOCUMENT_NAME</code></a></dt>
+  <dd>The current filename.</dd>
+  <dt><a class="permalink" href="#DOCUMENT_URI"><code class="Cm" title="Cm" id="DOCUMENT_URI">DOCUMENT_URI</code></a></dt>
+  <dd>The virtual path to this document (such as /~robm/foo.shtml).</dd>
+  <dt><a class="permalink" href="#QUERY_STRING_UNESCAPED"><code class="Cm" title="Cm" id="QUERY_STRING_UNESCAPED">QUERY_STRING_UNESCAPED</code></a></dt>
+  <dd>The unescaped version of any search query the client sent.</dd>
+  <dt><a class="permalink" href="#DATE_LOCAL"><code class="Cm" title="Cm" id="DATE_LOCAL">DATE_LOCAL</code></a></dt>
+  <dd>The current date, local time zone. Subject to the timefmt parameter to the
+      config command.</dd>
+  <dt><a class="permalink" href="#DATE_GMT"><code class="Cm" title="Cm" id="DATE_GMT">DATE_GMT</code></a></dt>
+  <dd>Same as <code class="Cm" title="Cm">DATE_LOCAL</code> but in Greenwich
+      mean time (GMT).</dd>
+  <dt><a class="permalink" href="#LAST_MODIFIED"><code class="Cm" title="Cm" id="LAST_MODIFIED">LAST_MODIFIED</code></a></dt>
+  <dd>The last modification date of the current document. Subject to timefmt
+      like the others.</dd>
+</dl>
+<h1 class="Sh" title="Sh" id="BUGS_/_DEFICIENCIES"><a class="permalink" href="#BUGS_/_DEFICIENCIES">BUGS
+  / DEFICIENCIES</a></h1>
+Does not implement the <code class="Cm" title="Cm">exec</code> directive.
+  Actually, I consider this neither a bug nor a deficiency, but some may.
+<h1 class="Sh" title="Sh" id="SEE_ALSO"><a class="permalink" href="#SEE_ALSO">SEE
+  ALSO</a></h1>
+<a class="Xr" title="Xr" href="merecat.8.html">merecat(8)</a>,
+  <a class="Xr" title="Xr" href="strftime.3.html">strftime(3)</a>
+<h1 class="Sh" title="Sh" id="AUTHOR"><a class="permalink" href="#AUTHOR">AUTHOR</a></h1>
+Jef Poskanzer &#x27E8;mailto:jef@mail.acme.com&#x27E9;</div>
+<table class="foot">
+  <tr>
+    <td class="foot-date">September 12, 2017</td>
+    <td class="foot-os">merecat (2.32)</td>
+  </tr>
+</table>
+</body>
+</html>
+    <div id="footer">
+      <address><a href="https://github.com/troglobit/merecat/">merecat
+	  httpd</a> is free software under
+	  the <a href="https://en.wikipedia.org/wiki/BSD_licenses#2-clause_license_.28.22Simplified_BSD_License.22_or_.22FreeBSD_License.22.29">2-clause
+	  BSD license</a>.
+      </address>
+    </div>
+  </div>
+</body>
+</html>
