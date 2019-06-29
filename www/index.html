@@ -10,7 +10,7 @@
 <body>
 <div id="wrapper">
  <div id="header">
- <h2>Merecat &therefore; Embedded Web Server</h2>
+ <h1>Merecat &therefore; Embedded Web Server</h1>
  </div>
  <div id="right">
   <a href="http://imgur.com/gallery/Yqty6rI">
@@ -20,14 +20,12 @@
 	 alt="A mere cat among a group of meerekats" />
   </a>
  </div>
- <div id="left">
- <div id="leftcontent">
+ <div id="content">
 <p>
   Welcome to the Merecat web server.  This is the default landing
   page for new installations.  Seeing this means the web server is
   working and the owner has not set up any pages of their own yet.
 </p>
-<h3>About</h3>
 <p>
   Merecat started out as a pun at
   <a href="https://github.com/cesanta/mongoose">Mongoose</a>, but is
@@ -37,133 +35,32 @@
   <a href="http://www.acme.com/software/thttpd/">thttpd</a>.
 </p>
 <p>
-  The limited feature set makes it very quick.  Virtual hosts and
-  the URL-traffic-based throttling are just about its only features.
-  The resulting footprint makes Merecat very suitable for small and
-  embedded systems.
-</p>
-<h3>Credits</h3>
-<p>
-  <a href="http://www.acme.com">Jef Poskanzer</a> for creating thttpd.
-  Anthony G. Basile for <a href="https://github.com/blueness/sthttpd/">sthttpd</a>,
-  and all the fixes.  <a href="http://imgur.com/user/SunShot">SunShot</a>
-  for the Mere Cat meme, huge props!
-</p>
-<h3>Usage</h3>
-<p>
-  <pre>
-Usage: merecat [OPTIONS] [WEBROOT] [HOSTNAME]
-
--c CGI    CGI pattern to allow, default is "**.cgi|/cgi-bin/*"
--d DIR    Optional DIR to change into after chrooting to WEBROOT
--g        Use global password, .htpasswd, and access, .htaccess files
--h        This help text
--l LEVEL  Set log level: none, err, info, notice*, debug
--n        Run in foreground, do not detach from terminal
--p PORT   Port to listen to, default 80
--r        Chroot into WEBROOT
--s        Check symlinks so they don't point outside WEBROOT
--t FILE   Throttle file
--u USER   Username to drop to, default: nobody
--v        Enable virtual hosting with WEBROOT as base
--V        Show Merecat httpd version
-
-'WEBROOT' defaults to the current directory
-'HOSTNAME' is for virtual hosting (one httpd per hostname)
-
-Note: '-d DIR' is not needed in virtual hosting mode, see
-      merecat(8) for more information on virtual hosting.</pre>
-<tt>Bug reports: <a href="https://github.com/troglobit/merecat/issues">https://github.com/troglobit/merecat/issues</a></tt>
-</p>
-<h3>Virtual Hosts</h3>
-<p>
-  Setting up virtual hosts on a server can be a bit of a hassle with
-  other web servers.  With Merecat you simply create directories for
-  each host in the web server root:
-</p>
-<pre>
-     /var/www/
-       |-- icons/
-       |-- cgi-bin/
-       |-- errors/
-       |    `-- err404.html
-       |-- ftp.example.com/
-       `-- www.example.com/
-</pre>
-<p>
-  Then set <tt>virtual-host=true</tt> in <tt>/etc/merecat.conf</tt>.
-  Now the web server root, here <tt>/var/www/</tt>, no longer serves
-  files, only virtual host directories do, execpt for the shared files
-  in <tt>icons/</tt>, <tt>cgi-bin/</tt>, and <tt>errors/</tt>.
+  The limited feature set makes it very quick.  Virtual hosts, native
+  HTTPS support, CGI, PHP, and URL-traffic-based throttling are just
+  about its only features.  The resulting footprint (~140 kiB) makes
+  Merecat very suitable for small and embedded systems.
 </p>
 <p>
-  On Linux bind mounts can be used to set up FTP and web access to the
-  same files.  Example <tt>/etc/fstab</tt>:
-  <pre>
-/srv/ftp  /var/www/ftp.example.com  none  defaults,bind  0  0
-  </pre>
+  See the manual pages for more information:
+  <ul>
+    <li><a href="htpasswd.1.html">htpasswd.1</a></li>
+    <li><a href="merecat.8.html">merecat.8</a></li>
+    <li><a href="redirect.8.html">redirect.8</a></li>
+    <li><a href="ssi.8.html">ssi.8</a></li>
+  </ul>
+</p>
+<h2>Credits</h2>
+<p>
+  <a href="http://www.acme.com">Jef Poskanzer</a> for creating and
+  maintaining thttpd for so long, and
+  <a href="http://imgur.com/user/SunShot">SunShot</a> for the Mere Cat
+  meme, huge props!
 </p>
 </div>
-</div>
- <div id="right">
- <div id="rightcontent">
-<h3>Configuration</h3>
-<p>
-  This section provides a brief overview of settings available in
-  <tt>/etc/merecat.conf</tt>.  See the merecat(8) man page for more
-  information, in particular the throttling configuration.
-</p>
-<dl class="config">
-  <dt>port = NUM</dt>
-  <dd>Change server port, default 80</dd>
-  <dt>chroot = BOOL</dt>
-  <dd>Enable chroot, disabled by default</dd>
-  <dt>directory = PATH</dt>
-  <dd>Server root, default <tt>/var/www</tt></dd>
-  <dt>data-directory = PATH</dt>
-  <dd>Shared path between virtual hosts for icons, CGI, etc.</dd>
-  <dt>global-passwd = BOOL</dt>
-  <dd>Protect every file with same <tt>.htpasswd</tt> file.  Default disabled.</dd>
-  <dt>check-symlink = BOOL</dt>
-  <dd>Verify symlinks to be within chroot and/or virtual host.  Default disabled.</dd>
-  <dt>check-referer = BOOL</dt>
-  <dd>Enable check for external sites referencing material on your
-	web server.  Default disabled.</dd>
-  <dt>charset = STR</dt>
-  <dd>Default character set UTF-8</dd>
-  <dt>cgi-limit = NUM</dt>
-  <dd>Maximum number of allowed simultaneous CGI programs.  Default 1.</dd>
-  <dt>cgi-pattern = "**.cgi|/cgi-bin/*"</dt>
-  <dd>Wildcard pattern for CGI programs.  The default allows executables
-    in /cgi-bin/ and all ending with .cgi, to support index.cgi pages.</dd>
-  <dt>local-pattern = PATTERN</dt>
-  <dd>Used with <tt>check-referer</tt>, see above.</dd>
-  <dt>url-pattern = PATTERN</dt>
-  <dd>Used with <tt>check-referer</tt>, see above.</dd>
-  <dt>max-age = SEC</dt>
-  <dd>Specifies the number of seconds to be used in a
-	<tt>"Cache-Control: max-age"</tt> HTTP header to be returned
-	with all responses.  An equivalent "Expires" header is also
-	generated.  The default is no Cache-Control or Expires headers,
-	which is just fine for most sites.</dd>
-  <dt>username = NAME</dt>
-  <dd>Set username to drop privileges to after startup.  Defaults to
-	"nobody" which usually is defined on all UNIX systems.</dd>
-  <dt>virtual-host = BOOL</dt>
-  <dd>Enable virtual hosting, disabled by default.</dd>
-  <dt>ssl = BOOL</dt>
-  <dd>Enable HTTPS, disabled by default.</dd>
-  <dt>certfile = /path/to/cert.pem</dt>
-  <dd>Public part of HTTPS certificate, required for HTTPS</dd>
-  <dt>keyfile = /path/to/key.pem</dt>
-  <dd>Private key of HTTPS certificate, required for HTTPS</dd>
-</dl>
- </div>
- </div>
 <div id="footer">
 <address><a href="https://github.com/troglobit/merecat/">merecat
 httpd</a> is free software under
-the <a href="https://en.wikipedia.org/wiki/BSD_licenses#2-clause_license_.28.22Simplified_BSD_License.22_or_.22FreeBSD_License.22.29">2-clause BSD license</a>.
+the <a href="https://en.wikipedia.org/wiki/BSD_licenses#2-clause_license_.28.22Simplified_BSD_License.22_or_.22FreeBSD_License.22.29">2-clause BSD license</a>
 </address>
 </div>
 </div>

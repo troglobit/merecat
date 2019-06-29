@@ -7,12 +7,19 @@ body {
 }
 
 h1 {
-    text-decoration: underline;
+    font-size: 1.7em;
+    font-weight: normal;
+    border-bottom: 1px solid #f2f1f0;
 }
 
 h2 {
     border-bottom: 1px solid #f2f1f0;
     font-weight: normal;
+}
+
+a {
+    text-decoration: none;
+    color: darkslategray;
 }
 
 p {
@@ -83,13 +90,7 @@ code.Cd { font-weight: bold; font-family: inherit; }
 
 	background-color: white;
     }
-    #right {
-    }
-    #left {
-    }
-    #leftcontent {
-    }
-    #rightcontent {
+    #content {
     }
 }
 
@@ -105,7 +106,7 @@ code.Cd { font-weight: bold; font-family: inherit; }
 	top:      0;
 	left:     0;
 	right:    0;
-	padding:  1em;
+	padding:  1.5em;
 
 	margin-top:   20px;
 	margin-bottom:30px;
@@ -127,13 +128,5 @@ code.Cd { font-weight: bold; font-family: inherit; }
     #left {
 	float: left;
 	width:  49%;
-    }
-
-    #leftcontent {
-	padding-right: 1.5em;
-    }
-
-    #rightcontent {
-	padding-left:  1.5em;
     }
 }
