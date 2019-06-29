@@ -169,10 +169,17 @@ Build Requirements
 ------------------
 
 Merecat depends on a few external libraries, if enabled, e.g. OpenSSL,
-zlib, and [libConfuse](https://github.com/martinh/libconfuse/) which,
-when built from source, defaults to an install prefix of `/usr/local`.
-Non Debian/Ubuntu systems rarely support this GNU standard, so here is
-how you reference it for the Merecat `configure` script:
+zlib, and [libConfuse](https://github.com/martinh/libconfuse/).  On
+Debian/Ubuntu systems you can install the dependencies with:
+
+```shell
+user@example:~/> sudo apt install pkg-config libconfuse-dev libssl-dev zlib1g-dev
+```
+
+If you build the deps. from source, they may default to use an install
+prefix of `/usr/local`.  Non Debian/Ubuntu systems rarely support this
+GNU standard, so here is how you reference it for the Merecat
+`configure` script:
 
 ```shell
 user@example:~/merecat/> PKG_CONFIG_LIBDIR=/usr/local/lib/pkgconfig ./configure
