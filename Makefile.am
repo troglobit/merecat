@@ -11,6 +11,16 @@ if HAVE_SYSTEMD
 systemd_DATA              = merecat.service
 endif
 
+## Update html versions of man pages
+doc:
+	@for file in htpasswd.1 merecat.8 redirect.8 ssi.8; do		\
+		out=www/$$file.html; 					\
+		sed "s/%TITLE%/$$file/"	< www/header.html > $$out;	\
+		mandoc -T html -O fragment -O man=%N.%S.html		\
+			man/$$file >> $$out;				\
+		cat www/footer.html >> $$out;				\
+	done
+
 ## Generate .deb package
 package:
 	@dpkg-buildpackage -uc -us -B
