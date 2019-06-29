@@ -1,5 +1,5 @@
 AC_PREREQ([2.68])
-AC_INIT([Merecat httpd], [2.32-rc1], [https://github.com/troglobit/merecat/issues], [merecat])
+AC_INIT([Merecat httpd], [2.32-rc2], [https://github.com/troglobit/merecat/issues], [merecat])
 AC_CONFIG_SRCDIR([src/libhttpd.c])
 AC_CONFIG_HEADERS([config.h])
 # Add this to automake init if parallel harness rules fails: serial-tests
