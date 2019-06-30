@@ -9,9 +9,10 @@ ADD . /merecat
 RUN cd merecat/; ./build.sh; make install-strip; cd ..; rm -rf merecat
 
 # Alternatively, install from released tarball
-#RUN wget http://ftp.troglobit.com/merecat/merecat-2.32.tar.xz; \
-#    tar xf merecat-2.32.tar.bz2; \
-#    ./build.sh
+#RUN wget https://ftp.troglobit.com/merecat/merecat-2.32.tar.xz;	\
+#    tar xf merecat-2.32.tar.bz2;					\
+#    cd merecat-2.32/;							\
+#    ./build.sh;							\
 #    make install-strip
 
 # Clean up container
