@@ -5,9 +5,9 @@ language: c
 # We don't need to install packages, use dockerized build, quicker
 sudo: false
 
-#  - clang
 compiler:
   - gcc
+  - clang
 
 env:
   global:
