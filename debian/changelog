@@ -1,8 +1,11 @@
-merecat (2.32-1) unstable; urgency=medium
+merecat (2.32) unstable; urgency=medium
 
   * New upstream release:
-    - Limited support for HTTPS, single public cert and private key.
-      Works with a single host, vhost only with wildcard cert
+    - Support for HTTPS, self-signed certs and Let's Encrypt.  Works with
+      all features, including virtual hosts
+    - Support for running HTTP and HTTPS servers from one Merecat daemon
+    - Support for PHP, using php-cgi
+    - Support for HTTP/1.1 Keep-alive
     - Added support for HTTP gzip compression, serves .gz files
     - Skip .htpasswd (and .htaccess) in dir listings
     - Allow SO_REUSEPORT, useful for load balancing
@@ -13,7 +16,7 @@ merecat (2.32-1) unstable; urgency=medium
     - Cute cat faviocon added
     - Portability fixes
 
- -- Joachim Nilsson <troglobit@gmail.com>  Sun, 22 Jan 2017 17:08:25 +0100
+ -- Joachim Nilsson <troglobit@gmail.com>  Sun, 30 Jun 2019 12:01:48 +0200
 
 merecat (2.31-3) unstable; urgency=low
 

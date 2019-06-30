@@ -3,10 +3,19 @@
 export DEB_BUILD_MAINT_OPTIONS = hardening=+all
 
 %:
-	dh $@ --with=systemd
+	dh $@ --with autoreconf,systemd
 
 override_dh_auto_configure:
 	dh_auto_configure -- --enable-public-html --enable-htaccess --enable-htpasswd --enable-builtin-icons
+
+override_dh_installchangelogs:
+	dh_installchangelogs ChangeLog.md
+
+# Remove LICENSE and ChangeLog.md per Debian Policy
+override_dh_auto_install:
+	dh_auto_install
+	rm -v debian/merecat/usr/share/doc/merecat/LICENSE
+	rm -v debian/merecat/usr/share/doc/merecat/ChangeLog.md
 
 override_dh_auto_test:
 	$(MAKE) check
