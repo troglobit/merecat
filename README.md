@@ -155,7 +155,7 @@ root@example:/var/www/> certbot certonly --standalone
 
 For a HowTo see:
 
-- http://troglobit.com/2019/06/HowTo-Set-up-Merecat-with-Lets-Encrypt-certificate/
+- https://troglobit.com/2019/06/HowTo-Set-up-Merecat-with-Lets-Encrypt-certificate/
 
 ### Self-signed Certificate
 
@@ -258,7 +258,7 @@ the original [thttpd][] -- the tiny/turbo/throttling HTTP server.
 * [sthttpd][] was spawned by Anthony G. Basile <mailto:blueness@gentoo.org>
 * [Merecat][] is maintained by Joachim Nilsson <mailto:troglobit@gmail.com>
 
-[Merecat]:       http://merecat.troglobit.com
+[Merecat]:       https://merecat.troglobit.com
 [Meerkat]:       https://en.wikipedia.org/wiki/Meerkat
 [license]:       https://github.com/troglobit/merecat/blob/master/LICENSE
 [Mongoose]:      https://github.com/cesanta/mongoose
