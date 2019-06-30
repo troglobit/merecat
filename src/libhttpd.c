@@ -253,8 +253,8 @@ static struct httpd *httpd_greeting(struct httpd *hs, sockaddr_t *sav4, sockaddr
 	}
 
 	/* Port and enabled features in this server */
-	snprintf(buf, sizeof(buf), "port %d, vhost: %s, php: %s",
-		 (int)hs->port, ENA(hs->vhost), ENA(hs->php_cgi));
+	snprintf(buf, sizeof(buf), "port %d, vhost: %s, ssl: %s, php: %s",
+		 (int)hs->port, ENA(hs->vhost), ENA(hs->ctx), ENA(hs->php_cgi));
 
 	syslog(LOG_NOTICE, "%s starting on %s%s", PACKAGE_STRING, name, buf);
 
