@@ -12,7 +12,7 @@ Requires=network-online.target
 Type=simple
 Restart=always
 RestartSec=3
-ExecStart=@SBINDIR@/merecat -n @WWWDIR@
+ExecStart=@SBINDIR@/merecat -sn @WWWDIR@
 
 [Install]
 WantedBy=multi-user.target
