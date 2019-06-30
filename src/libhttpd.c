@@ -226,6 +226,8 @@ static void free_httpd_server(struct httpd *hs)
 		free(hs->cwd);
 	if (hs->cgi_pattern)
 		free(hs->cgi_pattern);
+	if (hs->cgi_tracker)
+		free(hs->cgi_tracker);
 	if (hs->charset)
 		free(hs->charset);
 	if (hs->url_pattern)
