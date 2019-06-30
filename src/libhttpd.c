@@ -3216,6 +3216,7 @@ static int child_ls(struct http_conn *hc, DIR *dirp)
 {
 	FILE *fp;
 	long len;
+	char *proto;
 	char *buf;
 
 	fp = tmpfile();
@@ -3227,17 +3228,22 @@ error:
 		return 1;
 	}
 
+	if (hc->ssl)
+		proto = "https";
+	else
+		proto = "http";
+
 	fprintf(fp, "<!DOCTYPE html>\n"
 		"<html>\n"
 		" <head>\n"
-		"  <title>Index of http://%s%s</title>\n"
+		"  <title>Index of %s://%s%s</title>\n"
 		"  <link rel=\"icon\" type=\"image/x-icon\" href=\"/icons/favicon.ico\">\n"
 		"  <script type=\"text/javascript\">window.onload = function() { document.getElementById('table').focus();} </script>\n"
 		"%s"
 		" </head>\n"
 		" <body>\n"
 		"<div id=\"wrapper\" tabindex=\"-1\">\n"
-		"<h2>Index of http://%s%s</h2>\n"
+		"<h2>Index of %s://%s%s</h2>\n"
 		"<input type=\"hidden\" autofocus />\n"
 		"<div id=\"table\">"
 		"<table width=\"100%%\">\n"
@@ -3247,9 +3253,9 @@ error:
 		"  <th class=\"right\" style=\"width: 3em;\">Size</th>\n"
 		"  <th style=\"width: 7em;\">Last modified</th>\n"
 		" </tr>\n",
-		get_hostname(hc), hc->encodedurl,
+		proto, get_hostname(hc), hc->encodedurl,
 		httpd_css_default(),
-		get_hostname(hc), hc->encodedurl);
+		proto, get_hostname(hc), hc->encodedurl);
 
 	/* Read in names. */
 	child_ls_read_names(hc, dirp, fp, 1);
