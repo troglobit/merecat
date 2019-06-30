@@ -2326,7 +2326,7 @@ int httpd_parse_request(struct http_conn *hc)
 {
 	char *buf;
 	char *method_str;
-	char *url;
+	char *url, *url_proto;
 	char *protocol;
 	char *reqhost;
 	char *eol;
@@ -2362,14 +2362,19 @@ int httpd_parse_request(struct http_conn *hc)
 	}
 	hc->protocol = protocol;
 
+	if (hc->ssl)
+		url_proto = "https://";
+	else
+		url_proto = "http://";
+
 	/* Check for HTTP/1.1 absolute URL. */
-	if (strncasecmp(url, "http://", 7) == 0) {
+	if (strncasecmp(url, url_proto, strlen(url_proto)) == 0) {
 		if (!hc->one_one) {
 			httpd_send_err(hc, 400, httpd_err400title, "", httpd_err400form, "2");
 			return -1;
 		}
 
-		reqhost = url + 7;
+		reqhost = url + strlen(url_proto);
 		url = strchr(reqhost, '/');
 		if (!url) {
 			httpd_send_err(hc, 400, httpd_err400title, "", httpd_err400form, "3");
