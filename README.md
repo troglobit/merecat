@@ -9,8 +9,8 @@ actual web serving purposes.  It is however not a real [Meerkat][],
 merely yet another copycat, forked from the great [thttpd][] created by
 Jef&nbsp;Poskanzer.
 
-Merecat expands a lot on the features originally offered by thttpd, but
-still has a very limited feature set:
+Merecat expands on the features originally offered by thttpd, but still
+has a limited feature set:
 
 - Virtual hosts
 - Basic `.htpassd` and `.htaccess` support
@@ -18,12 +18,12 @@ still has a very limited feature set:
 - CGI/1.1
 - HTTP/1.1 Keep-alive
 - Built-in gzip deflate using zlib
-- HTTPS support using OpenSSL/LibreSSL
+- HTTPS support using OpenSSL/LibreSSL, works with [Let's Encrypt][]!
 - Dual server support, both HTTP/HTTPS from one process
 - Native PHP support, using `php-cgi` if enabled in `merecat.conf`
 
-The resulting footprint (~100 kiB) makes it quick and suitable for small
-and embedded systems, even those smaller than a Raspberry Pi!
+The resulting footprint (~140 kiB) makes it quick and suitable for small
+and embedded systems!
 
 Merecat is available as free/open source software under the simplified
 2-clause [BSD license][license].  For more information, see the manual
@@ -126,7 +126,7 @@ HTTPS Support
 -------------
 
 If the `configure` script finds OpenSSL installed HTTPS support will be
-enabled by default, this can be disabled using `--without-ssl`.
+enabled, this can be disabled using `--without-ssl`.
 
 The HTTPS support has SSLv2, SSLv3, and TLSv1 disabled (hard coded) by
 default.  Only TLSv2 and later will be enabled and negotiated on a per
@@ -135,13 +135,29 @@ client basis.
 To set up Merecat for HTTPS the following `/etc/merecat.conf` settings
 must be enabled:
 
-```
+```conf
 port     = 443
 ssl      = true
 dhfile   = certs/dhparm.pem
 certfile = certs/cert.pem
 keyfile  = private/key.pem
 ```
+
+### Let's Encrypt
+
+Merecat fully supports [Let's Encrypt][] certificates.  Run `certbot`
+with the following arguments and then add all virtual hosts you want to
+support from Merecat:
+
+```shell
+root@example:/var/www/> certbot certonly --standalone
+```
+
+For a HowTo see:
+
+- http://troglobit.com/2019/06/HowTo-Set-up-Merecat-with-Lets-Encrypt-certificate/
+
+### Self-signed Certificate
 
 To create a self signed certificate and enable perfect forward secrecy,
 PFS, i.e. Diffie-Helman paramters (optional), use the `openssl` tool as
@@ -150,7 +166,7 @@ most of the certificate settings are, and more importantly notice the
 use of `subjectAltName`, or SAN.  The latter is required by most
 browsers today.
 
-```
+```shell
 root@example:/var/www/> mkdir private certs
 root@example:/var/www/> openssl req -x509 -newkey rsa:4096 -nodes    \
             -keyout private/server.key -new -out certs/server.pem    \
@@ -159,10 +175,6 @@ root@example:/var/www/> openssl req -x509 -newkey rsa:4096 -nodes    \
              <(printf '[SAN]\nsubjectAltName=DNS:www.acme.com'))
 root@example:/var/www/> openssl dhparam -out certs/dhparm.pem 4096
 ```
-
-**NOTE:** Currently, virtual hosts are not supported when HTTPS is
-  enabled.  A wildcard certificate may work, although this has not
-  been tested yet pending native *Let's Encrypt* support.
 
 
 Build Requirements
@@ -250,6 +262,7 @@ the original [thttpd][] -- the tiny/turbo/throttling HTTP server.
 [Meerkat]:       https://en.wikipedia.org/wiki/Meerkat
 [license]:       https://github.com/troglobit/merecat/blob/master/LICENSE
 [Mongoose]:      https://github.com/cesanta/mongoose
+[Let's Encrypt]: https://letsencrypt.org/
 [FAQ]:           http://halplant.com:2001/server/thttpd_FAQ.html
 [thttpd]:        http://www.acme.com/software/thttpd/
 [sthttpd]:       https://github.com/blueness/sthttpd/
