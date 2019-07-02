@@ -263,15 +263,52 @@ static struct httpd *httpd_greeting(struct httpd *hs, sockaddr_t *sav4, sockaddr
 	return hs;
 }
 
+int httpd_cgi_init(struct httpd *hs, char *cgi_pattern, int cgi_limit)
+{
+	char *cp;
+
+	if (!hs) {
+		errno = EINVAL;
+		return -1;
+	}
+
+	if (!cgi_pattern) {
+		hs->cgi_pattern = NULL;
+		hs->cgi_limit = 0;
+		hs->cgi_count = 0;
+		return 0;
+	}
+
+	/* Nuke any leading slashes. */
+	if (cgi_pattern[0] == '/')
+		++cgi_pattern;
+
+	hs->cgi_pattern = strdup(cgi_pattern);
+	if (!hs->cgi_pattern) {
+		syslog(LOG_CRIT, "Failed initializing CGI: %s", strerror(errno));
+		return -1;
+	}
+
+	/* Nuke any leading slashes in the cgi pattern. */
+	while ((cp = strstr(hs->cgi_pattern, "|/")))
+		/* -2 for the offset, +1 for the '\0' */
+		memmove(cp + 1, cp + 2, strlen(cp) - 1);
+
+	hs->cgi_tracker = calloc(cgi_limit, sizeof(pid_t));
+	hs->cgi_limit = cgi_limit;
+	hs->cgi_count = 0;
+
+	return 0;
+}
+
 struct httpd *httpd_init(char *hostname, sockaddr_t *sav4, sockaddr_t *sav6,
-			 unsigned short port, void *ssl_ctx, char *cgi_pattern, int cgi_limit,
-			 char *charset, int max_age, char *cwd, int no_log,
-			 int no_symlink_check, int vhost, int global_passwd, char *url_pattern,
+			 unsigned short port, void *ssl_ctx, char *charset,
+			 int max_age, char *cwd, int no_log, int no_symlink_check,
+			 int vhost, int global_passwd, char *url_pattern,
 			 char *local_pattern, int no_empty_referers, int list_dotfiles)
 {
 	struct httpd *hs;
 	static char ghnbuf[256];
-	char *cp;
 
 	check_options();
 
@@ -313,28 +350,6 @@ struct httpd *httpd_init(char *hostname, sockaddr_t *sav4, sockaddr_t *sav6,
 	hs->port = port;
 	hs->ctx = ssl_ctx;
 
-	if (!cgi_pattern) {
-		hs->cgi_pattern = NULL;
-	} else {
-		/* Nuke any leading slashes. */
-		if (cgi_pattern[0] == '/')
-			++cgi_pattern;
-
-		hs->cgi_pattern = strdup(cgi_pattern);
-		if (!hs->cgi_pattern) {
-			syslog(LOG_CRIT, "out of memory copying cgi_pattern");
-			return NULL;
-		}
-
-		/* Nuke any leading slashes in the cgi pattern. */
-		while ((cp = strstr(hs->cgi_pattern, "|/")))
-			/* -2 for the offset, +1 for the '\0' */
-			memmove(cp + 1, cp + 2, strlen(cp) - 1);
-	}
-
-	hs->cgi_tracker = calloc(cgi_limit, sizeof(pid_t));
-	hs->cgi_limit = cgi_limit;
-	hs->cgi_count = 0;
 	hs->charset = strdup(charset);
 	hs->max_age = max_age;
 

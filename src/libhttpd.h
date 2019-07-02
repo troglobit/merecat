@@ -245,10 +245,13 @@ struct http_conn {
 ** that you can select() on.  Returns NULL on error.
 */
 extern struct httpd *httpd_init(char *hostname, sockaddr_t *sav4, sockaddr_t *sav6,
-				unsigned short port, void *ssl_ctx, char *cgi_pattern, int cgi_limit,
+				unsigned short port, void *ssl_ctx,
 				char *charset, int max_age, char *cwd, int no_log,
 				int no_symlink_check, int vhost, int global_passwd, char *url_pattern,
 				char *local_pattern, int no_empty_referers, int list_dotfiles);
+
+/* Enable CGI/1.1 support */
+int httpd_cgi_init(struct httpd *hs, char *cgi_pattern, int cgi_limit);
 
 /* Call to shut down. */
 extern void httpd_exit(struct httpd *hs);

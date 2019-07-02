@@ -186,14 +186,23 @@ struct httpd *srv_init(struct srv *srv)
 	/* Initialize the HTTP layer.  Got to do this before giving up root,
 	** so that we can bind to a privileged port.
 	*/
-	hs = httpd_init(hostname, gotv4 ? &sa4 : NULL, gotv6 ? &sa6 : NULL, srv->port, ctx,
-			cgi_pattern, cgi_limit, charset, max_age, srv->path, 0,
-			no_symlink_check, do_vhost, do_global_passwd, url_pattern, local_pattern,
+	hs = httpd_init(hostname, gotv4 ? &sa4 : NULL, gotv6 ? &sa6 : NULL,
+			srv->port, ctx, charset, max_age, srv->path, 0,
+			no_symlink_check, do_vhost, do_global_passwd,
+			url_pattern, local_pattern,
 			no_empty_referers, do_list_dotfiles);
 	if (!hs)
-		exit(1);
+		goto err;
+
+	if (httpd_cgi_init(hs, cgi_pattern, cgi_limit))
+		goto release;
 
 	return hs;
+release:
+	srv_exit(hs);
+err:
+	syslog(LOG_CRIT, "Failed initializing server %s", srv->title);
+	return NULL;
 }
 
 void srv_start(struct httpd *hs)
