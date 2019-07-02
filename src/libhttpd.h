@@ -50,8 +50,8 @@
 #ifndef MIN
 #define MIN(a,b) ((a) < (b) ? (a) : (b))
 #endif
-#define NEW(t,n) ((t*) malloc( sizeof(t) * (n) ))
-#define RENEW(o,t,n) ((t*) realloc( (void*) o, sizeof(t) * (n) ))
+#define NEW(t,n)     calloc(1, sizeof(t) * (n))
+#define RENEW(o,t,n) realloc((void*) o, sizeof(t) * (n))
 
 /* From The Practice of Programming, by Kernighan and Pike */
 #ifndef NELEMS
