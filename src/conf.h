@@ -31,6 +31,8 @@
 #include <config.h>
 #include <stdint.h>
 #include <stdbool.h>
+
+#include "merecat.h"
 #include "srv.h"
 
 /* Command line argument always wins */
@@ -75,13 +77,15 @@ int     conf_srv(struct srv *arr, size_t len);
 #define conf_init(foo)
 #define conf_exit()
 
-#define conf_srv(arr, len) {			\
-		arr[0].port = port;		\
-		arr[0].ssl  = do_ssl;		\
-		arr[0].host = hostname;		\
-		arr[0].path = data_dir;		\
-		1;				\
-	}
+static inline int conf_srv(struct srv *arr, size_t len)
+{
+	arr[0].port = port;
+	arr[0].ssl  = do_ssl;
+	arr[0].host = hostname;
+	arr[0].path = data_dir;
+
+	return 1;
+}
 #endif
 
 #endif /* MERECAT_CONF_H_ */
