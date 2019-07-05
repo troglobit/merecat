@@ -238,7 +238,7 @@ static void free_httpd_server(struct httpd *hs)
 }
 
 #define ENA(t) t ? "enabled" : "disabled"
-static struct httpd *httpd_greeting(struct httpd *hs, sockaddr_t *sav4, sockaddr_t *sav6)
+static void httpd_greeting(struct httpd *hs, sockaddr_t *sav4, sockaddr_t *sav6)
 {
 	char name[202] = { 0 };
 	char buf[128];
@@ -259,8 +259,6 @@ static struct httpd *httpd_greeting(struct httpd *hs, sockaddr_t *sav4, sockaddr
 		 (int)hs->port, ENA(hs->vhost), ENA(hs->ctx), ENA(hs->php_cgi));
 
 	syslog(LOG_NOTICE, "%s starting on %s%s", PACKAGE_STRING, name, buf);
-
-	return hs;
 }
 
 int httpd_cgi_init(struct httpd *hs, char *cgi_pattern, int cgi_limit)
@@ -301,8 +299,31 @@ int httpd_cgi_init(struct httpd *hs, char *cgi_pattern, int cgi_limit)
 	return 0;
 }
 
-struct httpd *httpd_init(char *hostname, sockaddr_t *sav4, sockaddr_t *sav6,
-			 unsigned short port, void *ssl_ctx, char *charset,
+/* Initialize listen sockets.  Try v6 first because of a Linux peculiarity;
+** like some other systems, it has magical v6 sockets that also listen for
+** v4, but in Linux if you bind a v4 socket first then the v6 bind fails.
+*/
+int httpd_listen(struct httpd *hs, sockaddr_t *sav4, sockaddr_t *sav6)
+{
+	if (!sav6)
+		hs->listen6_fd = -1;
+	else
+		hs->listen6_fd = initialize_listen_socket(sav6);
+	if (!sav4)
+		hs->listen4_fd = -1;
+	else
+		hs->listen4_fd = initialize_listen_socket(sav4);
+
+	/* If we didn't get any valid sockets, fail. */
+	if (hs->listen4_fd == -1 && hs->listen6_fd == -1)
+		return -1;
+
+	httpd_greeting(hs, sav4, sav6);
+
+	return 0;
+}
+
+struct httpd *httpd_init(char *hostname, unsigned short port, void *ssl_ctx, char *charset,
 			 int max_age, char *cwd, int no_log, int no_symlink_check,
 			 int vhost, int global_passwd, char *url_pattern,
 			 char *local_pattern, int no_empty_referers, int list_dotfiles)
@@ -322,6 +343,7 @@ struct httpd *httpd_init(char *hostname, sockaddr_t *sav4, sockaddr_t *sav6,
 		hs->binding_hostname = strdup(hostname);
 		if (!hs->binding_hostname) {
 			syslog(LOG_CRIT, "out of memory copying hostname");
+			free_httpd_server(hs);
 			return NULL;
 		}
 
@@ -356,6 +378,7 @@ struct httpd *httpd_init(char *hostname, sockaddr_t *sav4, sockaddr_t *sav6,
 	hs->cwd = strdup(cwd);
 	if (!hs->cwd) {
 		syslog(LOG_CRIT, "out of memory copying cwd");
+		free_httpd_server(hs);
 		return NULL;
 	}
 
@@ -365,6 +388,7 @@ struct httpd *httpd_init(char *hostname, sockaddr_t *sav4, sockaddr_t *sav6,
 		hs->url_pattern = strdup(url_pattern);
 		if (!hs->url_pattern) {
 			syslog(LOG_CRIT, "out of memory copying url_pattern");
+			free_httpd_server(hs);
 			return NULL;
 		}
 	}
@@ -375,6 +399,7 @@ struct httpd *httpd_init(char *hostname, sockaddr_t *sav4, sockaddr_t *sav6,
 		hs->local_pattern = strdup(local_pattern);
 		if (!hs->local_pattern) {
 			syslog(LOG_CRIT, "out of memory copying local_pattern");
+			free_httpd_server(hs);
 			return NULL;
 		}
 	}
@@ -389,28 +414,12 @@ struct httpd *httpd_init(char *hostname, sockaddr_t *sav4, sockaddr_t *sav6,
 	hs->php_pattern = php_pattern;
 	hs->php_cgi = php_cgi;
 
-	/* Initialize listen sockets.  Try v6 first because of a Linux peculiarity;
-	** like some other systems, it has magical v6 sockets that also listen for
-	** v4, but in Linux if you bind a v4 socket first then the v6 bind fails.
-	*/
-	if (!sav6)
-		hs->listen6_fd = -1;
-	else
-		hs->listen6_fd = initialize_listen_socket(sav6);
-	if (!sav4)
-		hs->listen4_fd = -1;
-	else
-		hs->listen4_fd = initialize_listen_socket(sav4);
-
-	/* If we didn't get any valid sockets, fail. */
-	if (hs->listen4_fd == -1 && hs->listen6_fd == -1) {
-		free_httpd_server(hs);
-		return NULL;
-	}
-
 	init_mime();
 
-	return httpd_greeting(hs, sav4, sav6);
+	hs->listen4_fd = -1;
+	hs->listen6_fd = -1;
+
+	return hs;
 }
 
 

@@ -186,9 +186,8 @@ struct httpd *srv_init(struct srv *srv)
 	/* Initialize the HTTP layer.  Got to do this before giving up root,
 	** so that we can bind to a privileged port.
 	*/
-	hs = httpd_init(hostname, gotv4 ? &sa4 : NULL, gotv6 ? &sa6 : NULL,
-			srv->port, ctx, charset, max_age, srv->path, 0,
-			no_symlink_check, do_vhost, do_global_passwd,
+	hs = httpd_init(hostname, srv->port, ctx, charset, max_age, srv->path,
+			0, no_symlink_check, do_vhost, do_global_passwd,
 			url_pattern, local_pattern,
 			no_empty_referers, do_list_dotfiles);
 	if (!hs)
@@ -196,6 +195,9 @@ struct httpd *srv_init(struct srv *srv)
 
 	if (httpd_cgi_init(hs, cgi_pattern, cgi_limit))
 		goto release;
+
+	if (httpd_listen(hs, gotv4 ? &sa4 : NULL, gotv6 ? &sa6 : NULL))
+		goto err;
 
 	return hs;
 release:

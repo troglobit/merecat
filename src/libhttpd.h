@@ -240,18 +240,18 @@ struct http_conn {
 #define COMPRESSION_NONE 0
 #define COMPRESSION_GZIP 1
 
-/* Initializes main HTTPD server.  Does the socket(), bind(), and
-** listen().  Returns a struct httpd* which includes a socket fd
-** that you can select() on.  Returns NULL on error.
-*/
-extern struct httpd *httpd_init(char *hostname, sockaddr_t *sav4, sockaddr_t *sav6,
-				unsigned short port, void *ssl_ctx,
+/* Initializes main HTTPD server. Returns NULL on error. */
+extern struct httpd *httpd_init(char *hostname, unsigned short port, void *ssl_ctx,
 				char *charset, int max_age, char *cwd, int no_log,
-				int no_symlink_check, int vhost, int global_passwd, char *url_pattern,
-				char *local_pattern, int no_empty_referers, int list_dotfiles);
+				int no_symlink_check, int vhost, int global_passwd,
+				char *url_pattern, char *local_pattern,
+				int no_empty_referers, int list_dotfiles);
 
 /* Enable CGI/1.1 support */
-int httpd_cgi_init(struct httpd *hs, char *cgi_pattern, int cgi_limit);
+extern int httpd_cgi_init(struct httpd *hs, char *cgi_pattern, int cgi_limit);
+
+/* Start httpd */
+extern int httpd_listen(struct httpd *hs, sockaddr_t *sav4, sockaddr_t *sav6);
 
 /* Call to shut down. */
 extern void httpd_exit(struct httpd *hs);
