@@ -6,7 +6,7 @@ fi
 
 cd ../www
 
-../src/merecat -f none -n -l none -p 8086 . &
+../src/merecat -f ../tests/merecat.conf -s -n -l none . &
 echo $! >/tmp/merecat.test
 
 if [ ! -e main.css ]; then
