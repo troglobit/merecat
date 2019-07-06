@@ -56,6 +56,8 @@
 #include <osreldate.h>
 #endif
 
+#include <wordexp.h>
+
 #ifdef HAVE_DIRENT_H
 # include <dirent.h>
 # define NAMLEN(dirent) strlen((dirent)->d_name)
@@ -299,6 +301,39 @@ int httpd_cgi_init(struct httpd *hs, char *cgi_pattern, int cgi_limit)
 	return 0;
 }
 
+/*
+** Initialize HTTP redirects
+**/
+int httpd_redirect_add(struct httpd *hs, int code, char *pattern, char *location)
+{
+	struct http_redir *redirect;
+
+	if (!hs || !pattern || !location) {
+		errno = EINVAL;
+		return -1;
+	}
+
+	redirect = NEW(struct http_redir, 1);
+	if (!redirect)
+		return -1;
+
+	redirect->code     = code;
+	redirect->pattern  = pattern;
+	redirect->location = location;
+
+	LIST_INSERT(redirect, hs->redirect);
+
+	return 0;
+}
+
+void httpd_redirect_free(struct httpd *hs)
+{
+	struct http_redir *redirect;
+
+	LIST_FOREACH(redirect, hs->redirect)
+		free(redirect);
+}
+
 /* Initialize listen sockets.  Try v6 first because of a Linux peculiarity;
 ** like some other systems, it has magical v6 sockets that also listen for
 ** v4, but in Linux if you bind a v4 socket first then the v6 bind fails.
@@ -498,6 +533,7 @@ void httpd_exit(struct httpd *hs)
 {
 	httpd_ssl_exit(hs);
 	httpd_unlisten(hs);
+	httpd_redirect_free(hs);
 	free_httpd_server(hs);
 }
 
@@ -530,10 +566,19 @@ void httpd_unlisten(struct httpd *hs)
 static char *ok200title = "OK";
 static char *ok206title = "Partial Content";
 
+static char *err301title = "Moved Permanently";
+static char *err301form = "The actual URL is '%s'.\n";
+
 static char *err302title = "Found";
 static char *err302form = "The actual URL is '%s'.\n";
 
+static char *err303title = "See Other";
+static char *err303form = "The actual URL is '%s'.\n";
+
 static char *err304title = "Not Modified";
+
+static char *err307title = "Temporary Redirect";
+static char *err307form = "The actual URL is '%s'.\n";
 
 char *httpd_err400title = "Bad Request";
 char *httpd_err400form = "Your request has bad syntax(%s) or is inherently impossible to satisfy.\n";
@@ -1445,6 +1490,87 @@ static int auth_check2(struct http_conn *hc, char *dir)
 
 #endif /* AUTH_FILE */
 
+static int send_redirect(struct http_conn *hc, struct http_redir *redirect)
+{
+	wordexp_t we;
+        size_t len;
+	char *ptr, *title, *form;
+
+	switch (redirect->code) {
+	case 301:
+		title = err301title;
+		form  = err301form;
+		break;
+	case 302:
+		title = err302title;
+		form  = err302form;
+		break;
+	case 303:
+		title = err303title;
+		form  = err303form;
+		break;
+	case 307:
+		title = err307title;
+		form  = err307form;
+		break;
+	default:
+		return 0;
+	}
+
+	ptr = strchr(hc->hdrhost, ':');
+	if (ptr)
+		*ptr = 0;
+        setenv("host", hc->hdrhost, 1);
+
+	ptr = strchr(hc->encodedurl, '?');
+	if (ptr)
+		*ptr++ = 0;
+        setenv("request_uri", hc->encodedurl, 1);
+
+	if (ptr) {
+		char query[strlen(ptr) + 2];
+
+		snprintf(query, sizeof(query), "?%s", ptr);
+		setenv("args", query, 1);
+	} else
+		unsetenv("args");
+
+        if (wordexp(redirect->location, &we, 0))
+		return 0;
+
+	len = strlen(we.we_wordv[0]) + 16;
+	ptr = malloc(len);
+	if (!ptr) {
+		wordfree(&we);
+		return 0;
+	}
+
+	snprintf(ptr, len, "Location: %s\r\n", we.we_wordv[0]);
+	syslog(LOG_DEBUG, "Redirect %d %s", redirect->code, ptr);
+	send_response(hc, redirect->code, title, ptr, form, we.we_wordv[0]);
+	wordfree(&we);
+	free(ptr);
+
+	return 1;
+}
+
+int httpd_redirect(struct http_conn *hc)
+{
+	struct http_redir *redirect;
+
+	LIST_FOREACH(redirect, hc->hs->redirect) {
+		if (!match(redirect->pattern, hc->encodedurl))
+			continue;
+
+		/* If redirection fails we should drop the connection anyway */
+		if (!send_redirect(hc, redirect))
+			syslog(LOG_NOTICE, "Failed redirecting %s to %s, despite matching %s",
+			       hc->encodedurl, redirect->location, redirect->pattern);
+		return 1;
+	}
+
+	return 0;
+}
 
 static void send_dirredirect(struct http_conn *hc)
 {
@@ -2642,6 +2768,9 @@ int httpd_parse_request(struct http_conn *hc)
 			       hc->encodedurl);
 		return -1;
 	}
+
+	if (httpd_redirect(hc))
+		return -1;
 
 	if (hc->one_one) {
 		/* Check that HTTP/1.1 requests specify a host, as required. */

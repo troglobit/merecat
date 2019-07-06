@@ -157,6 +157,7 @@ struct httpd *srv_init(struct srv *srv)
 	struct httpd *hs;
 	sockaddr_t sa4;
 	sockaddr_t sa6;
+	size_t i;
 	void *ctx = NULL;
 	int gotv4, gotv6;
 
@@ -195,6 +196,11 @@ struct httpd *srv_init(struct srv *srv)
 
 	if (httpd_cgi_init(hs, cgi_pattern, cgi_limit))
 		goto release;
+
+	for (i = 0; i < NELEMS(srv->redirect); i++)
+		httpd_redirect_add(hs, srv->redirect[i].code,
+				   srv->redirect[i].pattern,
+				   srv->redirect[i].location);
 
 	if (httpd_listen(hs, gotv4 ? &sa4 : NULL, gotv6 ? &sa6 : NULL))
 		goto err;

@@ -29,6 +29,8 @@
 #ifndef SRV_H_
 #define SRV_H_
 
+#define MAX_REDIRECTS 2
+
 struct srv {
 	char      *title;
 	char      *host;	/* specific virtual-host, unused for now */
@@ -39,6 +41,12 @@ struct srv {
 	char      *certfile;
 	char      *keyfile;
 	char      *dhfile;
+
+	struct {
+		int   code;	/* HTTP status code, default: 301 */
+		char *location;	/* Location: to redirect to, supports format specifiers */
+		char *pattern;	/* Pattern to match() against */
+	} redirect[MAX_REDIRECTS];
 };
 
 struct httpd *srv_init   (struct srv *srv);

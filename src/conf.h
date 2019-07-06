@@ -35,6 +35,11 @@
 #include "merecat.h"
 #include "srv.h"
 
+/* From The Practice of Programming, by Kernighan and Pike */
+#ifndef NELEMS
+#define NELEMS(array) (sizeof(array) / sizeof(array[0]))
+#endif
+
 /* Command line argument always wins */
 struct conf {
 	struct conf *prev, *next;

@@ -73,8 +73,30 @@ static void conf_php(cfg_t *cfg)
 	}
 }
 
+static void conf_redirect(struct srv *srv, cfg_t *cfg)
+{
+	size_t i;
+
+	for (i = 0; i < cfg_size(cfg, "redirect") && i < NELEMS(srv->redirect); i++) {
+		cfg_t *red;
+
+		red = cfg_getnsec(cfg, "redirect", i);
+		if (!red)
+			return;
+
+		srv->redirect[i].pattern  = (char *)cfg_title(red);
+		srv->redirect[i].code     = cfg_getint(red, "code");
+		srv->redirect[i].location = cfg_getstr(red, "location");
+	}
+}
+
 static int read_config(char *fn)
 {
+	cfg_opt_t redirect_opts[] = {
+		CFG_STR ("location", NULL, CFGF_NONE),
+		CFG_INT ("code", 301, CFGF_NONE),
+		CFG_END ()
+	};
 	cfg_opt_t server_opts[] = {
 		CFG_STR ("hostname", hostname, CFGF_NONE),
 		CFG_INT ("port", port, CFGF_NONE),
@@ -83,6 +105,7 @@ static int read_config(char *fn)
 		CFG_STR ("certfile", certfile, CFGF_NONE),
 		CFG_STR ("keyfile", keyfile, CFGF_NONE),
 		CFG_STR ("dhfile", dhfile, CFGF_NONE),
+		CFG_SEC ("redirect", redirect_opts, CFGF_MULTI | CFGF_TITLE),
 		CFG_END ()
 	};
 	cfg_opt_t php_opts[] = {
@@ -273,6 +296,8 @@ int conf_srv(struct srv arr[], size_t len)
 		arr[i].certfile = cfg_getstr(srv, "certfile");
 		arr[i].keyfile  = cfg_getstr(srv, "keyfile");
 		arr[i].dhfile   = cfg_getstr(srv, "dhfile");
+
+		conf_redirect(&arr[i], srv);
 	}
 
 	return (int)i;
