@@ -7,7 +7,6 @@ sudo: false
 
 compiler:
   - gcc
-  - clang
 
 env:
   global:
