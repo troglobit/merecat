@@ -70,6 +70,9 @@ HTTPS support using OpenSSL/LibreSSL
 .It
 Dual server support, both HTTP/HTTPS from one process
 .It
+HTTP redirect support, per server.  E.g., possible to redirect from HTTP
+to HTTPS.  Limited sed of Nginx style environment variables supported.
+.It
 Native PHP support, using php-cgi, if enabled in
 .Pa merecat.conf
 .El
@@ -377,6 +380,22 @@ Optional Diffie-Hellman parameters.  Not secret, unlike the
 the
 .Cm dhparm
 can be published online, if necessary.
+.It Cm redirect Qo Ar PATTERN Qc {
+.Bl -tag -offset indent
+.It Cm code = Ar CODE
+HTTP redirect code to use, default: 301.  Supported codes are: 301, 302,
+303, 307.
+.It Cm location = Qq Ar proto://$host:port$request_uri$args
+Location to return for redirect, e.g. to redirect all request for HTTP
+to HTTPS for the same (virtual) host:
+.Bd -unfilled -offset indent
+redirect "/**" {
+    code = 301
+    location = "https://$host$request_uri$args"
+}
+.Ed
+.El
+}
 .El
 }
 .El
