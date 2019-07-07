@@ -20,6 +20,7 @@ has a limited feature set:
 - Built-in gzip deflate using zlib
 - HTTPS support using OpenSSL/LibreSSL, works with [Let's Encrypt][]!
 - Dual server support, both HTTP/HTTPS from one process
+- HTTP redirect, to gently redirect from HTTP server to HTTPS
 - Native PHP support, using `php-cgi` if enabled in `merecat.conf`
 
 The resulting footprint (~140 kiB) makes it quick and suitable for small
@@ -175,6 +176,38 @@ root@example:/var/www/> openssl req -x509 -newkey rsa:4096 -nodes    \
              <(printf '[SAN]\nsubjectAltName=DNS:www.acme.com'))
 root@example:/var/www/> openssl dhparam -out certs/dhparm.pem 4096
 ```
+
+HTTP Redirect
+-------------
+
+For a setup with two servers, the following example can be used to run
+HTTPS on port 4443, HTTP on port 8080 and redirect to the HTTPS server
+on any access:
+
+```conf
+server secure {
+    port     = 4443
+    ssl      = true
+    certfile = certs/server.pem
+    dhfile   = certs/dhparm.pem
+    keyfile  = private/server.key
+}
+
+server default {
+    port = 8080
+    ssl = false
+    redirect "/**" {
+             code = 303
+             location = "https://$host:4443$request_uri$args"
+    }
+}
+```
+
+Supported HTTP redirect codes are: 301, 302, 303, and 307.
+
+The location setting supports three nginx style variables as shown
+in the example.  Please note the quotes around the pattern, or the
+.conf parser will think the pattern is a C-style comment.
 
 
 Build Requirements
