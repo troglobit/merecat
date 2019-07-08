@@ -47,18 +47,18 @@
 #define ST_MINUS1 3
 #define ST_MINUS2 4
 
-
-static void read_file(char *vfilename, char *filename, FILE *fp);
-
+#define ERRMSG_DEFAULT "[an error occurred while processing this directive]"
 
 static char *url;
-static char *errmsg = "[an error occurred while processing this directive]";
+static char *errmsg = NULL;
 static char timefmt[100];
 static int sizefmt;
 
 #define SF_BYTES 0
 #define SF_ABBREV 1
 static struct stat sb;
+
+static void read_file(char *vfilename, char *filename, FILE *fp);
 
 
 static void internal_error(char *reason)
@@ -88,12 +88,19 @@ does not seem to exist.\n\
 </BODY></HTML>\n", title, title, filename);
 }
 
+static void show_errmsg(void)
+{
+	if (!errmsg)
+		return;
+
+	fputs(errmsg, stdout);
+}
 
 static void not_found2(char *directive, char *tag, char *filename2)
 {
 	syslog(LOG_NOTICE, "The filename requested in a %s %s directive; %s, "
 	       "does not seem to exist.", directive, tag, filename2);
-	fputs(errmsg, stdout);
+	show_errmsg();
 }
 
 
@@ -101,7 +108,7 @@ static void not_permitted(char *directive, char *tag, char *val)
 {
 	syslog(LOG_NOTICE, "The filename requested in the %s %s=%s directive, "
 	       "is not allowed.", directive, tag, val);
-	fputs(errmsg, stdout);
+	show_errmsg();
 }
 
 
@@ -109,7 +116,7 @@ static void unknown_directive(char *filename, char *directive)
 {
 	syslog(LOG_NOTICE, "The requested server-side-includes filename, %s, "
 	       "tried to use an unknown directive, %s.", filename, directive);
-	fputs(errmsg, stdout);
+	show_errmsg();
 }
 
 
@@ -118,7 +125,7 @@ static void unknown_tag(char *filename, char *directive, char *tag)
 	syslog(LOG_NOTICE, "The requested server-side-includes filename, %s, "
 	       "tried to use directive %s with an unknown tag, %s.", filename,
 	       directive, tag);
-	fputs(errmsg, stdout);
+	show_errmsg();
 }
 
 
@@ -127,7 +134,7 @@ static void unknown_value(char *filename, char *directive, char *tag, char *val)
 	syslog(LOG_NOTICE, "The requested server-side-includes filename, %s, "
 	       "tried to use directive %s %s with an unknown value, %s.",
 	       filename, directive, tag, val);
-	fputs(errmsg, stdout);
+	show_errmsg();
 }
 
 
@@ -305,6 +312,9 @@ static void do_config(char *vfilename, char *filename, FILE *fp, char *directive
 			sizefmt = SF_ABBREV;
 		else
 			unknown_value(filename, directive, tag, val);
+	} else if (strcmp(tag, "errmsg") == 0) {
+		free(errmsg);
+		errmsg = strdup(val);
 	} else
 		unknown_tag(filename, directive, tag);
 }
@@ -631,6 +641,8 @@ int main(int argc, char **argv)
 	/* Default formats. */
 	strcpy(timefmt, "%a %b %e %T %Z %Y");
 	sizefmt = SF_BYTES;
+
+	errmsg = strdup(ERRMSG_DEFAULT);
 
 	/* The MIME type has to be text/html. */
 	fputs("Content-type: text/html\n\n", stdout);
