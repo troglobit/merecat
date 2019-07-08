@@ -127,6 +127,9 @@ struct httpd {
 	char *php_cgi;
 	char *php_pattern;
 
+	char *ssi_cgi;
+	char *ssi_pattern;
+
 	char *charset;
 	int   max_age;
 	char *cwd;

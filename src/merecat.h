@@ -350,7 +350,11 @@
 /* CONFIGURE: A list of index filenames to check.  The files are searched
 ** for in this order.
 */
-#define INDEX_NAMES "index.html", "index.htm", "index.xhtml", "index.xht", "Default.htm", "index.cgi", "index.php"
+#define INDEX_NAMES "index.shtml", "index.shtm", "index.stm",	\
+		"index.cgi", "index.php",			\
+		"index.html", "index.htm",			\
+		"index.xhtml", "index.xht",			\
+		"Default.htm"
 
 /* CONFIGURE: If this is defined then merecat will automatically generate
 ** index pages for directories that don't have an explicit index file.
@@ -441,6 +445,8 @@ extern char     *cgi_pattern;
 extern char     *local_pattern;
 extern char     *php_cgi;
 extern char     *php_pattern;
+extern char     *ssi_cgi;
+extern char     *ssi_pattern;
 extern char     *url_pattern;
 extern char     *dir;
 extern char     *data_dir;

@@ -257,8 +257,8 @@ static void httpd_greeting(struct httpd *hs, sockaddr_t *sav4, sockaddr_t *sav6)
 	}
 
 	/* Port and enabled features in this server */
-	snprintf(buf, sizeof(buf), "port %d, vhost: %s, ssl: %s, php: %s",
-		 (int)hs->port, ENA(hs->vhost), ENA(hs->ctx), ENA(hs->php_cgi));
+	snprintf(buf, sizeof(buf), "port: %hu, vhost: %s, ssl: %s, php: %s, ssi: %s",
+		 hs->port, ENA(hs->vhost), ENA(hs->ctx), ENA(hs->php_cgi), ENA(hs->ssi_cgi));
 
 	syslog(LOG_NOTICE, "%s starting on %s%s", PACKAGE_STRING, name, buf);
 }
@@ -448,6 +448,9 @@ struct httpd *httpd_init(char *hostname, unsigned short port, void *ssl_ctx, cha
 
 	hs->php_cgi = php_cgi;
 	hs->php_pattern = php_pattern;
+
+	hs->ssi_cgi = ssi_cgi;
+	hs->ssi_pattern = ssi_pattern;
 
 	init_mime();
 
@@ -3504,6 +3507,20 @@ static int is_php(struct http_conn *hc, char *fn)
 	return 0;
 }
 
+static int is_ssi(struct http_conn *hc, char *fn)
+{
+	assert(hc);
+	assert(hc->hs);
+
+	if (!fn)
+		fn = hc->expnfilename;
+
+	if (hc->hs->ssi_pattern && match(hc->hs->ssi_pattern, fn))
+		return 1;
+
+	return 0;
+}
+
 static char *build_env(char *fmt, char *arg)
 {
 	char *cp;
@@ -3608,6 +3625,22 @@ static char **make_envp(struct http_conn *hc)
 		envp[envn++] = build_env("REDIRECT_STATUS=%s", "1");
 	}
 
+	/*
+	** ssi needs PATH_TRANSLATED to be set
+	*/
+	if (is_ssi(hc, NULL)) {
+		char *cp2;
+		size_t l;
+
+		envp[envn++] = build_env("PATH_INFO=/%s", hc->expnfilename);
+		l = strlen(hc->hs->cwd) + strlen(hc->expnfilename) + 1;
+		cp2 = NEW(char, l);
+		if (cp2) {
+			snprintf(cp2, l, "%s%s", hc->hs->cwd, hc->expnfilename);
+			envp[envn++] = build_env("PATH_TRANSLATED=%s", cp2);
+		}
+	}
+
 	if (hc->query[0] != '\0')
 		envp[envn++] = build_env("QUERY_STRING=%s", hc->query);
 	envp[envn++] = build_env("REMOTE_ADDR=%s", httpd_client(hc));
@@ -3657,14 +3690,18 @@ static char **make_envp(struct http_conn *hc)
 static char **make_argp(struct http_conn *hc)
 {
 	char **argp;
-	char *php = NULL;
+	char *cgi = NULL;
 	char *cp1;
 	char *cp2;
 	int argn = 0;
 	int num = 2;
 
 	if (is_php(hc, NULL)) {
-		php = hc->hs->php_cgi;
+		cgi = hc->hs->php_cgi;
+		num++;
+	}
+	if (is_ssi(hc, NULL)) {
+		cgi = hc->hs->ssi_cgi;
 		num++;
 	}
 
@@ -3676,12 +3713,12 @@ static char **make_argp(struct http_conn *hc)
 	if (!argp)
 		return NULL;
 
-	if (php) {
-		cp1 = strrchr(php, '/');
+	if (cgi) {
+		cp1 = strrchr(cgi, '/');
 		if (cp1)
 			argp[argn++] = ++cp1;
 		else
-			argp[argn++] = php;
+			argp[argn++] = cgi;
 	}
 
 	argp[argn] = strrchr(hc->expnfilename, '/');
@@ -4060,6 +4097,8 @@ static void cgi_child(struct http_conn *hc)
 	/* argp[0] is already set up with the basename of php_cgi */
 	if (is_php(hc, NULL))
 		binary = hc->hs->php_cgi;
+	if (is_ssi(hc, NULL))
+		binary = hc->hs->ssi_cgi;
 
 	/* Default behavior for SIGPIPE. */
 	signal(SIGPIPE, SIG_DFL);
@@ -4201,6 +4240,9 @@ static int is_cgi(struct http_conn *hc)
 		return 1;
 
 	if (is_php(hc, fn))
+		return 1;
+
+	if (is_ssi(hc, fn))
 		return 1;
 
 	return 0;
@@ -4459,7 +4501,7 @@ sneaky:
 
 	/* Is it world-executable and in the CGI area? */
 	if (is_cgi(hc)) {
-		if (hc->sb.st_mode & S_IXOTH || is_php(hc, NULL))
+		if (hc->sb.st_mode & S_IXOTH || is_php(hc, NULL) || is_ssi(hc, NULL))
 			return cgi(hc);
 
 		syslog(LOG_DEBUG, "%s URL \"%s\" is a CGI but not executable, rejecting.", httpd_client(hc), hc->encodedurl);

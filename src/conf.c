@@ -73,6 +73,23 @@ static void conf_php(cfg_t *cfg)
 	}
 }
 
+static void conf_ssi(cfg_t *cfg)
+{
+	if (!cfg || !cfg_getbool(cfg, "enabled")) {
+	err:
+		ssi_cgi = NULL;
+		ssi_pattern = NULL;
+		return;
+	}
+
+	ssi_cgi = cfg_getstr(cfg, "cgi-path");
+	ssi_pattern = cfg_getstr(cfg, "pattern");
+	if (!ssi_pattern || !ssi_cgi || access(ssi_cgi, X_OK)) {
+		syslog(LOG_WARNING, "Invalid SSI settings, check path and pattern!");
+		goto err;
+	}
+}
+
 static void conf_redirect(struct srv *srv, cfg_t *cfg)
 {
 	size_t i;
@@ -114,6 +131,12 @@ static int read_config(char *fn)
 		CFG_STR ("cgi-path", "/usr/bin/php-cgi", CFGF_NONE),
 		CFG_END ()
 	};
+	cfg_opt_t ssi_opts[] = {
+		CFG_BOOL("enabled", 0, CFGF_NONE),
+		CFG_STR ("pattern", "**.shtml", CFGF_NONE),
+		CFG_STR ("cgi-path", "cgi-bin/ssi", CFGF_NONE),
+		CFG_END ()
+	};
 	cfg_opt_t opts[] = {
 		CFG_INT ("port", port, CFGF_NONE),
 		CFG_BOOL("chroot", do_chroot, CFGF_NONE),
@@ -139,6 +162,7 @@ static int read_config(char *fn)
 		CFG_STR ("dhfile", dhfile, CFGF_NONE),
 		CFG_STR ("user-agent-deny", useragent_deny, CFGF_NONE),
 		CFG_SEC ("php", php_opts, CFGF_MULTI),
+		CFG_SEC ("ssi", ssi_opts, CFGF_MULTI),
 		CFG_SEC ("server", server_opts, CFGF_MULTI | CFGF_TITLE),
 		CFG_END ()
 	};
@@ -221,6 +245,7 @@ static int read_config(char *fn)
 #endif
 
 	conf_php(cfg_getnsec(cfg, "php", 0));
+	conf_ssi(cfg_getnsec(cfg, "ssi", 0));
 
 	return 0;
 error:
