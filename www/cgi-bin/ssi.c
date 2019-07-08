@@ -31,6 +31,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <syslog.h>
 #include <time.h>
 #include <sys/stat.h>
 #include <sys/types.h>
@@ -51,7 +52,7 @@ static void read_file(char *vfilename, char *filename, FILE *fp);
 
 
 static char *url;
-
+static char *errmsg = "[an error occurred while processing this directive]";
 static char timefmt[100];
 static int sizefmt;
 
@@ -90,61 +91,43 @@ does not seem to exist.\n\
 
 static void not_found2(char *directive, char *tag, char *filename2)
 {
-	char *title = "Not Found";
-
-	printf("\
-<HR><H2>%s</H2>\n\
-The filename requested in a %s %s directive, %s,\n\
-does not seem to exist.\n\
-<HR>\n", title, directive, tag, filename2);
+	syslog(LOG_NOTICE, "The filename requested in a %s %s directive; %s, "
+	       "does not seem to exist.", directive, tag, filename2);
+	fputs(errmsg, stdout);
 }
 
 
 static void not_permitted(char *directive, char *tag, char *val)
 {
-	char *title = "Not Permitted";
-
-	printf("\
-<HR><H2>%s</H2>\n\
-The filename requested in the %s %s=%s directive\n\
-may not be fetched.\n\
-<HR>\n", title, directive, tag, val);
+	syslog(LOG_NOTICE, "The filename requested in the %s %s=%s directive, "
+	       "is not allowed.", directive, tag, val);
+	fputs(errmsg, stdout);
 }
 
 
 static void unknown_directive(char *filename, char *directive)
 {
-	char *title = "Unknown Directive";
-
-	printf("\
-<HR><H2>%s</H2>\n\
-The requested server-side-includes filename, %s,\n\
-tried to use an unknown directive, %s.\n\
-<HR>\n", title, filename, directive);
+	syslog(LOG_NOTICE, "The requested server-side-includes filename, %s, "
+	       "tried to use an unknown directive, %s.", filename, directive);
+	fputs(errmsg, stdout);
 }
 
 
 static void unknown_tag(char *filename, char *directive, char *tag)
 {
-	char *title = "Unknown Tag";
-
-	printf("\
-<HR><H2>%s</H2>\n\
-The requested server-side-includes filename, %s,\n\
-tried to use the directive %s with an unknown tag, %s.\n\
-<HR>\n", title, filename, directive, tag);
+	syslog(LOG_NOTICE, "The requested server-side-includes filename, %s, "
+	       "tried to use directive %s with an unknown tag, %s.", filename,
+	       directive, tag);
+	fputs(errmsg, stdout);
 }
 
 
 static void unknown_value(char *filename, char *directive, char *tag, char *val)
 {
-	char *title = "Unknown Value";
-
-	printf("\
-<HR><H2>%s</H2>\n\
-The requested server-side-includes filename, %s,\n\
-tried to use the directive %s %s with an unknown value, %s.\n\
-<HR>\n", title, filename, directive, tag, val);
+	syslog(LOG_NOTICE, "The requested server-side-includes filename, %s, "
+	       "tried to use directive %s %s with an unknown value, %s.",
+	       filename, directive, tag, val);
+	fputs(errmsg, stdout);
 }
 
 
