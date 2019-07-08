@@ -65,8 +65,8 @@ static void conf_php(cfg_t *cfg)
 		return;
 	}
 
-	php_pattern = cfg_getstr(cfg, "pattern");
 	php_cgi     = cfg_getstr(cfg, "cgi-path");
+	php_pattern = cfg_getstr(cfg, "pattern");
 	if (!php_pattern || !php_cgi || access(php_cgi, X_OK)) {
 		syslog(LOG_WARNING, "Invalid PHP settings, check your php-cgi path and pattern!");
 		goto err;

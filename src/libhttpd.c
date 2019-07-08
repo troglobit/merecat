@@ -446,8 +446,8 @@ struct httpd *httpd_init(char *hostname, unsigned short port, void *ssl_ctx, cha
 	hs->no_empty_referers = no_empty_referers;
 	hs->list_dotfiles = list_dotfiles;
 
-	hs->php_pattern = php_pattern;
 	hs->php_cgi = php_cgi;
+	hs->php_pattern = php_pattern;
 
 	init_mime();
 
