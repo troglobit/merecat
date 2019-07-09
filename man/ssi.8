@@ -33,38 +33,57 @@
 .Sh SYNOPSIS
 .Nm
 .Sh DESCRIPTION
-This is an external CGI program that gives you the same functionality as
-the built-in server-side-includes feature in some HTTP daemons.  It is
+This is an external CGI program that provides the same functionality as
+the built-in server-side-includes feature in many HTTP daemons.  It is
 written for use with
 .Xr merecat 8 ,
 but should be easy to adapt to other systems.
 .Pp
-To use this program, first make sure it is installed in your server's
-CGI area, and that CGI is enabled.  Then set up your URLs with the path
-to the document you want parsed as the "pathinfo".  That's the part of
-the URL that comes after the CGI program name.  For example, if the URL
-to this program is:
+There are two ways to use this; the modern way of using a
+.Cm .shtml
+pattern in
+.Nm merecat.conf
+to trigger the SSI script, which requires enabling the SSI module.  Then
+there is the traditional
+.Nm thttpd
+approach.  We start with the relevant settings needed in
+.Nm merecat.conf :
+.Bd -literal -offset indent
+ssi {
+    enabled = true
+    pattern = "**.shtml"	# default
+    cgi-path = "cgi-bin/ssi"    # default, web server root is used
+}
+.Ed
+.Pp
+The traditional
+.Nm thttpd
+way runs ssi as a simple CGI script, which requires placing the ssi
+binary in the web server CGI area, and enabling CGI.  Then set up URLs
+with the path to the document to parse as the "pathinfo".  That's the
+part of the URL that comes after the CGI program name.  For example, if
+the URL to this program is:
 .Bd -unfilled -offset left
 
     http://www.acme.com/cgi-bin/ssi
 
 .Ed
-and the url for your document is:
+and the url for the document is:
 .Bd -unfilled -offset left
 
     http://www.acme.com/users/wecoyote/doc.html
 
 .Ed
-then the compound URL that gives you the document filtered through the
-program would be:
+then the compound URL would be:
 .Bd -unfilled -offset left
 
     http://www.acme.com/cgi-bin/ssi/users/wecoyote/doc.html
 
 .Ed
-The format description below is adapted from
-.Aq http://hoohoo.ncsa.uiuc.edu/docs/tutorials/includes.html
 .Sh "INCLUDE FORMAT"
+The format description below is adapted from
+.Aq http://hoohoo.ncsa.uiuc.edu/docs/tutorials/includes.html .
+.Pp
 All directives are formatted as SGML comments within the document.  This
 is in case the document should ever find itself in the client's hands
 unparsed.  Each directive has the following format:
@@ -90,6 +109,9 @@ determines the formatting to be used when displaying the size of a file.
 Valid choices are bytes, for a formatted byte count (formatted as
 1,234,567), or abbrev for an abbreviated version displaying the number
 of kilobytes or megabytes the file occupies.
+.It Cm errmsg
+overrides the default;
+.Qq [an error occurred while processing this directive]
 .El
 .It Cm include
 Inserts the text of another document into the parsed document.  The
@@ -138,14 +160,24 @@ but in Greenwich mean time (GMT).
 The last modification date of the current document.  Subject to timefmt
 like the others.
 .El
-.Sh "BUGS / DEFICIENCIES"
-Does not implement the
-.Cm exec
-directive.  Actually, I consider this neither a bug nor a deficiency,
-but some may.
+.Sh "BUGS"
+Does not implement all "modern" SSI directives are supported. E.g.,
+.Cm exec cgi
+and
+.Cm exec cmd
+or any control directives like
+.Cm if, elif, else, endif,
+etc.  Patches and pull-requests are welcome :)
 .Sh "SEE ALSO"
 .Xr merecat 8 ,
 .Xr strftime 3
 .Sh AUTHOR
 Jef Poskanzer
 .Aq mailto:jef@mail.acme.com
+wrote the original, and
+Joachim Nilsson
+.Aq mailto:troglobit@gmail.com
+added some minor features and enabled support for
+.Cm .shtml
+pattern matching in
+.Nm merecat .
