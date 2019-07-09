@@ -363,6 +363,25 @@ Default is
 .Qq Pa /usr/bin/php-cgi
 .El
 }
+.It Cm ssi Ar {
+.Bl -tag -offset indent
+.It Cm enabled = Ar <true | false>
+The SSI module is disabled by default.
+.It Cm pattern = Ar PATTERN
+Wildcard pattern for triggering SSI, for instance
+.Qq **.shtml
+or
+.Qq **.shtml|**.stm|**.shtm ,
+the default is to allow any script ending in
+.Cm .shtml
+.It Cm cgi-path = Qq Pa /path/to/ssi
+Default is
+.Qq Pa cgi-bin/ssi .
+See
+.Xr ssi 8
+for more information.
+.El
+}
 .It Cm server Ar name {
 .Bl -tag -offset indent
 .It Cm port = Ar PORT
