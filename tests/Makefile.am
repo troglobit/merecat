@@ -5,5 +5,6 @@ TEST_EXTENSIONS  = .sh
 
 TESTS            = start.sh
 TESTS           += gzip.sh
+TESTS           += redirect.sh
 TESTS           += stop.sh
 
