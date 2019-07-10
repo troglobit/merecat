@@ -3639,6 +3639,9 @@ static char **make_envp(struct http_conn *hc)
 			snprintf(cp2, l, "%s%s", hc->hs->cwd, hc->expnfilename);
 			envp[envn++] = build_env("PATH_TRANSLATED=%s", cp2);
 		}
+
+		if (ssi_silent)
+			envp[envn++] = build_env("SILENT_ERRORS=%s", "true");
 	}
 
 	if (hc->query[0] != '\0')

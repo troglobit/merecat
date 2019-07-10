@@ -96,6 +96,7 @@ char        *local_pattern     = NULL;
 char        *php_cgi           = NULL;
 char        *php_pattern       = NULL;
 char        *ssi_cgi           = NULL;
+int          ssi_silent        = 0;
 char        *ssi_pattern       = NULL;
 char        *url_pattern       = NULL;
 char        *dir               = NULL;

@@ -83,6 +83,7 @@ static void conf_ssi(cfg_t *cfg)
 	}
 
 	ssi_cgi = cfg_getstr(cfg, "cgi-path");
+	ssi_silent = cfg_getbool(cfg, "silent");
 	ssi_pattern = cfg_getstr(cfg, "pattern");
 	if (!ssi_pattern || !ssi_cgi || access(ssi_cgi, X_OK)) {
 		syslog(LOG_WARNING, "Invalid SSI settings, check path and pattern!");
@@ -133,6 +134,7 @@ static int read_config(char *fn)
 	};
 	cfg_opt_t ssi_opts[] = {
 		CFG_BOOL("enabled", 0, CFGF_NONE),
+		CFG_BOOL("silent", 0, CFGF_NONE),
 		CFG_STR ("pattern", "**.shtml", CFGF_NONE),
 		CFG_STR ("cgi-path", "cgi-bin/ssi", CFGF_NONE),
 		CFG_END ()

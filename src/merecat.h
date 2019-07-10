@@ -446,6 +446,7 @@ extern char     *local_pattern;
 extern char     *php_cgi;
 extern char     *php_pattern;
 extern char     *ssi_cgi;
+extern int       ssi_silent;
 extern char     *ssi_pattern;
 extern char     *url_pattern;
 extern char     *dir;

@@ -642,7 +642,10 @@ int main(int argc, char **argv)
 	strcpy(timefmt, "%a %b %e %T %Z %Y");
 	sizefmt = SF_BYTES;
 
-	errmsg = strdup(ERRMSG_DEFAULT);
+	if (!getenv("SILENT_ERRORS"))
+		errmsg = strdup(ERRMSG_DEFAULT);
+	else
+		unsetenv("SILENT_ERRORS");
 
 	/* The MIME type has to be text/html. */
 	fputs("Content-type: text/html\n\n", stdout);
