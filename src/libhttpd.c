@@ -624,36 +624,6 @@ static void add_response(struct http_conn *hc, const char *str)
 	hc->responselen += len;
 }
 
-/* Merecat default style */
-const char *httpd_css_default(void)
-{
-	const char *style = "  <style type=\"text/css\">\n"
-		"    body { background-color:#f2f1f0; font-family: sans-serif;}\n"
-		"    h2 { border-bottom: 1px solid #f2f1f0; font-weight: normal;}"
-		"    address { border-top: 1px solid #f2f1f0; margin-top: 1em; padding-top: 5px; color:#c8c5c2; }"
-		"    table { table-layout: fixed; border-collapse: collapse;}\n"
-		"    table tr:hover { background-color:#f2f1f0;}\n"
-		"    table tr td { text-align: left; padding: 0 5px 0 0px; }\n"
-		"    table tr th { text-align: left; padding: 0 5px 0 0px; }\n"
-		"    table tr td.icon  { text-align: center; }\n"
-		"    table tr th.icon  { text-align: center; }\n"
-		"    table tr td.right { text-align: right; }\n"
-		"    table tr th.right { text-align: right; }\n"
-		"    .right { padding-right: 20px; }\n"
-		"    #wrapper {\n"
-		"     background-color:white; width:1024px;\n"
-		"     padding:1.5em; margin:4em auto; position:absolute;\n"
-		"     top:0; left:0; right:0;\n"
-		"     border-radius: 10px; border: 1px solid #c8c5c2;\n"
-		"    }\n"
-		"    #table {\n"
-		"     padding: 0em; margin: 0em auto; overflow: auto;\n"
-		"    }\n"
-		"  </style>\n";
-
-	return style;
-}
-
 /* Send the buffered response. */
 void httpd_send_response(struct http_conn *hc)
 {
