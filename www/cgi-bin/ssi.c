@@ -29,6 +29,7 @@
 
 /* System headers */
 #include <stdio.h>
+#include <stdarg.h>
 #include <stdlib.h>
 #include <string.h>
 #include <syslog.h>
@@ -37,6 +38,7 @@
 #include <sys/types.h>
 
 /* Local headers */
+#include "libhttpd.h"
 #include "merecat.h"
 #include "match.h"
 
@@ -61,18 +63,45 @@ static struct stat sb;
 static void read_file(char *vfilename, char *filename, FILE *fp);
 
 
+static void send_response(char *title, char *fmt, ...)
+{
+	va_list ap;
+	char *srv, *host, *port;
+
+	printf("<!DOCTYPE html>\n"
+	       "<html>\n"
+	       " <head>\n"
+	       "  <title>%s</title>\n"
+	       "  <link rel=\"icon\" type=\"image/x-icon\" href=\"/icons/favicon.ico\">\n"
+	       "%s"
+	       " </head>\n"
+	       " <body>\n"
+	       "<div id=\"wrapper\" tabindex=\"-1\">\n"
+	       "<h2>%s</h2>\n"
+	       "<p>\n", title, httpd_css_default(), title);
+
+	va_start(ap, fmt);
+	vprintf(fmt, ap);
+	va_end(ap);
+
+	host = getenv("SERVER_NAME");
+	port = getenv("SERVER_PORT");
+	srv = getenv("SERVER_SOFTWARE");
+	printf("</p>\n"
+	       "<address>%s httpd at %s port %s</address>"
+	       "</div>\n"
+	       "</body></html>\n", srv, host, port);
+}
+
 static void internal_error(char *reason)
 {
 	char *title = "500 Internal Error";
 
-	printf("\
-<HTML><HEAD><TITLE>%s</TITLE></HEAD>\n\
-<BODY><H2>%s</H2>\n\
-Something unusual went wrong during a server-side-includes request:\n\
-<BLOCKQUOTE>\n\
-%s\n\
-</BLOCKQUOTE>\n\
-</BODY></HTML>\n", title, title, reason);
+	send_response(title, "Something unusual went wrong in a server-side "
+		      "includes request:\n"
+		      "<blockquote>\n"
+		      "%s\n"
+		      "</blockquote>\n", reason);
 }
 
 
@@ -80,12 +109,8 @@ static void not_found(char *filename)
 {
 	char *title = "404 Not Found";
 
-	printf("\
-<HTML><HEAD><TITLE>%s</TITLE></HEAD>\n\
-<BODY><H2>%s</H2>\n\
-The requested server-side-includes filename, %s,\n\
-does not seem to exist.\n\
-</BODY></HTML>\n", title, title, filename);
+	send_response(title, "The requested server-side includes filename, %s,\n"
+		      "does not seem to exist.", filename);
 }
 
 static void show_errmsg(void)
