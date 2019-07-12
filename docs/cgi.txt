@@ -1,0 +1,44 @@
+                                                                        -*-org-*-
+* Supported CGI environment variables
+
+|     | Key                  | RFC | Value                                                                          |
+|-----+----------------------+-----+--------------------------------------------------------------------------------|
+| [ ] | AUTH_TYPE            | YES |                                                                                |
+| [ ] | CONTENT_LENGTH       | YES |                                                                                |
+| [ ] | CONTENT_TYPE         | YES |                                                                                |
+| [ ] | DOCUMENT_ROOT        |     | The root directory of your server                                              |
+| [X] | GATEWAY_INTERFACE    | YES | "CGI/1.1"                                                                      |
+| [ ] | HTTP_ACCEPT          |     |                                                                                |
+| [ ] | HTTP_ACCEPT_CHARSET  |     |                                                                                |
+| [ ] | HTTP_ACCEPT_ENCODING |     |                                                                                |
+| [ ] | HTTP_ACCEPT_LANGUAGE |     |                                                                                |
+| [ ] | HTTP_CONNECTION      |     |                                                                                |
+| [ ] | HTTP_COOKIE          |     | The visitor's cookie, if one is set                                            |
+| [X] | HTTP_HOST            |     | The hostname of the page being attempted                                       |
+| [ ] | HTTP_KEEP_ALIVE      |     |                                                                                |
+| [X] | HTTP_REFERER         |     | The URL of the page that called your program                                   |
+| [X] | HTTP_USER_AGENT      |     | The browser type of the visitor                                                |
+| [ ] | HTTPS                |     | "on" if the program is being called through a secure server                    |
+| [ ] | PATH                 |     | The system path your server is running under                                   |
+| [ ] | PATH_INFO            | YES |                                                                                |
+| [ ] | PATH_TRANSLATED      | YES |                                                                                |
+| [X] | QUERY_STRING         | YES | The query string (see GET, below)                                              |
+| [X] | REMOTE_ADDR          | YES | The IP address of the visitor                                                  |
+| [ ] | REMOTE_HOST          | YES | The hostname of the visitor[fn:1]                                              |
+| [ ] | REMOTE_IDENT         | YES |                                                                                |
+| [ ] | REMOTE_PORT          |     | The port the visitor is connected to on the web server                         |
+| [X] | REMOTE_USER          | YES | The visitor's username (for .htaccess-protected pages)                         |
+| [ ] | REQUEST_METHOD       | YES | GET or POST                                                                    |
+| [ ] | REQUEST_URI          |     | Interpreted pathname of requested document/CGI (relative to the document root) |
+| [ ] | SCRIPT_FILENAME      |     | Full pathname of the current CGI                                               |
+| [X] | SCRIPT_NAME          | YES | Interpreted pathname of the current CGI (relative to the document root)        |
+| [ ] | SERVER_ADDR          |     | Server IP address                                                              |
+| [ ] | SERVER_ADMIN         |     | The email address for your server's webmaster                                  |
+| [X] | SERVER_NAME          | YES | Your server's fully qualified domain name (e.g. www.cgi101.com)                |
+| [X] | SERVER_PORT          | YES | The port number your server is listening on                                    |
+| [ ] | SERVER_PROTOCOL      | YES | "HTTP/1.1"                                                                     |
+| [ ] | SERVER_SIGNATURE     |     |                                                                                |
+| [X] | SERVER_SOFTWARE      | YES | The server software you're using, e.g. "Apache/1.3 (Win32)"                    |
+
+
+[fn:1] If your server has reverse-name-lookups on; otherwise this is the IP address again.
