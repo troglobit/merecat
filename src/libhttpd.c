@@ -3618,6 +3618,14 @@ static char **make_envp(struct http_conn *hc)
 	if (hc->query[0] != '\0')
 		envp[envn++] = build_env("QUERY_STRING=%s", hc->query);
 	envp[envn++] = build_env("REMOTE_ADDR=%s", httpd_client(hc));
+	/* RFC 3875, section 4.1.9, states the server *should* set this,
+	** but that it *may* susbstitute it with the IP address for
+	** performance reasons.
+	*/
+	envp[envn++] = build_env("REMOTE_HOST=%s", httpd_client(hc));
+	/* Non-standard, but common, client's port */
+	snprintf(buf, sizeof(buf), "%hu", httpd_client_port(hc));
+	envp[envn++] = build_env("REMOTE_PORT=%s", buf);
 
 	if (hc->referer[0] != '\0')
 		envp[envn++] = build_env("HTTP_REFERER=%s", hc->referer);

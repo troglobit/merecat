@@ -26,9 +26,9 @@
 | [X] | QUERY_STRING         | YES | The query string (see GET, below)                                              |
 | [X] | REDIRECT_STATUS      |     | Non-standard environment varialbe used by PHP                                  |
 | [X] | REMOTE_ADDR          | YES | The IP address of the visitor                                                  |
-| [ ] | REMOTE_HOST          | YES | The hostname of the visitor[fn:1]                                              |
-| [ ] | REMOTE_IDENT         | YES |                                                                                |
-| [ ] | REMOTE_PORT          |     | The port the visitor is connected to on the web server                         |
+| [X] | REMOTE_HOST          | YES | The hostname of the visitor[fn:1]                                              |
+| [ ] | REMOTE_IDENT         | MAY | May be used to provide RFC 1413 connection identity information                |
+| [ ] | REMOTE_PORT          |     | The port from which the request was sent                                       |
 | [X] | REMOTE_USER          | YES | The visitor's username (for .htaccess-protected pages)                         |
 | [X] | REQUEST_METHOD       | YES | GET or POST                                                                    |
 | [X] | REQUEST_URI          |     | Interpreted pathname of requested document/CGI (relative to the document root) |
@@ -42,7 +42,8 @@
 | [ ] | SERVER_SIGNATURE     |     |                                                                                |
 | [X] | SERVER_SOFTWARE      | YES | The server software you're using, e.g. "Apache/1.3 (Win32)"                    |
 
-The RFC column refers to <https://tools.ietf.org/html/rfc3875>.
+The RFC column refers to mandatory CGI environment variables, as defined
+in <https://tools.ietf.org/html/rfc3875>.
 
 ----
 [fn:1] If your server has reverse-name-lookups on; otherwise this is the IP address again.
