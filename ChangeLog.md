@@ -4,32 +4,33 @@ Change Log
 All relevant changes are documented in this file.
 
 
-[v2.32][] - 2018-02-XX
+[v2.32][] - 2019-07-XX
 ----------------------
 
-Notable new features: HTTPS, HTTP/1.1 keep-alive, and built-in gzip
-deflate compression using zlib.
+Notable new features: multiple server support from one process, HTTPS,
+HTTP/1.1 keep-alive, and built-in gzip deflate compression using zlib.
 
 ### Changes
-- Add Dockerfile for ease of deployment in limited setups
-- Add basic support for HTTPS.  Simple public certificate and a private
-  key file is supported, and only with one host.  Virtual hosts require
-  using a wildcard cert
-- Add gzip deflate compression when built with zlib, also compress HEAD
-  as well as GET requests
+- Add support for HTTPS, works with certificates from Let's Encrypt
+- Add support for multiple servers, listen to different ports
+- Add support for built-in HTTP redirect, e.g. from HTTP to HTTPS
+- Add gzip deflate compression when built with zlib, also compress
+  HEAD as well as GET requests
 - Add true `Connection: keep-alive` support
 - Add missing `Vary: Accept-Encoding` header
+- CGI: Allow handling other HTTP methods besides GET/HEAD/POST, from
+  thttpd v2.29, change by Jef Poskanzer
 - CGI: Allow `:PORT` in `HTTP_POST`, like Apache
 - CGI: Allow trailing slash in `PATH_INFO`, like Apache
 - CGI: Change default `CGI_PATTERN` from disabled to `**.cgi|/cgi-bin/*`
-- Add support for `php-cgi` and `index.cgi` index file
+- Added support for `php-cgi` and `index.cgi` index file
 - Dot files are no longer shown in dir listings, use the `merecat.conf`
   setting `list-dotfiles = true` to enable
 - Server stats are no longer periodically sent to syslog, re-enable in
   `merecat.conf` if you need the `STATS_TIME` feature
-- Add Debian `SIGBUS` patch for reading from NFS
-- Add `-I IDENT` command line option to override program identity.  This
-  change makes it possible to change syslog, PID file name, *and* the
+- Apply Debian thttpd `SIGBUS` patch for reading from NFS
+- Add `-I IDENT` command line option to override program identity.
+  This change makes it possible to change syslog, PID file name, *and*
   `.conf` file name.  Useful when running multiple instances of Merecat
 - Add `--enable-msie-padding` to `configure` script
 - Add `.htaccess` support, limited to IPv4.  Feature by Felix J. Ogris
@@ -37,7 +38,8 @@ deflate compression using zlib.
 - DOC: How to use `.htpasswd` and virtual hosts
 - DOC: Added section on how to optimize performance
 - Update MIME types, e.g. Ogg video, 7zip, svg
-- Cute cat default favicon
+- Add Dockerfile for ease of deployment in limited setups
+- Add cute cat default favicon
 - Refactor, deprecated POSIX API's, e.g. `bzero() --> memset()`
 
 ### Fixes
