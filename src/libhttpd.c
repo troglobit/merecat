@@ -3571,7 +3571,26 @@ static char **make_envp(struct http_conn *hc)
 			snprintf(cp2, l, "%s%s", hc->hs->cwd, hc->pathinfo);
 			envp[envn++] = build_env("PATH_TRANSLATED=%s", cp2);
 		}
+	} else if (is_ssi(hc, NULL)) {
+		char *cp2;
+		size_t l;
+
+		/* Fake PATH_INFO and PATH_TRANSLATED for cgi-bin/ssi
+		** since it uses them to determinte include paths for
+		** virtual/config SSI directives.
+		*/
+		envp[envn++] = build_env("PATH_INFO=/%s", hc->expnfilename);
+		l = strlen(hc->hs->cwd) + strlen(hc->expnfilename) + 1;
+		cp2 = NEW(char, l);
+		if (cp2) {
+			snprintf(cp2, l, "%s%s", hc->hs->cwd, hc->expnfilename);
+			envp[envn++] = build_env("PATH_TRANSLATED=%s", cp2);
+		}
+
+		if (ssi_silent)
+			envp[envn++] = build_env("SILENT_ERRORS=%s", "true");
 	}
+
 	envp[envn++] = build_env("SCRIPT_NAME=/%s", strcmp(hc->origfilename, ".") == 0 ? "" : hc->origfilename);
 
 	/* php-cgi needs non-std SCRIPT_FILENAME to be defined to detect
@@ -3594,25 +3613,6 @@ static char **make_envp(struct http_conn *hc)
 
 		/* See more about this at https://php.net/security.cgi-bin */
 		envp[envn++] = build_env("REDIRECT_STATUS=%s", "1");
-	}
-
-	/*
-	** ssi needs PATH_TRANSLATED to be set
-	*/
-	if (is_ssi(hc, NULL)) {
-		char *cp2;
-		size_t l;
-
-		envp[envn++] = build_env("PATH_INFO=/%s", hc->expnfilename);
-		l = strlen(hc->hs->cwd) + strlen(hc->expnfilename) + 1;
-		cp2 = NEW(char, l);
-		if (cp2) {
-			snprintf(cp2, l, "%s%s", hc->hs->cwd, hc->expnfilename);
-			envp[envn++] = build_env("PATH_TRANSLATED=%s", cp2);
-		}
-
-		if (ssi_silent)
-			envp[envn++] = build_env("SILENT_ERRORS=%s", "true");
 	}
 
 	if (hc->query[0] != '\0')
