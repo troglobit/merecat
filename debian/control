@@ -19,7 +19,8 @@ Description: Embedded web server
  Merecat is a simple web server based on Jef Poskanzer's thttpd.
  It supports all basic features required for most use-cases. The
  most prominent features are probably HTTPS, using OpenSSL, PHP,
- and the URL-traffic-based throttling.
+ multiple servers with HTTP redirect support, redirect from HTTP
+ to HTTPS, virtual hosts, and the URL-traffic-based throttling.
  .
  Its small footprint makes it is suitable for small and embedded
- systems
+ systems.
