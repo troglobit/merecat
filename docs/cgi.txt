@@ -24,20 +24,21 @@
 | [X] | PATH_INFO            | YES |                                                                                |
 | [X] | PATH_TRANSLATED      | YES |                                                                                |
 | [X] | QUERY_STRING         | YES | The query string (see GET, below)                                              |
+| [X] | REDIRECT_STATUS      |     | Non-standard environment varialbe used by PHP                                  |
 | [X] | REMOTE_ADDR          | YES | The IP address of the visitor                                                  |
 | [ ] | REMOTE_HOST          | YES | The hostname of the visitor[fn:1]                                              |
 | [ ] | REMOTE_IDENT         | YES |                                                                                |
 | [ ] | REMOTE_PORT          |     | The port the visitor is connected to on the web server                         |
 | [X] | REMOTE_USER          | YES | The visitor's username (for .htaccess-protected pages)                         |
 | [X] | REQUEST_METHOD       | YES | GET or POST                                                                    |
-| [ ] | REQUEST_URI          |     | Interpreted pathname of requested document/CGI (relative to the document root) |
-| [ ] | SCRIPT_FILENAME      |     | Full pathname of the current CGI                                               |
+| [X] | REQUEST_URI          |     | Interpreted pathname of requested document/CGI (relative to the document root) |
+| [X] | SCRIPT_FILENAME      |     | Full pathname of the current CGI, used by PHP                                  |
 | [X] | SCRIPT_NAME          | YES | Interpreted pathname of the current CGI (relative to the document root)        |
 | [ ] | SERVER_ADDR          |     | Server IP address                                                              |
 | [ ] | SERVER_ADMIN         |     | The email address for your server's webmaster                                  |
 | [X] | SERVER_NAME          | YES | Your server's fully qualified domain name (e.g. www.cgi101.com)                |
 | [X] | SERVER_PORT          | YES | The port number your server is listening on                                    |
-| [ ] | SERVER_PROTOCOL      | YES | "HTTP/1.1"                                                                     |
+| [X] | SERVER_PROTOCOL      | YES | "HTTP/1.1"                                                                     |
 | [ ] | SERVER_SIGNATURE     |     |                                                                                |
 | [X] | SERVER_SOFTWARE      | YES | The server software you're using, e.g. "Apache/1.3 (Win32)"                    |
 
