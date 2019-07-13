@@ -2229,15 +2229,15 @@ int httpd_get_conn(struct httpd *hs, int listen_fd, struct http_conn *hc)
 	fcntl(hc->conn_fd, F_SETFD, 1);
 	hc->hs = hs;
 	memset(&hc->client_addr, 0, sizeof(hc->client_addr));
-	memmove(&hc->client_addr, &sa, sockaddr_len(&sa));
+	memcpy(&hc->client_addr, &sa, sizeof(sa));
 
 	/*
 	 * Slightly ugly workaround to handle X-Forwarded-For better for IPv6
 	 * Idea from https://blog.steve.fi/IPv6_and_thttpd.html
 	 */
 	sa_addr = httpd_ntoa(&hc->client_addr);
-	memset(hc->client_addr.sa_addr, 0, sizeof(hc->client_addr.sa_addr));
-	strncpy(hc->client_addr.sa_addr, sa_addr, sizeof(hc->client_addr.sa_addr));
+	memset(hc->client_addr.address, 0, sizeof(hc->client_addr.address));
+	strncpy(hc->client_addr.address, sa_addr, sizeof(hc->client_addr.address));
 
 	if (httpd_ssl_open(hc)) {
 		syslog(LOG_CRIT, "Failed creating new SSL connection");
@@ -2685,11 +2685,11 @@ int httpd_parse_request(struct http_conn *hc)
 				cp = &buf[16];
 				cp += strspn(cp, " \t");
 				for (i = 0; cp[i]; i++) {
-					hc->client_addr.sa_addr[i] = cp[i];
+					hc->client_addr.address[i] = cp[i];
 					if (isblank(cp[i]))
 						break;
 				}
-				hc->client_addr.sa_addr[i] = 0;
+				hc->client_addr.address[i] = 0;
 			}
 			/*
 			 * Possibly add support for X-Real-IP: here?
@@ -4681,28 +4681,29 @@ char *httpd_ntoa(sockaddr_t *sa)
 	if (getnameinfo(&sa->sa, sockaddr_len(sa), str, sizeof(str), 0, 0, NI_NUMERICHOST) != 0) {
 		str[0] = '?';
 		str[1] = '\0';
-	} else if (IN6_IS_ADDR_V4MAPPED(&sa->sa_in6.sin6_addr) && strncmp(str, "::ffff:", 7) == 0) {
+	} else if (IN6_IS_ADDR_V4MAPPED(&sa->sin6.sin6_addr) && strncmp(str, "::ffff:", 7) == 0) {
 		/* Elide IPv6ish prefix for IPv4 addresses. */
 		memmove(str, &str[7], strlen(str) - 6);
 	}
 
 	return str;
 #else
-	return inet_ntoa(sa->sa_in.sin_addr);
+	return inet_ntoa(sa->sin.sin_addr);
 #endif
 }
 
 short httpd_port(sockaddr_t *sa)
 {
-    if (sa->sa.sa_family == AF_INET)
-	    return ntohs(sa->sa_in.sin_port);
-
-    return htons(sa->sa_in6.sin6_port);
+#ifdef USE_IPV6
+    if (sa->sa.sa_family == AF_INET6)
+	    return htons(sa->sin6.sin6_port);
+#endif
+    return ntohs(sa->sin.sin_port);
 }
 
 char *httpd_client(struct http_conn *hc)
 {
-	return hc->client_addr.sa_addr;
+	return hc->client_addr.address;
 }
 
 short httpd_client_port(struct http_conn *hc)

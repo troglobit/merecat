@@ -92,14 +92,15 @@
 /* The httpd structs. */
 
 /* A multi-family sockaddr. */
-typedef union {
-	struct sockaddr         sa;
-	struct sockaddr_in      sa_in;
+typedef struct {
+	union {
+		struct sockaddr     sa;
+		struct sockaddr_in  sin;
 #ifdef USE_IPV6
-	struct sockaddr_in6     sa_in6;
-	struct sockaddr_storage sa_stor;
+		struct sockaddr_in6 sin6;
 #endif
-	char                    sa_addr[200]; /* Real IP address */
+	};
+	char address[200]; /* Real IP address */
 } sockaddr_t;
 
 /* A redirect. */
