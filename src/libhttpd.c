@@ -4138,49 +4138,43 @@ static int cgi(struct http_conn *hc)
 	*/
 	hc->do_keep_alive = 0;
 
-	if (hc->method == METHOD_GET || hc->method == METHOD_POST ||
-	    hc->method == METHOD_PUT || hc->method == METHOD_DELETE) {
-		if (hc->hs->cgi_limit != 0 && hc->hs->cgi_count >= hc->hs->cgi_limit) {
-			httpd_send_err(hc, 503, httpd_err503title, "", httpd_err503form, hc->encodedurl);
-			return -1;
-		}
-
-		httpd_clear_ndelay(hc->conn_fd);
-		r = fork();
-		if (r < 0) {
-			syslog(LOG_ERR, "fork: %s", strerror(errno));
-			httpd_send_err(hc, 500, err500title, "", err500form, hc->encodedurl);
-			return -1;
-		}
-		if (r == 0) {
-			/* Child process. */
-			sub_process = 1;
-			httpd_unlisten(hc->hs);
-			cgi_child(hc);
-		}
-
-		/* Parent process spawned CGI process PID. */
-		syslog(LOG_INFO, "%s: CGI[%d] /%.200s%s \"%s\" \"%s\"",
-		       httpd_client(hc), r, hc->expnfilename, hc->encodedurl, hc->referer, hc->useragent);
-
-		httpd_cgi_track(hc->hs, r);
-
-#ifdef CGI_TIMELIMIT
-		/* Schedule a kill for the child process, in case it runs too long */
-		arg.i = r;
-		if (!tmr_create(NULL, cgi_kill, arg, CGI_TIMELIMIT * 1000L, 0)) {
-			syslog(LOG_CRIT, "tmr_create(cgi_kill child) failed");
-			exit(1);
-		}
-#endif
-
-		hc->status = 200;
-		hc->bytes_sent = CGI_BYTECOUNT;
-		hc->should_linger = 0;
-	} else {
-		httpd_send_err(hc, 501, err501title, "", err501form, httpd_method_str(hc->method));
+	if (hc->hs->cgi_limit != 0 && hc->hs->cgi_count >= hc->hs->cgi_limit) {
+		httpd_send_err(hc, 503, httpd_err503title, "", httpd_err503form, hc->encodedurl);
 		return -1;
 	}
+
+	httpd_clear_ndelay(hc->conn_fd);
+	r = fork();
+	if (r < 0) {
+		syslog(LOG_ERR, "fork: %s", strerror(errno));
+		httpd_send_err(hc, 500, err500title, "", err500form, hc->encodedurl);
+		return -1;
+	}
+	if (r == 0) {
+		/* Child process. */
+		sub_process = 1;
+		httpd_unlisten(hc->hs);
+		cgi_child(hc);
+	}
+
+	/* Parent process spawned CGI process PID. */
+	syslog(LOG_INFO, "%s: CGI[%d] /%.200s%s \"%s\" \"%s\"",
+	       httpd_client(hc), r, hc->expnfilename, hc->encodedurl, hc->referer, hc->useragent);
+
+	httpd_cgi_track(hc->hs, r);
+
+#ifdef CGI_TIMELIMIT
+	/* Schedule a kill for the child process, in case it runs too long */
+	arg.i = r;
+	if (!tmr_create(NULL, cgi_kill, arg, CGI_TIMELIMIT * 1000L, 0)) {
+		syslog(LOG_CRIT, "tmr_create(cgi_kill child) failed");
+		exit(1);
+	}
+#endif
+
+	hc->status = 200;
+	hc->bytes_sent = CGI_BYTECOUNT;
+	hc->should_linger = 0;
 
 	return 0;
 }
@@ -4294,12 +4288,6 @@ static int really_start_request(struct http_conn *hc, struct timeval *now)
 	size_t expnlen, indxlen, i;
 
 	expnlen = strlen(hc->expnfilename);
-
-	if (hc->method != METHOD_GET && hc->method != METHOD_HEAD && hc->method != METHOD_POST &&
-	    hc->method != METHOD_OPTIONS && hc->method != METHOD_PUT && hc->method != METHOD_DELETE) {
-		httpd_send_err(hc, 501, err501title, "", err501form, httpd_method_str(hc->method));
-		return -1;
-	}
 
 	is_icon = mmc_icon_check(hc->pathinfo, &hc->sb);
 	if (is_icon) {
@@ -4491,6 +4479,11 @@ sneaky:
 			       ERROR_FORM(err403form,
 					  "The requested URL '%s' resolves to a file plus CGI-style pathinfo, but the file is not a valid CGI file.\n"),
 			       hc->encodedurl);
+		return -1;
+	}
+
+	if (hc->method != METHOD_GET && hc->method != METHOD_HEAD) {
+		httpd_send_err(hc, 501, err501title, "", err501form, httpd_method_str(hc->method));
 		return -1;
 	}
 
