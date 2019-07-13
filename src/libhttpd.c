@@ -4130,8 +4130,8 @@ int httpd_cgi_untrack(struct httpd *hs, pid_t pid)
 
 static int cgi(struct http_conn *hc)
 {
-	int r;
 	arg_t arg;
+	int pid;
 
 	/*
 	** We are not going to leave the socket open after a CGI ... too difficult
@@ -4144,13 +4144,13 @@ static int cgi(struct http_conn *hc)
 	}
 
 	httpd_clear_ndelay(hc->conn_fd);
-	r = fork();
-	if (r < 0) {
+	pid = fork();
+	if (pid < 0) {
 		syslog(LOG_ERR, "fork: %s", strerror(errno));
 		httpd_send_err(hc, 500, err500title, "", err500form, hc->encodedurl);
 		return -1;
 	}
-	if (r == 0) {
+	if (pid == 0) {
 		/* Child process. */
 		sub_process = 1;
 		httpd_unlisten(hc->hs);
@@ -4159,13 +4159,13 @@ static int cgi(struct http_conn *hc)
 
 	/* Parent process spawned CGI process PID. */
 	syslog(LOG_INFO, "%s: CGI[%d] /%.200s%s \"%s\" \"%s\"",
-	       httpd_client(hc), r, hc->expnfilename, hc->encodedurl, hc->referer, hc->useragent);
+	       httpd_client(hc), pid, hc->expnfilename, hc->encodedurl, hc->referer, hc->useragent);
 
-	httpd_cgi_track(hc->hs, r);
+	httpd_cgi_track(hc->hs, pid);
 
 #ifdef CGI_TIMELIMIT
 	/* Schedule a kill for the child process, in case it runs too long */
-	arg.i = r;
+	arg.i = pid;
 	if (!tmr_create(NULL, cgi_kill, arg, CGI_TIMELIMIT * 1000L, 0)) {
 		syslog(LOG_CRIT, "tmr_create(cgi_kill child) failed");
 		exit(1);
