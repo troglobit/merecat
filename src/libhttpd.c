@@ -1219,7 +1219,7 @@ static int access_check2(struct http_conn *hc, char *dir)
 		 * Does client addr match this rule?
 		 * TODO: Generalize and add IPv6 support
 		 */
-		if ((hc->client.sa_in.sin_addr.s_addr & ipv4_mask.s_addr) ==
+		if ((hc->client.sin.sin_addr.s_addr & ipv4_mask.s_addr) ==
 		    (ipv4_addr.s_addr & ipv4_mask.s_addr)) {
 			/* Yes. */
 			switch (line[0]) {
