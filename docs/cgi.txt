@@ -3,15 +3,16 @@
 
 |     | Key                  | RFC | Value                                                                          |
 |-----+----------------------+-----+--------------------------------------------------------------------------------|
-| [ ] | AUTH_TYPE            | YES |                                                                                |
-| [ ] | CONTENT_LENGTH       | YES |                                                                                |
-| [ ] | CONTENT_TYPE         | YES |                                                                                |
+| [X] | AUTH_TYPE            | YES | Basic supported                                                                |
+| [X] | CONTENT_LENGTH       | YES |                                                                                |
+| [X] | CONTENT_TYPE         | YES |                                                                                |
 | [ ] | DOCUMENT_ROOT        |     | The root directory of your server                                              |
 | [X] | GATEWAY_INTERFACE    | YES | "CGI/1.1"                                                                      |
 | [ ] | HTTP_ACCEPT          |     |                                                                                |
 | [ ] | HTTP_ACCEPT_CHARSET  |     |                                                                                |
 | [ ] | HTTP_ACCEPT_ENCODING |     |                                                                                |
 | [ ] | HTTP_ACCEPT_LANGUAGE |     |                                                                                |
+| [X] | HTTP_AUTHORIZATION   |     | Workaround for Apache & php5-cgi, see AUTH_TYPE                                |
 | [ ] | HTTP_CONNECTION      |     |                                                                                |
 | [ ] | HTTP_COOKIE          |     | The visitor's cookie, if one is set                                            |
 | [X] | HTTP_HOST            |     | The hostname of the page being attempted                                       |
@@ -20,15 +21,15 @@
 | [X] | HTTP_USER_AGENT      |     | The browser type of the visitor                                                |
 | [ ] | HTTPS                |     | "on" if the program is being called through a secure server                    |
 | [ ] | PATH                 |     | The system path your server is running under                                   |
-| [ ] | PATH_INFO            | YES |                                                                                |
-| [ ] | PATH_TRANSLATED      | YES |                                                                                |
+| [X] | PATH_INFO            | YES |                                                                                |
+| [X] | PATH_TRANSLATED      | YES |                                                                                |
 | [X] | QUERY_STRING         | YES | The query string (see GET, below)                                              |
 | [X] | REMOTE_ADDR          | YES | The IP address of the visitor                                                  |
 | [ ] | REMOTE_HOST          | YES | The hostname of the visitor[fn:1]                                              |
 | [ ] | REMOTE_IDENT         | YES |                                                                                |
 | [ ] | REMOTE_PORT          |     | The port the visitor is connected to on the web server                         |
 | [X] | REMOTE_USER          | YES | The visitor's username (for .htaccess-protected pages)                         |
-| [ ] | REQUEST_METHOD       | YES | GET or POST                                                                    |
+| [X] | REQUEST_METHOD       | YES | GET or POST                                                                    |
 | [ ] | REQUEST_URI          |     | Interpreted pathname of requested document/CGI (relative to the document root) |
 | [ ] | SCRIPT_FILENAME      |     | Full pathname of the current CGI                                               |
 | [X] | SCRIPT_NAME          | YES | Interpreted pathname of the current CGI (relative to the document root)        |
