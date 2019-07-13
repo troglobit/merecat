@@ -3558,14 +3558,15 @@ static char **make_envp(struct http_conn *hc)
 	snprintf(buf, sizeof(buf), "%d", (int)hc->hs->port);
 	envp[envn++] = build_env("SERVER_PORT=%s", buf);
 	envp[envn++] = build_env("REQUEST_METHOD=%s", httpd_method_str(hc->method));
+	envp[envn++] = build_env("REQUEST_URI=%s", hc->encodedurl);
 	if (hc->pathinfo[0] != '\0') {
 		char *cp2;
 		size_t l;
 
 		envp[envn++] = build_env("PATH_INFO=/%s", hc->pathinfo);
+
 		l = strlen(hc->hs->cwd) + strlen(hc->pathinfo) + 1;
 		cp2 = NEW(char, l);
-
 		if (cp2) {
 			snprintf(cp2, l, "%s%s", hc->hs->cwd, hc->pathinfo);
 			envp[envn++] = build_env("PATH_TRANSLATED=%s", cp2);
