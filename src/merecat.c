@@ -1077,7 +1077,7 @@ static void idle(arg_t arg, struct timeval *now)
 		switch (c->conn_state) {
 		case CNST_READING:
 			if (now->tv_sec - c->active_at >= IDLE_READ_TIMELIMIT) {
-				syslog(LOG_INFO, "%s connection timed out reading", c->hc->client_addr.address);
+				syslog(LOG_INFO, "%s connection timed out reading", c->hc->client.address);
 //				httpd_send_err(c->hc, 408, httpd_err408title, "", httpd_err408form, "");
 				finish_connection(c, now);
 			}
@@ -1086,7 +1086,7 @@ static void idle(arg_t arg, struct timeval *now)
 		case CNST_SENDING:
 		case CNST_PAUSING:
 			if (now->tv_sec - c->active_at >= IDLE_SEND_TIMELIMIT) {
-				syslog(LOG_INFO, "%s connection timed out sending", c->hc->client_addr.address);
+				syslog(LOG_INFO, "%s connection timed out sending", c->hc->client.address);
 				clear_connection(c, now);
 			}
 			break;

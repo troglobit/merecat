@@ -157,7 +157,7 @@ struct httpd {
 struct http_conn {
 	int initialized;
 	struct httpd *hs;
-	sockaddr_t client_addr;
+	sockaddr_t client;
 	char *read_buf;
 	size_t read_size, read_idx, checked_idx;
 	int checked_state;

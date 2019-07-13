@@ -1219,7 +1219,7 @@ static int access_check2(struct http_conn *hc, char *dir)
 		 * Does client addr match this rule?
 		 * TODO: Generalize and add IPv6 support
 		 */
-		if ((hc->client_addr.sa_in.sin_addr.s_addr & ipv4_mask.s_addr) ==
+		if ((hc->client.sa_in.sin_addr.s_addr & ipv4_mask.s_addr) ==
 		    (ipv4_addr.s_addr & ipv4_mask.s_addr)) {
 			/* Yes. */
 			switch (line[0]) {
@@ -2228,16 +2228,16 @@ int httpd_get_conn(struct httpd *hs, int listen_fd, struct http_conn *hc)
 
 	fcntl(hc->conn_fd, F_SETFD, 1);
 	hc->hs = hs;
-	memset(&hc->client_addr, 0, sizeof(hc->client_addr));
-	memcpy(&hc->client_addr, &sa, sizeof(sa));
+	memset(&hc->client, 0, sizeof(hc->client));
+	memcpy(&hc->client, &sa, sizeof(sa));
 
 	/*
 	 * Slightly ugly workaround to handle X-Forwarded-For better for IPv6
 	 * Idea from https://blog.steve.fi/IPv6_and_thttpd.html
 	 */
-	sa_addr = httpd_ntoa(&hc->client_addr);
-	memset(hc->client_addr.address, 0, sizeof(hc->client_addr.address));
-	strncpy(hc->client_addr.address, sa_addr, sizeof(hc->client_addr.address));
+	sa_addr = httpd_ntoa(&hc->client);
+	memset(hc->client.address, 0, sizeof(hc->client.address));
+	strncpy(hc->client.address, sa_addr, sizeof(hc->client.address));
 
 	if (httpd_ssl_open(hc)) {
 		syslog(LOG_CRIT, "Failed creating new SSL connection");
@@ -2685,11 +2685,11 @@ int httpd_parse_request(struct http_conn *hc)
 				cp = &buf[16];
 				cp += strspn(cp, " \t");
 				for (i = 0; cp[i]; i++) {
-					hc->client_addr.address[i] = cp[i];
+					hc->client.address[i] = cp[i];
 					if (isblank(cp[i]))
 						break;
 				}
-				hc->client_addr.address[i] = 0;
+				hc->client.address[i] = 0;
 			}
 			/*
 			 * Possibly add support for X-Real-IP: here?
@@ -4703,12 +4703,12 @@ short httpd_port(sockaddr_t *sa)
 
 char *httpd_client(struct http_conn *hc)
 {
-	return hc->client_addr.address;
+	return hc->client.address;
 }
 
 short httpd_client_port(struct http_conn *hc)
 {
-	return httpd_port(&hc->client_addr);
+	return httpd_port(&hc->client);
 }
 
 static int sockaddr_check(sockaddr_t *sa)
