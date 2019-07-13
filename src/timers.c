@@ -36,8 +36,8 @@
 
 
 #define HASH_SIZE 67
-static Timer *timers[HASH_SIZE];
-static Timer *free_timers;
+static struct timer *timers[HASH_SIZE];
+static struct timer *free_timers;
 static int alloc_count, active_count, free_count;
 
 arg_t noarg;
@@ -49,7 +49,7 @@ static int use_monotonic = 0;	/* monotonic clock runtime availability flag */
 static struct timeval tv_diff;	/* system time - monotonic difference at start */
 #endif
 
-static unsigned int hash(Timer *t)
+static unsigned int hash(struct timer *t)
 {
 	/* We can hash on the trigger time, even though it can change over
 	** the life of a timer via either the periodic bit or the tmr_reset()
@@ -60,11 +60,11 @@ static unsigned int hash(Timer *t)
 }
 
 
-static void l_add(Timer *t)
+static void l_add(struct timer *t)
 {
 	int h = t->hash;
-	Timer *t2;
-	Timer *t2prev;
+	struct timer *t2;
+	struct timer *t2prev;
 
 	t2 = timers[h];
 	if (!t2) {
@@ -104,7 +104,7 @@ static void l_add(Timer *t)
 }
 
 
-static void l_remove(Timer *t)
+static void l_remove(struct timer *t)
 {
 	if (!t)
 		return;
@@ -119,7 +119,7 @@ static void l_remove(Timer *t)
 }
 
 
-static void l_resort(Timer *t)
+static void l_resort(struct timer *t)
 {
 	/* Remove the timer from its old list. */
 	l_remove(t);
@@ -164,28 +164,30 @@ void tmr_init(void)
 }
 
 
-Timer *tmr_create(struct timeval *nowP, TimerProc *timer_proc, arg_t arg, long msecs, int periodic)
+struct timer *tmr_create(struct timeval *now,
+			 void (*cb)(arg_t, struct timeval *),
+			 arg_t arg, long msecs, int periodic)
 {
-	Timer *t;
+	struct timer *t;
 
 	if (free_timers) {
 		t           = free_timers;
 		free_timers = t->next;
 		--free_count;
 	} else {
-		t = (Timer *)malloc(sizeof(Timer));
+		t = malloc(sizeof(struct timer));
 		if (!t)
 			return NULL;
 
 		++alloc_count;
 	}
 
-	t->timer_proc  = timer_proc;
-	t->arg = arg;
-	t->msecs       = msecs;
-	t->periodic    = periodic;
-	if (nowP)
-		t->time = *nowP;
+	t->cb       = cb;
+	t->arg      = arg;
+	t->msecs    = msecs;
+	t->periodic = periodic;
+	if (now)
+		t->time = *now;
 	else
 		tmr_prepare_timeval(&t->time);
 
@@ -206,12 +208,12 @@ Timer *tmr_create(struct timeval *nowP, TimerProc *timer_proc, arg_t arg, long m
 }
 
 
-struct timeval *tmr_timeout(struct timeval *nowP)
+struct timeval *tmr_timeout(struct timeval *now)
 {
 	long msecs;
 	static struct timeval timeout;
 
-	msecs = tmr_mstimeout(nowP);
+	msecs = tmr_mstimeout(now);
 	if (msecs == INFTIM)
 		return NULL;
 
@@ -222,12 +224,12 @@ struct timeval *tmr_timeout(struct timeval *nowP)
 }
 
 
-long tmr_mstimeout(struct timeval *nowP)
+long tmr_mstimeout(struct timeval *now)
 {
 	int h;
 	int gotone;
 	long msecs, m;
-	Timer *t;
+	struct timer *t;
 
 	gotone = 0;
 	msecs  = 0;
@@ -238,7 +240,7 @@ long tmr_mstimeout(struct timeval *nowP)
 	for (h = 0; h < HASH_SIZE; ++h) {
 		t = timers[h];
 		if (t) {
-			m = (t->time.tv_sec - nowP->tv_sec) * 1000L + (t->time.tv_usec - nowP->tv_usec) / 1000L;
+			m = (t->time.tv_sec - now->tv_sec) * 1000L + (t->time.tv_usec - now->tv_usec) / 1000L;
 			if (!gotone) {
 				msecs = m;
 				gotone = 1;
@@ -258,11 +260,11 @@ long tmr_mstimeout(struct timeval *nowP)
 }
 
 
-void tmr_run(struct timeval *nowP)
+void tmr_run(struct timeval *now)
 {
 	int h;
-	Timer *t;
-	Timer *next;
+	struct timer *t;
+	struct timer *next;
 
 	for (h = 0; h < HASH_SIZE; ++h)
 		for (t = timers[h]; t; t = next) {
@@ -270,11 +272,11 @@ void tmr_run(struct timeval *nowP)
 			/* Since the lists are sorted, as soon as we find a timer
 			** that isn't ready yet, we can go on to the next list.
 			*/
-			if (t->time.tv_sec > nowP->tv_sec || (t->time.tv_sec == nowP->tv_sec &&
-							      t->time.tv_usec > nowP->tv_usec))
+			if (t->time.tv_sec > now->tv_sec || (t->time.tv_sec == now->tv_sec &&
+							      t->time.tv_usec > now->tv_usec))
 				break;
 
-			(t->timer_proc) (t->arg, nowP);
+			(t->cb) (t->arg, now);
 			if (t->periodic) {
 				/* Reschedule. */
 				t->time.tv_sec  +=  t->msecs / 1000L;
@@ -290,12 +292,12 @@ void tmr_run(struct timeval *nowP)
 }
 
 
-void tmr_reset(struct timeval *nowP, Timer *t)
+void tmr_reset(struct timeval *now, struct timer *t)
 {
 	if (!t)
 		return;
 
-	t->time = *nowP;
+	t->time = *now;
 	t->time.tv_sec  +=  t->msecs / 1000L;
 	t->time.tv_usec += (t->msecs % 1000L) * 1000L;
 	if (t->time.tv_usec >= 1000000L) {
@@ -306,7 +308,7 @@ void tmr_reset(struct timeval *nowP, Timer *t)
 }
 
 
-void tmr_cancel(Timer *t)
+void tmr_cancel(struct timer *t)
 {
 	if (!t)
 		return;
@@ -326,7 +328,7 @@ void tmr_cancel(Timer *t)
 
 void tmr_cleanup(void)
 {
-	Timer *t;
+	struct timer *t;
 
 	while (free_timers) {
 		t           = free_timers;

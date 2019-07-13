@@ -41,60 +41,56 @@
 */
 typedef union {
 	void *p;
-	int i;
-	long l;
+	int   i;
+	long  l;
 } arg_t;
 
 extern arg_t noarg;	/* for use when you don't care */
 
-/* The TimerProc gets called when the timer expires.  It gets passed
-** the arg_t associated with the timer, and a timeval in case
-** it wants to schedule another timer.
-*/
-typedef void TimerProc (arg_t arg, struct timeval *nowP);
+struct timer {
+	struct timer  *prev;
+	struct timer  *next;
 
-/* The Timer struct. */
-typedef struct TimerStruct {
-	TimerProc *timer_proc;
-	arg_t arg;
-	long msecs;
-	int periodic;
+	int            hash;
 	struct timeval time;
-	struct TimerStruct *prev;
-	struct TimerStruct *next;
-	int hash;
-} Timer;
+	long           msecs;
+	int            periodic;
+
+	void         (*cb)(arg_t, struct timeval *);
+	arg_t          arg;
+};
 
 /* Initialize the timer package. */
 extern void tmr_init(void);
 
-/* Set up a timer, either periodic or one-shot. Returns (Timer*) 0 on errors. */
-extern Timer *tmr_create(struct timeval *nowP, TimerProc *timer_proc, arg_t arg, long msecs, int periodic);
+/* Set up a timer, either periodic or one-shot. Returns NULL on errors. */
+extern struct timer *tmr_create(struct timeval *now, void (*cb)(arg_t, struct timeval *),
+				arg_t arg, long msecs, int periodic);
 
 /* Returns a timeout indicating how long until the next timer triggers.  You
 ** can just put the call to this routine right in your select().  Returns
 ** (struct timeval*) 0 if no timers are pending.
 */
-extern struct timeval *tmr_timeout(struct timeval *nowP);
+extern struct timeval *tmr_timeout(struct timeval *now);
 
 /* Returns a timeout in milliseconds indicating how long until the next timer
 ** triggers.  You can just put the call to this routine right in your poll().
 ** Returns INFTIM (-1) if no timers are pending.
 */
-extern long tmr_mstimeout(struct timeval *nowP);
+extern long tmr_mstimeout(struct timeval *now);
 
 /* Run the list of timers. Your main program needs to call this every so often,
 ** or as indicated by tmr_timeout().
 */
-extern void tmr_run(struct timeval *nowP);
+extern void tmr_run(struct timeval *now);
 
 /* Reset the clock on a timer, to current time plus the original timeout. */
-extern void tmr_reset(struct timeval *nowP, Timer *timer);
+extern void tmr_reset(struct timeval *now, struct timer *timer);
 
 /* Deschedule a timer.  Note that non-periodic timers are automatically
 ** descheduled when they run, so you don't have to call this on them.
 */
-extern void tmr_cancel(Timer *timer);
+extern void tmr_cancel(struct timer *timer);
 
 /* Clean up the timers package, freeing any unused storage. */
 extern void tmr_cleanup(void);
@@ -108,4 +104,4 @@ extern void tmr_logstats(long secs);
 /* Fill timeval structure for further usage by the package. */
 extern void tmr_prepare_timeval(struct timeval *tv);
 
-#endif				/* _TIMERS_H_ */
+#endif /* _TIMERS_H_ */

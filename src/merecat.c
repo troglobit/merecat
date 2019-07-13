@@ -137,8 +137,8 @@ typedef struct {
 	int numtnums;
 	long max_limit, min_limit;
 	time_t started_at, active_at;
-	Timer *wakeup_timer;
-	Timer *linger_timer;
+	struct timer *wakeup_timer;
+	struct timer *linger_timer;
 	long wouldblock_delay;
 	off_t bytes;
 	off_t end_byte_index;
