@@ -4697,6 +4697,11 @@ char *httpd_client(struct http_conn *hc)
 	return hc->client_addr.sa_addr;
 }
 
+short httpd_client_port(struct http_conn *hc)
+{
+	return httpd_port(&hc->client_addr);
+}
+
 static int sockaddr_check(sockaddr_t *sa)
 {
 	switch (sa->sa.sa_family) {
