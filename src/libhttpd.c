@@ -2203,7 +2203,7 @@ int httpd_get_conn(struct httpd *hs, int listen_fd, struct http_conn *hc)
 {
 	sockaddr_t sa;
 	socklen_t sz;
-	char *sa_addr;
+	char *address;
 
 	httpd_init_conn_mem(hc);
 
@@ -2235,9 +2235,9 @@ int httpd_get_conn(struct httpd *hs, int listen_fd, struct http_conn *hc)
 	 * Slightly ugly workaround to handle X-Forwarded-For better for IPv6
 	 * Idea from https://blog.steve.fi/IPv6_and_thttpd.html
 	 */
-	sa_addr = httpd_ntoa(&hc->client);
+	address = httpd_ntoa(&hc->client);
 	memset(hc->client.address, 0, sizeof(hc->client.address));
-	strncpy(hc->client.address, sa_addr, sizeof(hc->client.address));
+	strncpy(hc->client.address, address, sizeof(hc->client.address));
 
 	if (httpd_ssl_open(hc)) {
 		syslog(LOG_CRIT, "Failed creating new SSL connection");
