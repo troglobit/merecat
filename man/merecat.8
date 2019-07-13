@@ -74,7 +74,7 @@ HTTP redirect support, per server.  E.g., possible to redirect from HTTP
 to HTTPS.  Limited sed of Nginx style environment variables supported.
 .It
 Native PHP support, using php-cgi, if enabled in
-.Pa merecat.conf
+.Xr merecat.conf 5
 .El
 .Pp
 The resulting footprint (~140 kiB) makes Merecat suitable for small and
@@ -85,6 +85,11 @@ are, however, not availble when
 .Nm
 is built with support for
 .Pa /etc/merecat.conf .
+The distributed archive comes with an example configuration file, which
+should be fairly straightforward to comprehend.  For details on the
+available configuration directives, see
+.Xr merecat.conf 5 .
+.Pp
 The options, in their entirety, are as follows:
 .Bl -tag -width Ds
 .It Fl c Ar CGI
@@ -218,209 +223,6 @@ hostname to bind to, for multihoming.  The default is to bind to all
 hostnames supported on the local machine.  See below for details.  The
 config file setting for this flag is
 .Cm hostname = Ar HOSTNAME .
-.El
-.Sh "CONFIG FILE"
-.Pp
-Several settings are not available from the command line and are instead
-set in the
-.Pa /etc/merecat.conf
-configuration file.  Changes to this file are require a restart of
-.Nm ,
-unlike many other UNIX daemons SIGHUP does not reload the
-.Pa .conf
-file.
-.Pp
-The syntax of the config file is simple UNIX
-.Cm key = value
-separated by whitespace.  The settings are listed below:
-.Bl -tag -width Ds
-.It Cm cgi-limit = Ar NUM
-Maximum number of allowed simultaneous CGI programs.  Default 1.
-.It Cm cgi-pattern = Qq Ar **.cgi|/cgi-bin/*
-Wildcard pattern for CGI programs, for instance
-.Qq **.cgi
-or
-.Qq /cgi-bin/* ,
-the default is to allow any program ending in
-.Cm .cgi
-and any program in
-.Cm /cgi-bin/ .
-See below CGI section for more on this.
-.It Cm charset = Qq Ar UTF-8
-Character set to use with text MIME types.  If the default unicode
-charset causes trouble, try "iso-8859-1".
-.It Cm check-referer = Ar <true | false>
-Enable check for external sites referencing material on your web server.
-For more information on referrers, see below. Disabled by default.
-.It Cm check-symlinks = Ar <true | false>
-For increased security, set this to true.  Unless running chrooted in
-which case this is not really necessary.  Disabled by default.
-.It Cm chroot = Ar <true | false>
-Change web server root to
-.Ar WEBDIR ,
-or the current directory, if no
-.Ar WEBDIR
-is given as argument.  Chrooting is a security measure and means that
-.Nm
-cannot access files outside it, unless files are bind mounted, or
-similar into the chroot.  Disabled by default.
-.It Cm compression-level = Ar -1..9
-Control the compression level of the built-in Apache-like mod_deflate.
-The default value is -1, which gives a reasonable compromize between
-speed and compression.  To disable compression set this to
-.Ar 0
-and to get maximum compression,
-.Ar 9 .
-.Pp
-The default setting,
-.Ar -1 ,
-means all "text/*" MIME type files, larger than 256 bytes, are
-compressed before sending to the client.
-.It Cm directory = Ar DIR
-If no WEBDIR is given on the command line this option can be used to
-change the web server document root.  Defaults to the current directory.
-.It Cm data-directory = Ar DIR
-When chrooting this can be used to adjust the web server document root.
-.It Cm global-passwd = Ar <true | false>
-Set this to true to protect the entire directory tree with a
-single
-.Pa .htpasswd
-and/or
-.Pa .htaccess
-file.  When unset, which is the default,
-.Nm
-looks for a local
-.Pa .htpasswd
-and
-.Pa .htaccess
-file, or serves the file without password.
-.It Cm hostname = Ar HOSTNAME
-The hostname to bind to when multihoming.  For more details on this, see
-below discussion.
-.It Cm list-dotfiles = Ar <true | false>
-If dotfiles should be skipped in directory listings.  Disabled by default.
-.It Cm local-pattern = Qq Ar PATTERN
-Used with
-.Cm check-referer ,
-see below for more details.
-.It Cm max-age = Ar SEC
-Max number of seconds to be used in a
-.Qq Ar Cache-Control: max-age
-header to be returned with all responses.  An equivalent
-.Qq Ar Expires
-header is also generated.  The default is no Cache-Control or Expires
-headers, which is just fine for most sites.
-.It Cm port = Ar PORT
-The web server Internet port to listen to, defaults to 80, or 443 when
-HTTPS is enabled, below.
-.It Cm url-pattern = Qq Ar PATTERN
-Used with
-.Cm check-referer ,
-see below for more details.
-.It Cm username = Qq Ar NAME
-Set username to drop privileges to after startup.  Defaults to "nobody"
-which usually is defined on all UNIX systems.
-.It Cm virtual-host = Ar <true | false>
-Enable virtual hosting, disabled by default.  For more information on
-this, see below.
-.It Cm ssl = Ar <true | false>
-Enable HTTPS, disabled by default.
-.It Cm certfile = Ar /path/to/cert.pem
-Public part of HTTPS certificate, required for HTTPS.
-.It Cm keyfile = Ar /path/to/key.pem
-Private key of HTTPS certificate, required for HTTPS.  This file must
-be kept private and should not be in the WEBROOT directory.
-.It Cm dhparm = Ar /path/th/dhparam.pem
-Optional Diffie-Hellman parameters.  Not secret, unlike the
-.Cm keyfile
-the
-.Cm dhparm
-can be published online, if necessary.  Create one like this:
-.Bd -unfilled -offset indent
-openssl dhparam -out dhparam.pem 2048
-.Ed
-.It Cm user-agent-deny = Qq Ar PATTERN
-Wildcard pattern to deny access to illicit hammering bots.  When set a
-matching user-agent will receive a 403 for all its requests.  Use for
-instance
-.Qq **SemrushBot**
-or
-.Qq **SemrushBot**|**MJ12Bot**|**DotBot**
-to match multiple user-agents.  The default is to allow all user-agents.
-.It Cm php Ar {
-.Bl -tag -offset indent -compact
-.It Cm enabled = Ar <true | false>
-The PHP module is disabled by default.
-.It Cm pattern = Ar PATTERN
-Wildcard pattern for PHP scripts, for instance
-.Qq **.php
-or
-.Qq **.php5|**.php4|**.php ,
-the default is to allow any script ending in
-.Cm .php
-.It Cm cgi-path = Qq Pa /path/to/php-cgi
-Default is
-.Qq Pa /usr/bin/php-cgi
-.El
-.It Cm }
-.It Cm ssi Ar {
-.Bl -tag -offset indent -compact
-.It Cm enabled = Ar <true | false>
-The SSI module is disabled by default.
-.It Cm pattern = Ar PATTERN
-Wildcard pattern for triggering SSI, for instance
-.Qq **.shtml
-or
-.Qq **.shtml|**.stm|**.shtm ,
-the default is to allow any script ending in
-.Cm .shtml
-.It Cm cgi-path = Qq Pa /path/to/ssi
-Default is
-.Qq Pa cgi-bin/ssi .
-See
-.Xr ssi 8
-for more information.
-.It Cm silent = Ar <true | false>
-This setting can be used to silence “[an error occurred while processing
-the directive]”, shown when an error occurrs during SSI processing.
-Default disabled (false).
-.El
-.It Cm }
-.It Cm server Ar name {
-.Bl -tag -offset indent -compact
-.It Cm port = Ar PORT
-Server port to listen to.
-.It Cm ssl = Ar <true | false>
-Enable HTTPS, disabled by default.
-.It Cm certfile = Ar /path/to/cert.pem
-Public part of HTTPS certificate, required for HTTPS.
-.It Cm keyfile = Ar /path/to/key.pem
-Private key of HTTPS certificate, required for HTTPS.  This file must
-be kept private and should not be in the WEBROOT directory.
-.It Cm dhparm = Ar /path/th/dhparam.pem
-Optional Diffie-Hellman parameters.  Not secret, unlike the
-.Cm keyfile
-the
-.Cm dhparm
-can be published online, if necessary.
-.It Cm redirect Qo Ar PATTERN Qc {
-.Bl -tag -offset indent -compact
-.It Cm code = Ar CODE
-HTTP redirect code to use, default: 301.  Supported codes are: 301, 302,
-303, 307.
-.It Cm location = Qq Ar proto://$host:port$request_uri$args
-Location to return for redirect, e.g. to redirect all request for HTTP
-to HTTPS for the same (virtual) host:
-.Bd -unfilled -offset indent
-redirect "/**" {
-    code = 301
-    location = "https://$host$request_uri$args"
-}
-.Ed
-.El
-.It Cm }
-.El
-}
 .El
 .Sh "CHROOT"
 chroot() is a system call that restricts the program's view of the
@@ -855,6 +657,7 @@ to generate the statistics syslog messages immediately, instead of
 waiting for the regular hourly update.
 .El
 .Sh "SEE ALSO"
+.Xr merecat.conf 5 ,
 .Xr redirect 8 ,
 .Xr ssi 8 ,
 .Xr htpasswd 1
