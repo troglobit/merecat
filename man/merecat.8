@@ -348,7 +348,7 @@ or
 .Qq **SemrushBot**|**MJ12Bot**|**DotBot**
 to match multiple user-agents.  The default is to allow all user-agents.
 .It Cm php Ar {
-.Bl -tag -offset indent
+.Bl -tag -offset indent -compact
 .It Cm enabled = Ar <true | false>
 The PHP module is disabled by default.
 .It Cm pattern = Ar PATTERN
@@ -362,9 +362,9 @@ the default is to allow any script ending in
 Default is
 .Qq Pa /usr/bin/php-cgi
 .El
-}
+.It Cm }
 .It Cm ssi Ar {
-.Bl -tag -offset indent
+.Bl -tag -offset indent -compact
 .It Cm enabled = Ar <true | false>
 The SSI module is disabled by default.
 .It Cm pattern = Ar PATTERN
@@ -385,9 +385,9 @@ This setting can be used to silence “[an error occurred while processing
 the directive]”, shown when an error occurrs during SSI processing.
 Default disabled (false).
 .El
-}
+.It Cm }
 .It Cm server Ar name {
-.Bl -tag -offset indent
+.Bl -tag -offset indent -compact
 .It Cm port = Ar PORT
 Server port to listen to.
 .It Cm ssl = Ar <true | false>
@@ -404,7 +404,7 @@ the
 .Cm dhparm
 can be published online, if necessary.
 .It Cm redirect Qo Ar PATTERN Qc {
-.Bl -tag -offset indent
+.Bl -tag -offset indent -compact
 .It Cm code = Ar CODE
 HTTP redirect code to use, default: 301.  Supported codes are: 301, 302,
 303, 307.
@@ -418,7 +418,7 @@ redirect "/**" {
 }
 .Ed
 .El
-}
+.It Cm }
 .El
 }
 .El
