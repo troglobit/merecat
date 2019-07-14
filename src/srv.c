@@ -180,6 +180,7 @@ struct httpd *srv_init(struct srv *srv)
 		ctx = httpd_ssl_init(srv->certfile, srv->keyfile, srv->dhfile);
 		if (!ctx) {
 			syslog(LOG_ERR, "Failed initializing SSL");
+			httpd_ssl_log_errors();
 			exit(1);
 		}
 	}

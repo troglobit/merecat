@@ -57,7 +57,7 @@ void *httpd_ssl_init(char *cert, char *key, char *dhparm)
 
 	ctx = SSL_CTX_new(SSLv23_method());
 	if (!ctx)
-		goto error;
+		return NULL;
 
 	/* Enable bug workarounds. */
 	SSL_CTX_set_options(ctx, SSL_OP_ALL);
@@ -78,30 +78,29 @@ void *httpd_ssl_init(char *cert, char *key, char *dhparm)
  	SSL_CTX_set_verify(ctx, SSL_VERIFY_NONE, NULL);
 
 	if (SSL_CTX_use_certificate_file(ctx, cert, SSL_FILETYPE_PEM) != 1)
-		goto error;
+		return NULL;
 
 	if (SSL_CTX_use_PrivateKey_file(ctx, key, SSL_FILETYPE_PEM) != 1)
-		goto error;
+		return NULL;
 
 	if (dhparm) {
 		FILE *fp;
 		DH *dh = NULL;
 
 		fp = fopen(dhparm, "r");
-		if (fp) {
-			dh = PEM_read_DHparams(fp, NULL, NULL, NULL);
-			fclose(fp);
-		} else
-			syslog(LOG_ERR, "Failed reading dhfile %s: %m", dhparm);
+		if (!fp) {
+			syslog(LOG_ERR, "Failed opening dhfile %s: %s",
+			       dhparm, strerror(errno));
+			return ctx;
+		}
 
+		dh = PEM_read_DHparams(fp, NULL, NULL, NULL);
+		fclose(fp);
 		if (!dh || SSL_CTX_set_tmp_dh(ctx, dh) != 1)
 			httpd_ssl_log_errors();
 	}
 
 	return ctx;
-error:
-	httpd_ssl_log_errors();
-	return NULL;
 }
 
 void httpd_ssl_exit(struct httpd *hs)
