@@ -2237,14 +2237,15 @@ int httpd_get_conn(struct httpd *hs, int listen_fd, struct http_conn *hc)
 	strncpy(hc->client.address, address, sizeof(hc->client.address));
 
 	if (httpd_ssl_open(hc)) {
-		syslog(LOG_CRIT, "Failed creating new SSL connection: %s.", hc->ssl_error);
+		syslog(LOG_CRIT, "Failed SSL/TLS connection with %s: %s.",
+		       hc->client.address, hc->ssl_error);
 		goto error;
 	}
 	httpd_init_conn_content(hc);
 
 	return GC_OK;
 error:
-	httpd_ssl_log_errors();
+//	httpd_ssl_log_errors();
 	close(hc->conn_fd);
 	hc->conn_fd = -1;
 
