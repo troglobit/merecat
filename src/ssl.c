@@ -51,9 +51,11 @@ void *httpd_ssl_init(char *cert, char *key, char *dhparm)
 {
 	SSL_CTX *ctx;
 
+#if OPENSSL_VERSION_NUMBER < 0x10100000L
 	SSL_library_init();
 	SSL_load_error_strings();
 	OpenSSL_add_ssl_algorithms();
+#endif
 
 	ctx = SSL_CTX_new(SSLv23_method());
 	if (!ctx)
@@ -115,9 +117,11 @@ void httpd_ssl_exit(struct httpd *hs)
 	hs->ctx = NULL;
 
 	ENGINE_cleanup();
+#if OPENSSL_VERSION_NUMBER < 0x10100000L
 	ERR_free_strings();
 //	ERR_remove_state(0);
 	EVP_cleanup();
+#endif
 	CRYPTO_cleanup_all_ex_data();
 	CONF_modules_free();
 	CONF_modules_unload(1);
