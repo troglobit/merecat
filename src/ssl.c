@@ -127,12 +127,13 @@ void httpd_ssl_exit(struct httpd *hs)
 
 int httpd_ssl_open(struct http_conn *hc)
 {
-	SSL *ssl;
 	SSL_CTX *ctx = NULL;
+	SSL *ssl;
+	int rc;
 
 	if (!hc) {
 		errno = EINVAL;
-		goto error;
+		return -1;
 	}
 
 	hc->ssl = NULL;
@@ -140,11 +141,11 @@ int httpd_ssl_open(struct http_conn *hc)
 		ctx = hc->hs->ctx;
 
 	if (ctx) {
-		int rc;
-
 		hc->ssl = SSL_new(ctx);
-		if (!hc->ssl)
-			goto error;
+		if (!hc->ssl) {
+			hc->ssl_error = "unknown error";
+			return 1;
+		}
 
 		SSL_set_fd(hc->ssl, hc->conn_fd);
 		rc = SSL_accept(hc->ssl);
@@ -154,40 +155,35 @@ int httpd_ssl_open(struct http_conn *hc)
 			err = SSL_get_error(hc->ssl, rc);
 			switch (err) {
 			case SSL_ERROR_ZERO_RETURN:
-				syslog(LOG_WARNING, "SSL closure alert.");
-				break;
-
-			case SSL_ERROR_WANT_X509_LOOKUP:
-				syslog(LOG_WARNING, "SSL want x509");
+				hc->ssl_error = "closure alert";
 				break;
 
 			case SSL_ERROR_SYSCALL:
-				syslog(LOG_WARNING, "SSL I/O error");
+				hc->ssl_error = "I/O error";
 				break;
 
 			case SSL_ERROR_SSL:
-				syslog(LOG_WARNING, "SSL protocol error");
+				/* Unsupported SSL protocol, no shared cipher, or version too low */
+				hc->ssl_error = "protocol error";
 				break;
 
 			case SSL_ERROR_WANT_READ:
 			case SSL_ERROR_WANT_WRITE:
 			case SSL_ERROR_WANT_CONNECT:
 			case SSL_ERROR_WANT_ACCEPT:
+			case SSL_ERROR_WANT_X509_LOOKUP:
 			default:
-				syslog(LOG_WARNING, "SSL error %d", err);
+				hc->ssl_error = "general error";
 				break;
 
 			}
 
 			SSL_free(hc->ssl);
-			goto error;
+			return 1;
 		}
 	}
 
 	return 0;
-error:
-	httpd_ssl_log_errors();
-	return 1;
 }
 
 void httpd_ssl_close(struct http_conn *hc)

@@ -224,6 +224,7 @@ struct http_conn {
 	char *file_address;
 
 	void *ssl;		/* Opaque SSL* */
+	const char *ssl_error;
 };
 
 /* Methods. */
