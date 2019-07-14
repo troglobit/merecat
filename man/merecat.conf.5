@@ -155,11 +155,11 @@ Public part of HTTPS certificate, required for HTTPS.
 .It Cm keyfile = Ar /path/to/key.pem
 Private key of HTTPS certificate, required for HTTPS.  This file must
 be kept private and should not be in the WEBROOT directory.
-.It Cm dhparm = Ar /path/th/dhparam.pem
+.It Cm dhfile = Ar /path/th/dhparam.pem
 Optional Diffie-Hellman parameters.  Not secret, unlike the
 .Cm keyfile
 the
-.Cm dhparm
+.Cm dhfile
 can be published online, if necessary.  Create one like this:
 .Bd -unfilled -offset indent
 openssl dhparam -out dhparam.pem 2048
@@ -222,7 +222,7 @@ Public part of HTTPS certificate, required for HTTPS.
 .It Cm keyfile = Ar /path/to/key.pem
 Private key of HTTPS certificate, required for HTTPS.  This file must
 be kept private and should not be in the WEBROOT directory.
-.It Cm dhparm = Ar /path/th/dhparam.pem
+.It Cm dhfile = Ar /path/th/dhparam.pem
 Optional Diffie-Hellman parameters.  Not secret, unlike the
 .Cm keyfile
 the
