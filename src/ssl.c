@@ -185,7 +185,7 @@ int httpd_ssl_open(struct http_conn *hc)
 
 			}
 #else
-			hc->ssl_error = ERR_error_string(err, NULL);
+			hc->ssl_error = ERR_reason_error_string(ERR_peek_last_error(), NULL);
 #endif
 
 			SSL_free(hc->ssl);
