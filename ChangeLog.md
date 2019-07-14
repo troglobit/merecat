@@ -23,7 +23,16 @@ HTTP/1.1 keep-alive, and built-in gzip deflate compression using zlib.
 - CGI: Allow `:PORT` in `HTTP_POST`, like Apache
 - CGI: Allow trailing slash in `PATH_INFO`, like Apache
 - CGI: Change default `CGI_PATTERN` from disabled to `**.cgi|/cgi-bin/*`
-- Added support for `php-cgi` and `index.cgi` index file
+- CGI: Add support for looking for an `index.cgi` index file
+- CGI: Add several missing standard CGI/1.1 environment variables, see
+  the file docs/cgi.txt for details
+- PHP:
+  - Add support for `php-cgi` and `index.php` index file
+  - Add support for PHP pattern matching, run php-cgi if `**.php`
+- Server-Side Includes (SSI):
+  - Add support for SSI pattern matching, run cgi-bin/ssi if `**.shtml`
+  - Add support for silencing default SSI `errmsg`
+  - Add support for looking for `index.shtml` index file
 - Dot files are no longer shown in dir listings, use the `merecat.conf`
   setting `list-dotfiles = true` to enable
 - Server stats are no longer periodically sent to syslog, re-enable in
@@ -40,7 +49,9 @@ HTTP/1.1 keep-alive, and built-in gzip deflate compression using zlib.
 - Update MIME types, e.g. Ogg video, 7zip, svg
 - Add Dockerfile for ease of deployment in limited setups
 - Add cute cat default favicon
+- Built-in icons for FTP dir listings; folder, file, etc.
 - Refactor, deprecated POSIX API's, e.g. `bzero() --> memset()`
+- Enable `SO_REUSEPORT` if available, useful for load balancing
 
 ### Fixes
 - Fix CVE-2017-17663, buffer overrun in htpasswd tool, from thttpd v2.28

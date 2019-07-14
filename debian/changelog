@@ -4,8 +4,10 @@ merecat (2.32) unstable; urgency=medium
     - Support for HTTPS, self-signed certs and Let's Encrypt.  Works with
       all features, including virtual hosts
     - Support for running HTTP and HTTPS servers from one Merecat daemon
+    - Support for SSI, pattern matching to .shtml files
     - Support for PHP, using php-cgi
     - Support for HTTP/1.1 Keep-alive
+    - Support for HTTP redirect, to redirect from HTTP to HTTPS
     - Added support for HTTP gzip compression, serves .gz files
     - Skip .htpasswd (and .htaccess) in dir listings
     - Allow SO_REUSEPORT, useful for load balancing
@@ -13,10 +15,11 @@ merecat (2.32) unstable; urgency=medium
     - Fix issue with receiving a 403 page instead of 404 (no-symlink-check)
     - Fix issue with HTML entities in directory listings
     - Fix merecat.conf: commented out settings should be daemon defaults
+    - Built-in icons for FTP dir listings; folder, file, etc.
     - Cute cat faviocon added
     - Portability fixes
 
- -- Joachim Nilsson <troglobit@gmail.com>  Sun, 30 Jun 2019 12:01:48 +0200
+ -- Joachim Nilsson <troglobit@gmail.com>  Sun, 14 Jul 2019 09:52:56 +0200
 
 merecat (2.31-3) unstable; urgency=low
 
