@@ -4296,9 +4296,9 @@ static int really_start_request(struct http_conn *hc, struct timeval *now)
 	static const char *index_names[] = { INDEX_NAMES };
 	size_t expnlen, indxlen, i;
 
-	is_icon = mmc_icon_check(hc->pathinfo, &hc->sb);
+	is_icon = mmc_icon_check(hc->decodedurl, &hc->sb);
 	if (is_icon) {
-		strcpy(hc->expnfilename, hc->pathinfo);
+		strcpy(hc->expnfilename, hc->decodedurl);
 		strcpy(hc->pathinfo, "");
 		goto sneaky;
 	}
