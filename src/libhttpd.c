@@ -4296,8 +4296,6 @@ static int really_start_request(struct http_conn *hc, struct timeval *now)
 	static const char *index_names[] = { INDEX_NAMES };
 	size_t expnlen, indxlen, i;
 
-	expnlen = strlen(hc->expnfilename);
-
 	is_icon = mmc_icon_check(hc->pathinfo, &hc->sb);
 	if (is_icon) {
 		strcpy(hc->expnfilename, hc->pathinfo);
@@ -4323,6 +4321,8 @@ static int really_start_request(struct http_conn *hc, struct timeval *now)
 			       hc->encodedurl);
 		return -1;
 	}
+
+	expnlen = strlen(hc->expnfilename);
 
 	/* Is it a directory? */
 	if (S_ISDIR(hc->sb.st_mode)) {
