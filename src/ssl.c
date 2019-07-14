@@ -156,37 +156,15 @@ int httpd_ssl_open(struct http_conn *hc)
 		SSL_set_fd(hc->ssl, hc->conn_fd);
 		rc = SSL_accept(hc->ssl);
 		if (rc <= 0) {
-			int err;
+			unsigned long err;
 
-			err = SSL_get_error(hc->ssl, rc);
-			switch (err) {
-			case SSL_ERROR_ZERO_RETURN:
-				hc->ssl_error = "closure alert";
-				break;
-
-			case SSL_ERROR_SYSCALL:
-				hc->ssl_error = "I/O error";
-				break;
-
-			case SSL_ERROR_SSL:
-				/* Unsupported SSL protocol, no shared cipher, or version too low */
-				hc->ssl_error = "protocol error";
-				break;
-
-			case SSL_ERROR_WANT_READ:
-			case SSL_ERROR_WANT_WRITE:
-			case SSL_ERROR_WANT_CONNECT:
-			case SSL_ERROR_WANT_ACCEPT:
-			case SSL_ERROR_WANT_X509_LOOKUP:
-			default:
-				hc->ssl_error = "general error";
-				break;
-
-			}
-
-			/* Actual real error */
-			hc->ssl_error = ERR_reason_error_string(ERR_peek_last_error());
+			err = ERR_peek_last_error();
+			hc->ssl_error = ERR_reason_error_string(err);
+			if (!hc->ssl_error)
+				hc->ssl_error = "unknown error";
+			ERR_clear_error();
 			SSL_free(hc->ssl);
+
 			return 1;
 		}
 	}
