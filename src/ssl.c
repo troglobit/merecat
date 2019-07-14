@@ -159,7 +159,6 @@ int httpd_ssl_open(struct http_conn *hc)
 			int err;
 
 			err = SSL_get_error(hc->ssl, rc);
-#if 0
 			switch (err) {
 			case SSL_ERROR_ZERO_RETURN:
 				hc->ssl_error = "closure alert";
@@ -184,10 +183,9 @@ int httpd_ssl_open(struct http_conn *hc)
 				break;
 
 			}
-#else
-			hc->ssl_error = ERR_reason_error_string(ERR_peek_last_error(), NULL);
-#endif
 
+			/* Actual real error */
+			hc->ssl_error = ERR_reason_error_string(ERR_peek_last_error());
 			SSL_free(hc->ssl);
 			return 1;
 		}
