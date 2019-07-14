@@ -251,6 +251,10 @@ user@example:~/merecat/> make
 user@example:~/merecat/> sudo make install
 ```
 
+> Merecat builds silently by default.  To see the compiler output, disable
+> silent mode in `configure`, or build with `make V=1`.
+
+
 Features
 --------
 

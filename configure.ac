@@ -4,6 +4,7 @@ AC_CONFIG_SRCDIR([src/libhttpd.c])
 AC_CONFIG_HEADERS([config.h])
 # Add this to automake init if parallel harness rules fails: serial-tests
 AM_INIT_AUTOMAKE([1.11 foreign no-dist-gzip dist-xz])
+AM_SILENT_RULES([yes])
 
 # Use pkg-config to check for some deps; libConfuse, libssl
 PKG_PROG_PKG_CONFIG
