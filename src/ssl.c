@@ -75,6 +75,9 @@ void *httpd_ssl_init(char *cert, char *key, char *dhparm)
 #endif
 
 	SSL_CTX_set_cipher_list(ctx, "HIGH:!aNULL:!kRSA:!PSK:!SRP:!MD5:!RC4");
+#ifdef TLS_DEFAULT_CIPHERSUITES
+	SSL_CTX_set_ciphersuites(ctx, TLS_DEFAULT_CIPHERSUITES);
+#endif
 
  	SSL_CTX_set_default_verify_paths(ctx);
  	SSL_CTX_set_verify(ctx, SSL_VERIFY_NONE, NULL);
