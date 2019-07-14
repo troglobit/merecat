@@ -187,7 +187,7 @@ static off_t mmc_icon_open(char *filename, char **buf, struct stat *st)
 {
 	int found = 1;
 
-	if (cico < 0 || cico > (int)NELEMS(icons) || strcmp(icons[cico].name, filename))
+	if (cico < 0 || cico >= (int)NELEMS(icons) || strcmp(icons[cico].name, filename))
 		found = mmc_icon_check(filename, st);
 
 	if (!found)
