@@ -140,12 +140,45 @@ int httpd_ssl_open(struct http_conn *hc)
 		ctx = hc->hs->ctx;
 
 	if (ctx) {
+		int rc;
+
 		hc->ssl = SSL_new(ctx);
 		if (!hc->ssl)
 			goto error;
 
 		SSL_set_fd(hc->ssl, hc->conn_fd);
-		if (SSL_accept(hc->ssl) <= 0) {
+		rc = SSL_accept(hc->ssl);
+		if (rc <= 0) {
+			int err;
+
+			err = SSL_get_error(hc->ssl, rc);
+			switch (err) {
+			case SSL_ERROR_ZERO_RETURN:
+				syslog(LOG_WARNING, "SSL closure alert.");
+				break;
+
+			case SSL_ERROR_WANT_X509_LOOKUP:
+				syslog(LOG_WARNING, "SSL want x509");
+				break;
+
+			case SSL_ERROR_SYSCALL:
+				syslog(LOG_WARNING, "SSL I/O error");
+				break;
+
+			case SSL_ERROR_SSL:
+				syslog(LOG_WARNING, "SSL protocol error");
+				break;
+
+			case SSL_ERROR_WANT_READ:
+			case SSL_ERROR_WANT_WRITE:
+			case SSL_ERROR_WANT_CONNECT:
+			case SSL_ERROR_WANT_ACCEPT:
+			default:
+				syslog(LOG_WARNING, "SSL error %d", err);
+				break;
+
+			}
+
 			SSL_free(hc->ssl);
 			goto error;
 		}
