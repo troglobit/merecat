@@ -119,7 +119,7 @@ AM_CONDITIONAL([HAVE_CONFUSE], [test "x$with_config" != "xno"])
 AM_CONDITIONAL([CREATE_SYMLINKS], [test "x$with_symlinks" != "xno"])
 
 AS_IF([test "x$with_ssl" != "xno"], [
-	PKG_CHECK_MODULES([OpenSSL], [openssl])
+	PKG_CHECK_MODULES([OpenSSL], [openssl >= 1.1.0])
 	LDFLAGS="$LDFLAGS $OpenSSL_LIBS"
 	CPPFLAGS="$CPPFLAGS $OpenSSL_CFLAGS"
 	AC_CHECK_LIB([crypto], [EVP_EncryptInit], [],
