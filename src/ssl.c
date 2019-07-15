@@ -81,6 +81,39 @@ static int proto_to_version(char *proto)
 	return -1;
 }
 
+static void append(char *str, char *c)
+{
+	if (str[0])
+		strcat(str, ":");
+	strcat(str, c);
+}
+
+static void split_ciphers(char *orig, char **list, char **suite)
+{
+	size_t len;
+	char *str, *pre, *post, *c;
+
+	len = strlen(orig);
+	str = strdup(orig);
+	pre = calloc(1, len);
+	post = calloc(1, len);
+
+	if (str && pre && post) {
+		c = strtok(str, ":");
+		while (c) {
+			if (strchr(c, '_'))
+				append(post, c);
+			else
+				append(pre, c);
+		}
+
+		free(str);
+	}
+
+	*list = pre;
+	*suite = post;
+}
+
 static void dump_supported_ciphers(SSL_CTX *ctx)
 {
 	STACK_OF(SSL_CIPHER) *ciphers;
@@ -113,7 +146,8 @@ static void dump_supported_ciphers(SSL_CTX *ctx)
 void *httpd_ssl_init(char *cert, char *key, char *dhparm, char *proto, char *ciphers)
 {
 	SSL_CTX *ctx;
-	int min_version, rc;
+	char *list, *suite;
+	int min_version, rc = 0;
 
 	ctx = SSL_CTX_new(SSLv23_method());
 	if (!ctx)
@@ -139,13 +173,21 @@ void *httpd_ssl_init(char *cert, char *key, char *dhparm, char *proto, char *cip
 	}
 	SSL_CTX_set_min_proto_version(ctx, min_version);
 
-	rc  = SSL_CTX_set_cipher_list(ctx, ciphers);
-	rc += SSL_CTX_set_ciphersuites(ctx, ciphers);
-	if (!rc) {
-		syslog(LOG_ERR, "Invalid SSL ciphers '%s'", ciphers);
-		goto error;
+	if (ciphers) {
+		split_ciphers(ciphers, &list, &suite);
+		if (list) {
+			rc += SSL_CTX_set_cipher_list(ctx, list);
+			free(list);
+		}
+		if (suite) {
+			rc += SSL_CTX_set_ciphersuites(ctx, suite);
+			free(suite);
+		}
+		if (!rc) {
+			syslog(LOG_ERR, "Invalid SSL ciphers '%s'", ciphers);
+			goto error;
+		}
 	}
-
 	dump_supported_ciphers(ctx);
 
  	SSL_CTX_set_default_verify_paths(ctx);
