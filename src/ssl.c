@@ -47,16 +47,48 @@
 #include "file.h"
 #include "ssl.h"
 
-void *httpd_ssl_init(char *cert, char *key, char *dhparm)
+static int proto_to_version(char *proto)
+{
+	struct {
+		char *proto;
+		int   version;
+	} supported[] = {
+		{ "SSLv3",   SSL3_VERSION   }, /* 0x300 */
+		{ "TLSv1",   TLS1_VERSION   }, /* 0x301 */
+		{ "TLSv1.1", TLS1_1_VERSION }, /* 0x302 */
+		{ "TLSv1.2", TLS1_2_VERSION }, /* 0x303 */
+		{ "TLSv1.3", TLS1_3_VERSION }, /* 0x304 */
+//		{ "TLSv1.4", TLS1_4_VERSION }, /* 0x305 */
+		{ NULL, 0 }
+	};
+	int i, version;
+
+	/* User is Kimi Räikkönen */
+	if (!strncmp(proto, "0x3", 3)) {
+		errno = 0;
+		version = strtoul(proto, NULL, 0);
+		if (errno)
+			return -1;
+
+		return version;
+	}
+
+	for (i = 0; supported[i].proto; i++) {
+		if (!strcmp(proto, supported[i].proto))
+			return supported[i].version;
+	}
+
+	return -1;
+}
+
+void *httpd_ssl_init(char *cert, char *key, char *dhparm, char *proto)
 {
 	SSL_CTX *ctx;
+	int min_version;
 
 	ctx = SSL_CTX_new(SSLv23_method());
 	if (!ctx)
 		return NULL;
-
-	/* Enable bug workarounds. */
-	SSL_CTX_set_options(ctx, SSL_OP_ALL);
 
 	/* Disable insecure SSL/TLS versions:
 	 *
@@ -71,7 +103,12 @@ void *httpd_ssl_init(char *cert, char *key, char *dhparm)
 	 * compression is disabled by default in OpenSSL v1.1.0, which
 	 * is what the configure script now requires.
 	 */
-	SSL_CTX_set_min_proto_version(ctx, TLS1_1_VERSION);
+	min_version = proto_to_version(proto);
+	if (-1 == min_version) {
+		syslog(LOG_ERR, "Unknown SSL protocol '%s'", proto);
+		goto error;
+	}
+	SSL_CTX_set_min_proto_version(ctx, min_version);
 
 	SSL_CTX_set_cipher_list(ctx, "HIGH:!aNULL:!kRSA:!PSK:!SRP:!MD5:!RC4");
 	SSL_CTX_set_ciphersuites(ctx, TLS_DEFAULT_CIPHERSUITES);
@@ -79,11 +116,15 @@ void *httpd_ssl_init(char *cert, char *key, char *dhparm)
  	SSL_CTX_set_default_verify_paths(ctx);
  	SSL_CTX_set_verify(ctx, SSL_VERIFY_NONE, NULL);
 
-	if (SSL_CTX_use_certificate_file(ctx, cert, SSL_FILETYPE_PEM) != 1)
-		return NULL;
+	if (SSL_CTX_use_certificate_file(ctx, cert, SSL_FILETYPE_PEM) != 1) {
+		syslog(LOG_ERR, "Invalid SSL cert '%s'", cert);
+		goto error;
+	}
 
-	if (SSL_CTX_use_PrivateKey_file(ctx, key, SSL_FILETYPE_PEM) != 1)
-		return NULL;
+	if (SSL_CTX_use_PrivateKey_file(ctx, key, SSL_FILETYPE_PEM) != 1) {
+		syslog(LOG_ERR, "Invalid SSL key '%s'", key);
+		goto error;
+	}
 
 	if (dhparm) {
 		FILE *fp;
@@ -103,6 +144,9 @@ void *httpd_ssl_init(char *cert, char *key, char *dhparm)
 	}
 
 	return ctx;
+error:
+	SSL_CTX_free(ctx);
+	return NULL;
 }
 
 void httpd_ssl_exit(struct httpd *hs)

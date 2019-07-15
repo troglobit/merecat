@@ -38,6 +38,7 @@ struct srv {
 	char      *path;	/* path within chroot/server dir, unused for now */
 
 	int        ssl;		/* HTTPS or HTTP */
+	char      *ssl_proto;
 	char      *certfile;
 	char      *keyfile;
 	char      *dhfile;

@@ -177,7 +177,7 @@ struct httpd *srv_init(struct srv *srv)
 
 	/* Initialize SSL library and load cert files before we chroot */
 	if (srv->ssl) {
-		ctx = httpd_ssl_init(srv->certfile, srv->keyfile, srv->dhfile);
+		ctx = httpd_ssl_init(srv->certfile, srv->keyfile, srv->dhfile, srv->ssl_proto);
 		if (!ctx) {
 			syslog(LOG_ERR, "Failed initializing SSL");
 			httpd_ssl_log_errors();
