@@ -735,6 +735,13 @@ send_mime(struct http_conn *hc, int status, char *title, char *encodings, const 
 			 hc->protocol, status, title, nowbuf, EXPOSED_SERVER_SOFTWARE, modbuf);
 		add_response(hc, buf);
 
+		/* HTTP Strict Transport Security: https://www.chromium.org/hsts */
+		if (hc->ssl) {
+			snprintf(buf, sizeof(buf), "Strict-Transport-Security: "
+				 "max-age=%d; includeSubDomains\r\n", hc->hs->max_age);
+			add_response(hc, buf);
+		}
+
 		if (partial_content) {
 			snprintf(buf, sizeof(buf),
 				 "Content-Range: bytes %" PRId64 "-%" PRId64 "/%" PRId64 "\r\n"
@@ -4470,6 +4477,14 @@ sneaky:
 			 is_cgi(hc) ? "POST," : "",
 			 hc->hs->max_age);
 		add_response(hc, buf);
+
+		/* HTTP Strict Transport Security: https://www.chromium.org/hsts */
+		if (hc->ssl) {
+			snprintf(buf, sizeof(buf), "Strict-Transport-Security: "
+				 "max-age=%d; includeSubDomains\r\n", hc->hs->max_age);
+			add_response(hc, buf);
+		}
+
 		return 0;
 	}
 
