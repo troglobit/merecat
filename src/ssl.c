@@ -200,6 +200,9 @@ void *httpd_ssl_init(char *cert, char *key, char *dhparm, char *proto, char *cip
 	}
 	dump_supported_ciphers(ctx);
 
+	/* Best practices: prefer our ciphers over the client's proposed */
+	SSL_CTX_set_options(ctx, SSL_OP_CIPHER_SERVER_PREFERENCE);
+
  	SSL_CTX_set_default_verify_paths(ctx);
  	SSL_CTX_set_verify(ctx, SSL_VERIFY_NONE, NULL);
 
