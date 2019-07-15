@@ -81,8 +81,11 @@ static int proto_to_version(char *proto)
 	return -1;
 }
 
-static void append(char *str, char *c)
+static void append(char *str, char *c, size_t len)
 {
+	if (strlen(str) + strlen(c) + 1 >= len)
+		return;
+
 	if (str[0])
 		strcat(str, ":");
 	strcat(str, c);
@@ -93,7 +96,7 @@ static void split_ciphers(char *orig, char **list, char **suite)
 	size_t len;
 	char *str, *pre, *post, *c;
 
-	len = strlen(orig);
+	len = strlen(orig) + 1;
 	str = strdup(orig);
 	pre = calloc(1, len);
 	post = calloc(1, len);
@@ -102,9 +105,9 @@ static void split_ciphers(char *orig, char **list, char **suite)
 		c = strtok(str, ":");
 		while (c) {
 			if (strchr(c, '_'))
-				append(post, c);
+				append(post, c, len);
 			else
-				append(pre, c);
+				append(pre, c, len);
 
 			c = strtok(NULL, ":");
 		}
