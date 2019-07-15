@@ -144,7 +144,7 @@ static void dump_supported_ciphers(SSL_CTX *ctx)
 			strcat(buf, ":");
 	}
 
-	syslog(LOG_NOTICE, "SSL ciphers enabled: %s", buf);
+	syslog(LOG_DEBUG, "SSL ciphers enabled: %s", buf);
 	free(buf);
 }
 
@@ -311,7 +311,7 @@ static int ssl_error_cb(const char *str, size_t len, void *data)
 	sz = len < sizeof(buf) ? len : sizeof(buf) - 1;
 	memcpy(buf, str, sz);
 
-	syslog(LOG_ERR, "OpenSSL error: %s", buf);
+	syslog(LOG_DEBUG, "OpenSSL error: %s", buf);
 
 	return 0;
 }
