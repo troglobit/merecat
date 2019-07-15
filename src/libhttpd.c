@@ -239,7 +239,7 @@ static void free_httpd_server(struct httpd *hs)
 	free(hs);
 }
 
-#define ENA(t) t ? "enabled" : "disabled"
+#define ENA(t) t ? "ON" : "OFF"
 static void httpd_greeting(struct httpd *hs, sockaddr_t *sav4, sockaddr_t *sav6)
 {
 	char name[202] = { 0 };
