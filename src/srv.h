@@ -39,6 +39,7 @@ struct srv {
 
 	int        ssl;		/* HTTPS or HTTP */
 	char      *ssl_proto;
+	char      *ciphers;
 	char      *certfile;
 	char      *keyfile;
 	char      *dhfile;

@@ -124,6 +124,7 @@ static void conf_ssl(struct srv *srv, cfg_t *cfg)
 #else
 	srv->ssl       = 1;
 	srv->ssl_proto = cfg_getstr(ssl, "protocol");
+	srv->ciphers   = cfg_getstr(ssl, "ciphers");
 	srv->certfile  = cfg_getstr(ssl, "certfile");
 	srv->keyfile   = cfg_getstr(ssl, "keyfile");
 	srv->dhfile    = cfg_getstr(ssl, "dhfile"); /* Optional */
@@ -140,7 +141,8 @@ static int read_config(char *fn)
 		CFG_END ()
 	};
 	cfg_opt_t ssl_opts[] = {
-		CFG_STR ("protocol", "TLSv1.1", CFGF_NONE),
+		CFG_STR ("protocol", SSL_DEFAULT_PROTO, CFGF_NONE),
+		CFG_STR ("ciphers", SSL_DEFAULT_CIPHERS, CFGF_NONE),
 		CFG_STR ("certfile", NULL, CFGF_NONE),
 		CFG_STR ("keyfile", NULL, CFGF_NONE),
 		CFG_STR ("dhfile", NULL, CFGF_NONE),

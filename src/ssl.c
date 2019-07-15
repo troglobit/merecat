@@ -81,10 +81,10 @@ static int proto_to_version(char *proto)
 	return -1;
 }
 
-void *httpd_ssl_init(char *cert, char *key, char *dhparm, char *proto)
+void *httpd_ssl_init(char *cert, char *key, char *dhparm, char *proto, char *ciphers)
 {
 	SSL_CTX *ctx;
-	int min_version;
+	int min_version, rc;
 
 	ctx = SSL_CTX_new(SSLv23_method());
 	if (!ctx)
@@ -110,8 +110,12 @@ void *httpd_ssl_init(char *cert, char *key, char *dhparm, char *proto)
 	}
 	SSL_CTX_set_min_proto_version(ctx, min_version);
 
-	SSL_CTX_set_cipher_list(ctx, "HIGH:!aNULL:!kRSA:!PSK:!SRP:!MD5:!RC4");
-	SSL_CTX_set_ciphersuites(ctx, TLS_DEFAULT_CIPHERSUITES);
+	rc  = SSL_CTX_set_cipher_list(ctx, ciphers);
+	rc += SSL_CTX_set_ciphersuites(ctx, ciphers);
+	if (!rc) {
+		syslog(LOG_ERR, "Invalid SSL ciphers '%s'", ciphers);
+		goto error;
+	}
 
  	SSL_CTX_set_default_verify_paths(ctx);
  	SSL_CTX_set_verify(ctx, SSL_VERIFY_NONE, NULL);

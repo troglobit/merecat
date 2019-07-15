@@ -421,6 +421,15 @@
 #define MIN_WOULDBLOCK_DELAY 100L
 
 /*
+** Default SSL/TLS protocol and cipher suites
+*/
+#define SSL_DEFAULT_PROTO   "TLSv1.1"
+#define SSL_DEFAULT_CIPHERS "TLS_AES_256_GCM_SHA384:"		\
+	"TLS_CHACHA20_POLY1305_SHA256:"				\
+	"TLS_AES_128_GCM_SHA256:"				\
+	"HIGH:!aNULL:!kRSA:!PSK:!SRP:!MD5:!RC4"
+
+/*
 ** Global variables
 */
 extern char *prognm;
