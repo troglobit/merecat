@@ -108,6 +108,29 @@ static void conf_redirect(struct srv *srv, cfg_t *cfg)
 	}
 }
 
+static void conf_ssl(struct srv *srv, cfg_t *cfg)
+{
+	size_t i;
+	cfg_t *ssl;
+
+	ssl = cfg_getnsec(cfg, "ssl", 0);
+	if (!ssl) {
+		srv->ssl = 0;
+		return;
+	}
+
+#ifndef ENABLE_SSL
+	syslog(LOG_ERR, "%s is not built with HTTPS support", PACKAGE_NAME);
+#else
+	srv->ssl       = 1;
+	srv->certfile  = cfg_getstr(ssl, "certfile");
+	srv->keyfile   = cfg_getstr(ssl, "keyfile");
+	srv->dhfile    = cfg_getstr(ssl, "dhfile"); /* Optional */
+	if (!srv->certfile || !srv->keyfile)
+		syslog(LOG_ERR, "Missing SSL certificate file(s)");
+#endif
+}
+
 static int read_config(char *fn)
 {
 	cfg_opt_t redirect_opts[] = {
@@ -115,14 +138,16 @@ static int read_config(char *fn)
 		CFG_INT ("code", 301, CFGF_NONE),
 		CFG_END ()
 	};
+	cfg_opt_t ssl_opts[] = {
+		CFG_STR ("certfile", NULL, CFGF_NONE),
+		CFG_STR ("keyfile", NULL, CFGF_NONE),
+		CFG_STR ("dhfile", NULL, CFGF_NONE),
+	};
 	cfg_opt_t server_opts[] = {
 		CFG_STR ("hostname", hostname, CFGF_NONE),
-		CFG_INT ("port", port, CFGF_NONE),
-		CFG_STR ("path", path, CFGF_NONE),
-		CFG_BOOL("ssl",  do_ssl, CFGF_NONE),
-		CFG_STR ("certfile", certfile, CFGF_NONE),
-		CFG_STR ("keyfile", keyfile, CFGF_NONE),
-		CFG_STR ("dhfile", dhfile, CFGF_NONE),
+		CFG_INT ("port",     port, CFGF_NONE),
+		CFG_STR ("path",     path, CFGF_NONE),
+		CFG_SEC ("ssl",      ssl_opts, CFGF_MULTI),
 		CFG_SEC ("redirect", redirect_opts, CFGF_MULTI | CFGF_TITLE),
 		CFG_END ()
 	};
@@ -158,13 +183,10 @@ static int read_config(char *fn)
 		CFG_STR ("username", user, CFGF_NONE),
 		CFG_STR ("hostname", hostname, CFGF_NONE),
 		CFG_BOOL("virtual-host", do_vhost, CFGF_NONE),
-		CFG_BOOL("ssl", do_ssl, CFGF_NONE),
-		CFG_STR ("certfile", certfile, CFGF_NONE),
-		CFG_STR ("keyfile", keyfile, CFGF_NONE),
-		CFG_STR ("dhfile", dhfile, CFGF_NONE),
 		CFG_STR ("user-agent-deny", useragent_deny, CFGF_NONE),
 		CFG_SEC ("php", php_opts, CFGF_MULTI),
 		CFG_SEC ("ssi", ssi_opts, CFGF_MULTI),
+		CFG_SEC ("ssl", ssl_opts, CFGF_MULTI),
 		CFG_SEC ("server", server_opts, CFGF_MULTI | CFGF_TITLE),
 		CFG_END ()
 	};
@@ -223,21 +245,6 @@ static int read_config(char *fn)
 
 	charset = cfg_getstr(cfg, "charset");
 	max_age = cfg_getint(cfg, "max-age");
-
-	do_ssl = cfg_getbool(cfg, "ssl");
-	if (do_ssl) {
-#ifndef ENABLE_SSL
-		syslog(LOG_ERR, "%s is not built with HTTPS support", PACKAGE_NAME);
-		goto error;
-#endif
-		certfile = cfg_getstr(cfg, "certfile");
-		keyfile  = cfg_getstr(cfg, "keyfile");
-		dhfile   = cfg_getstr(cfg, "dhfile"); /* Optional */
-		if (!certfile || !keyfile) {
-			syslog(LOG_ERR, "Missing SSL certificate file(s)");
-			goto error;
-		}
-	}
 
 #ifdef HAVE_ZLIB_H
 	compression_level = cfg_getint(cfg, "compression-level");
@@ -300,10 +307,7 @@ int conf_srv(struct srv arr[], size_t len)
 		arr[0].port  = cfg_getint(cfg, "port");
 		arr[0].path  = path;
 
-		arr[0].ssl      = cfg_getbool(cfg, "ssl");
-		arr[0].certfile = cfg_getstr(cfg, "certfile");
-		arr[0].keyfile  = cfg_getstr(cfg, "keyfile");
-		arr[0].dhfile   = cfg_getstr(cfg, "dhfile");
+		conf_ssl(&arr[0], cfg);
 
 		return 1;
 	}
@@ -320,11 +324,7 @@ int conf_srv(struct srv arr[], size_t len)
 		arr[i].port  = cfg_getint(srv, "port");
 		arr[i].path  = cfg_getstr(srv, "path");
 
-		arr[i].ssl      = cfg_getbool(srv, "ssl");
-		arr[i].certfile = cfg_getstr(srv, "certfile");
-		arr[i].keyfile  = cfg_getstr(srv, "keyfile");
-		arr[i].dhfile   = cfg_getstr(srv, "dhfile");
-
+		conf_ssl(&arr[i], srv);
 		conf_redirect(&arr[i], srv);
 	}
 
