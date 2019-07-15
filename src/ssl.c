@@ -105,6 +105,8 @@ static void split_ciphers(char *orig, char **list, char **suite)
 				append(post, c);
 			else
 				append(pre, c);
+
+			c = strtok(NULL, ":");
 		}
 
 		free(str);
