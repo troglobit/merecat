@@ -434,6 +434,11 @@
 	"!DHE-RSA-AES128-CCM8:!DHE-RSA-AES128-CCM"
 
 /*
+** The minimum age for strict TLS should be > 180 days
+*/
+#define HSTS_MIN_AGE (180 * 24 * 60 * 60)
+
+/*
 ** Global variables
 */
 extern char *prognm;
