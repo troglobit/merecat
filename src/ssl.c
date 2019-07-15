@@ -51,12 +51,6 @@ void *httpd_ssl_init(char *cert, char *key, char *dhparm)
 {
 	SSL_CTX *ctx;
 
-#if OPENSSL_VERSION_NUMBER < 0x10100000L
-	SSL_library_init();
-	SSL_load_error_strings();
-	OpenSSL_add_ssl_algorithms();
-#endif
-
 	ctx = SSL_CTX_new(SSLv23_method());
 	if (!ctx)
 		return NULL;
@@ -64,20 +58,23 @@ void *httpd_ssl_init(char *cert, char *key, char *dhparm)
 	/* Enable bug workarounds. */
 	SSL_CTX_set_options(ctx, SSL_OP_ALL);
 
-	/* Disable insecure SSL/TLS versions. */
-	SSL_CTX_set_options(ctx, SSL_OP_NO_SSLv2); /* DROWN */
-	SSL_CTX_set_options(ctx, SSL_OP_NO_SSLv3); /* POODLE */
-	SSL_CTX_set_options(ctx, SSL_OP_NO_TLSv1); /* BEAST */
-	SSL_CTX_set_options(ctx, SSL_OP_NO_COMPRESSION); /* CRIME */
-
-#if HAVE_DECL_SSL_CTX_SET_ECDH_AUTO
-	SSL_CTX_set_ecdh_auto(ctx, 1);
-#endif
+	/* Disable insecure SSL/TLS versions:
+	 *
+	 * - SSLv2 has the DROWN vulnerability
+	 * - SSLv3 was POODLE
+	 * - TLSv1 had BEAST
+	 *
+	 * ... and then we had CRIME, which forced us to disable
+	 * compression.  All these required SSL_CTX_set_options(), but
+	 * OpenSSL v1.1.0 recommends SSL_CTX_set_min_proto_version(),
+	 * which is far easier to understand as an end-user.  Also,
+	 * compression is disabled by default in OpenSSL v1.1.0, which
+	 * is what the configure script now requires.
+	 */
+	SSL_CTX_set_min_proto_version(ctx, TLS1_1_VERSION);
 
 	SSL_CTX_set_cipher_list(ctx, "HIGH:!aNULL:!kRSA:!PSK:!SRP:!MD5:!RC4");
-#ifdef TLS_DEFAULT_CIPHERSUITES
 	SSL_CTX_set_ciphersuites(ctx, TLS_DEFAULT_CIPHERSUITES);
-#endif
 
  	SSL_CTX_set_default_verify_paths(ctx);
  	SSL_CTX_set_verify(ctx, SSL_VERIFY_NONE, NULL);
@@ -113,18 +110,10 @@ void httpd_ssl_exit(struct httpd *hs)
 	if (!hs || !hs->ctx)
 		return;
 
-#if HAVE_DECL_SSL_COMP_FREE_COMPRESSION_METHODS
-	SSL_COMP_free_compression_methods();
-#endif
 	SSL_CTX_free(hs->ctx);
 	hs->ctx = NULL;
 
 	ENGINE_cleanup();
-#if OPENSSL_VERSION_NUMBER < 0x10100000L
-	ERR_free_strings();
-//	ERR_remove_state(0);
-	EVP_cleanup();
-#endif
 	CRYPTO_cleanup_all_ex_data();
 	CONF_modules_free();
 	CONF_modules_unload(1);
