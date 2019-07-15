@@ -1661,7 +1661,7 @@ int main(int argc, char **argv)
 	pidfile(pidfn);
 
 	/* Get servers from .conf file */
-	num = conf_srv(srvtab, 2);
+	num = conf_srv(srvtab, NELEMS(srvtab));
 	if (num == -1) {
 		syslog(LOG_CRIT, "No server{} directive in .conf file and no valid global settings ...");
 		exit(1);
@@ -1672,7 +1672,8 @@ int main(int argc, char **argv)
 		server = srv_init(&srvtab[i]);
 
 		/* Add to list of servers */
-		LIST_INSERT(server, server_list);
+		if (server)
+			LIST_INSERT(server, server_list);
 	}
 
 	/* Start socket watchers for all servers */
