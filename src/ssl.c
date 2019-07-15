@@ -203,8 +203,9 @@ void *httpd_ssl_init(char *cert, char *key, char *dhparm, char *proto, char *cip
 	/* Best practices: prefer our ciphers over the client's proposed */
 	SSL_CTX_set_options(ctx, SSL_OP_CIPHER_SERVER_PREFERENCE);
 
-	/* Enable OCSP stapling, include OCSP validation message in TLS hand-shake */
-	SSL_CTX_set_tlsext_status_type(ctx, TLSEXT_STATUSTYPE_ocsp);
+//	/* Enable OCSP stapling, include OCSP validation message in TLS hand-shake */
+//	SSL_CTX_set_tlsext_status_type(ctx, TLSEXT_STATUSTYPE_ocsp);
+//	SSL_CTX_set_tlsext_status_cb(ctx, ocsp_status_cb);
 
  	SSL_CTX_set_default_verify_paths(ctx);
  	SSL_CTX_set_verify(ctx, SSL_VERIFY_NONE, NULL);
