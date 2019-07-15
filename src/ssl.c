@@ -81,7 +81,7 @@ static int proto_to_version(char *proto)
 	return -1;
 }
 
-static void append(char *str, char *c, size_t len)
+static void append(char *str, const char *c, size_t len)
 {
 	if (strlen(str) + strlen(c) + 1 >= len)
 		return;
@@ -123,6 +123,7 @@ static void dump_supported_ciphers(SSL_CTX *ctx)
 {
 	STACK_OF(SSL_CIPHER) *ciphers;
 	const SSL_CIPHER *cipher;
+	size_t len;
 	char *buf;
 	int i, num;
 
@@ -133,17 +134,21 @@ static void dump_supported_ciphers(SSL_CTX *ctx)
 	}
 
 	num = sk_SSL_CIPHER_num(ciphers);
-	buf = calloc(num, 25);
+	if (num <= 0) {
+		buf = strdup("none");
+		goto error;
+	}
+
+	buf = calloc(num, 50);
 	if (!buf)
 		return;
 
+	len = num * 50;
 	for (i = 0; i < num; i++) {
 		cipher = sk_SSL_CIPHER_value(ciphers, i);
-		strcat(buf, SSL_CIPHER_get_name(cipher));
-		if (i + 1 < num)
-			strcat(buf, ":");
+		append(buf, SSL_CIPHER_get_name(cipher), len);
 	}
-
+error:
 	syslog(LOG_DEBUG, "SSL ciphers enabled: %s", buf);
 	free(buf);
 }
