@@ -190,7 +190,8 @@ static int read_config(char *fn)
 
 	case CFG_PARSE_ERROR:
 		syslog(LOG_ERR, "Parse error in %s", fn);
-		goto error;
+		cfg_free(cfg);
+		exit(1);
 
 	case CFG_SUCCESS:
 		break;
