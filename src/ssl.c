@@ -81,6 +81,30 @@ static int proto_to_version(char *proto)
 	return -1;
 }
 
+static void dump_supported_ciphers(SSL_CTX *ctx)
+{
+	STACK_OF(SSL_CIPHER) *ciphers;
+	const SSL_CIPHER *cipher;
+	char buf[1024] = { 0 };
+	int i, num;
+
+	ciphers = SSL_CTX_get_ciphers(ctx);
+	if (!ciphers) {
+		syslog(LOG_WARNING, "No SSL ciphers set up!");
+		return;
+	}
+
+	num = sk_SSL_CIPHER_num(ciphers);
+	for (i = 0; i < num; i++) {
+		cipher = sk_SSL_CIPHER_value(ciphers, i);
+		strcat(buf, SSL_CIPHER_get_name(cipher));
+		if (i + 1 < num)
+			strcat(buf, ":");
+	}
+
+	syslog(LOG_NOTICE, "SSL ciphers enabled: %s", buf);
+}
+
 void *httpd_ssl_init(char *cert, char *key, char *dhparm, char *proto, char *ciphers)
 {
 	SSL_CTX *ctx;
@@ -116,6 +140,8 @@ void *httpd_ssl_init(char *cert, char *key, char *dhparm, char *proto, char *cip
 		syslog(LOG_ERR, "Invalid SSL ciphers '%s'", ciphers);
 		goto error;
 	}
+
+	dump_supported_ciphers(ctx);
 
  	SSL_CTX_set_default_verify_paths(ctx);
  	SSL_CTX_set_verify(ctx, SSL_VERIFY_NONE, NULL);
