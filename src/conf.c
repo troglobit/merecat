@@ -94,7 +94,7 @@ static void conf_ssi(cfg_t *cfg)
 
 	ssi_cgi = cfg_getstr(cfg, "cgi-path");
 	ssi_silent = cfg_getbool(cfg, "silent");
-	ssi_pattern = cfg_getstr(cfg, "pattern");
+	ssi_pattern = (char *)cfg_title(cfg);
 	if (!ssi_pattern || !ssi_cgi || access(ssi_cgi, X_OK)) {
 		syslog(LOG_WARNING, "Invalid SSI settings, check path and pattern!");
 		goto err;
@@ -203,7 +203,7 @@ static int read_config(char *fn)
 		CFG_STR ("user-agent-deny", useragent_deny, CFGF_NONE),
 		CFG_SEC ("cgi", cgi_opts, CFGF_MULTI | CFGF_TITLE),
 		CFG_SEC ("php", php_opts, CFGF_MULTI),
-		CFG_SEC ("ssi", ssi_opts, CFGF_MULTI),
+		CFG_SEC ("ssi", ssi_opts, CFGF_MULTI | CFGF_TITLE),
 		CFG_SEC ("ssl", ssl_opts, CFGF_MULTI),
 		CFG_SEC ("server", server_opts, CFGF_MULTI | CFGF_TITLE),
 		CFG_END ()
