@@ -263,7 +263,7 @@ static void httpd_greeting(struct httpd *hs, sockaddr_t *sav4, sockaddr_t *sav6)
 	syslog(LOG_NOTICE, "%s starting on %s%s", PACKAGE_STRING, name, buf);
 }
 
-int httpd_cgi_init(struct httpd *hs, char *cgi_pattern, int cgi_limit)
+int httpd_cgi_init(struct httpd *hs, int enabled, char *cgi_pattern, int cgi_limit)
 {
 	char *cp;
 
@@ -273,11 +273,15 @@ int httpd_cgi_init(struct httpd *hs, char *cgi_pattern, int cgi_limit)
 	}
 
 	if (!cgi_pattern) {
+		hs->cgi_enabled = 0;
 		hs->cgi_pattern = NULL;
 		hs->cgi_limit = 0;
 		hs->cgi_count = 0;
 		return 0;
 	}
+
+	/* Match CGI pattern but never execute */
+	hs->cgi_enabled = enabled;
 
 	/* Nuke any leading slashes. */
 	if (cgi_pattern[0] == '/')
@@ -4494,14 +4498,18 @@ sneaky:
 
 	/* Is it world-executable and in the CGI area? */
 	if (is_cgi(hc)) {
-		if (hc->sb.st_mode & S_IXOTH || is_php(hc, NULL) || is_ssi(hc, NULL))
+		if (hc->sb.st_mode & S_IXOTH && hc->hs->cgi_enabled)
 			return cgi(hc);
 
-		syslog(LOG_DEBUG, "%s URL \"%s\" is a CGI but not executable, rejecting.", httpd_client(hc), hc->encodedurl);
+		if (is_php(hc, NULL) || is_ssi(hc, NULL))
+			return cgi(hc);
+
+		syslog(LOG_DEBUG, "%s URL \"%s\" is a CGI but not executable, "
+		       "or CGI is disabled, rejecting.",
+		       httpd_client(hc), hc->encodedurl);
 		httpd_send_err(hc, 403, err403title, "",
-			       ERROR_FORM(err403form,
-					  "The requested URL '%s' resolves to a file which matches a CGI but is not executable; retrieving it is forbidden.\n"),
-			       hc->encodedurl);
+			       ERROR_FORM(err403form, "The requested URL '%s' "
+					  "is forbidden.\n"), hc->encodedurl);
 		return -1;
 	}
 
@@ -4509,8 +4517,7 @@ sneaky:
 		syslog(LOG_INFO, "%s URL \"%s\" has pathinfo but isn't CGI", httpd_client(hc), hc->encodedurl);
 		httpd_send_err(hc, 403, err403title, "",
 			       ERROR_FORM(err403form,
-					  "The requested URL '%s' resolves to a file plus CGI-style pathinfo, but the file is not a valid CGI file.\n"),
-			       hc->encodedurl);
+					  "The requested URL '%s' is not a valid CGI.\n"), hc->encodedurl);
 		return -1;
 	}
 

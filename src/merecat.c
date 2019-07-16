@@ -89,6 +89,7 @@ int          do_global_passwd  = 0;
 int          do_list_dotfiles  = 0;
 int          no_symlink_check  = 1;
 int          no_empty_referers = 0;
+int          cgi_enabled       = 0;
 int          cgi_limit         = CGI_LIMIT;
 char        *cgi_pattern       = CGI_PATTERN;
 char        *local_pattern     = NULL;

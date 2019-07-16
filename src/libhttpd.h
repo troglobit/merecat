@@ -120,6 +120,7 @@ struct httpd {
 	char *server_hostname;
 	unsigned short port;
 
+	int    cgi_enabled;
 	pid_t *cgi_tracker;
 	char  *cgi_pattern;
 	int    cgi_limit;
@@ -264,7 +265,7 @@ extern struct httpd *httpd_init(char *hostname, unsigned short port, void *ssl_c
 				int no_empty_referers, int list_dotfiles);
 
 /* Enable CGI/1.1 support */
-extern int httpd_cgi_init(struct httpd *hs, char *cgi_pattern, int cgi_limit);
+extern int httpd_cgi_init(struct httpd *hs, int enabled, char *cgi_pattern, int cgi_limit);
 
 /* Enable HTTP redirect -- Note: O(n) lookup per HTTP request */
 extern int httpd_redirect_add(struct httpd *hs, int code, char *pattern, char *location);

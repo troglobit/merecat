@@ -56,6 +56,16 @@ static void conf_errfunc(cfg_t *cfg, const char *format, va_list args)
 	vsyslog(LOG_ERR, fmt, args);
 }
 
+static void conf_cgi(cfg_t *cfg)
+{
+	if (!cfg)
+		return;
+
+	cgi_pattern = (char *)cfg_title(cfg);
+	cgi_enabled = cfg_getbool(cfg, "enabled");
+	cgi_limit   = cfg_getint(cfg, "limit");
+}
+
 static void conf_php(cfg_t *cfg)
 {
 	if (!cfg || !cfg_getbool(cfg, "enabled")) {
@@ -155,6 +165,11 @@ static int read_config(char *fn)
 		CFG_SEC ("redirect", redirect_opts, CFGF_MULTI | CFGF_TITLE),
 		CFG_END ()
 	};
+	cfg_opt_t cgi_opts[] = {
+		CFG_BOOL("enabled", 0, CFGF_NONE),
+		CFG_INT ("limit", cgi_limit, CFGF_NONE),
+		CFG_END ()
+	};
 	cfg_opt_t php_opts[] = {
 		CFG_BOOL("enabled", 0, CFGF_NONE),
 		CFG_STR ("pattern", "**.php", CFGF_NONE),
@@ -178,8 +193,6 @@ static int read_config(char *fn)
 		CFG_BOOL("check-symlinks", !no_symlink_check, CFGF_NONE),
 		CFG_BOOL("check-referer", cfg_false, CFGF_NONE),
 		CFG_STR ("charset", charset, CFGF_NONE),
-		CFG_INT ("cgi-limit", cgi_limit, CFGF_NONE),
-		CFG_STR ("cgi-pattern", cgi_pattern, CFGF_NONE),
 		CFG_BOOL("list-dotfiles", cfg_false, CFGF_NONE),
 		CFG_STR ("local-pattern", NULL, CFGF_NONE),
 		CFG_STR ("url-pattern", NULL, CFGF_NONE),
@@ -188,6 +201,7 @@ static int read_config(char *fn)
 		CFG_STR ("hostname", hostname, CFGF_NONE),
 		CFG_BOOL("virtual-host", do_vhost, CFGF_NONE),
 		CFG_STR ("user-agent-deny", useragent_deny, CFGF_NONE),
+		CFG_SEC ("cgi", cgi_opts, CFGF_MULTI | CFGF_TITLE),
 		CFG_SEC ("php", php_opts, CFGF_MULTI),
 		CFG_SEC ("ssi", ssi_opts, CFGF_MULTI),
 		CFG_SEC ("ssl", ssl_opts, CFGF_MULTI),
@@ -234,8 +248,6 @@ static int read_config(char *fn)
 		no_symlink_check = 0;
 
 	user = cfg_getstr(cfg, "username");
-	cgi_pattern = cfg_getstr(cfg, "cgi-pattern");
-	cgi_limit = cfg_getint(cfg, "cgi-limit");
 	url_pattern = cfg_getstr(cfg, "url-pattern");
 	local_pattern = cfg_getstr(cfg, "local-pattern");
 	useragent_deny = cfg_getstr(cfg, "user-agent-deny");
@@ -258,6 +270,7 @@ static int read_config(char *fn)
 		compression_level = Z_BEST_COMPRESSION;
 #endif
 
+	conf_cgi(cfg_getnsec(cfg, "cgi", 0));
 	conf_php(cfg_getnsec(cfg, "php", 0));
 	conf_ssi(cfg_getnsec(cfg, "ssi", 0));
 

@@ -457,6 +457,7 @@ extern int       do_global_passwd;
 extern int       do_list_dotfiles;
 extern int       no_symlink_check;
 extern int       no_empty_referers;
+extern int       cgi_enabled;
 extern int       cgi_limit;
 extern char     *cgi_pattern;
 extern char     *local_pattern;

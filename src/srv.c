@@ -194,7 +194,7 @@ struct httpd *srv_init(struct srv *srv)
 	if (!hs)
 		goto err;
 
-	if (httpd_cgi_init(hs, cgi_pattern, cgi_limit))
+	if (httpd_cgi_init(hs, cgi_enabled, cgi_pattern, cgi_limit))
 		goto release;
 
 	for (i = 0; i < NELEMS(srv->redirect); i++)
