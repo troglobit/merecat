@@ -59,24 +59,14 @@ does not reload the
 file.
 .Ss "Configuration Directives"
 .Bl -tag -width Ds
-.It Cm cgi-limit = Ar NUM
-Maximum number of allowed simultaneous CGI programs.  Default 1.
-.It Cm cgi-pattern = Qq Ar **.cgi|/cgi-bin/*
-Wildcard pattern for CGI programs, for instance
-.Qq **.cgi
-or
-.Qq /cgi-bin/* ,
-the default is to allow any program ending in
-.Cm .cgi
-and any program in
-.Cm /cgi-bin/ .
-See below CGI section for more on this.
 .It Cm charset = Qq Ar UTF-8
 Character set to use with text MIME types.  If the default unicode
 charset causes trouble, try "iso-8859-1".
 .It Cm check-referer = Ar <true | false>
 Enable check for external sites referencing material on your web server.
-For more information on referrers, see below. Disabled by default.
+For more information on referrers, see
+.Xr merecat 8 .
+Disabled by default.
 .It Cm check-symlinks = Ar <true | false>
 For increased security, set this to true.  Unless running chrooted in
 which case this is not really necessary.  Disabled by default.
@@ -127,7 +117,9 @@ If dotfiles should be skipped in directory listings.  Disabled by default.
 .It Cm local-pattern = Qq Ar PATTERN
 Used with
 .Cm check-referer ,
-see below for more details.
+see
+.Xr merecat 8
+for more details.
 .It Cm max-age = Ar SEC
 Max number of seconds to be used in a
 .Qq Ar Cache-Control: max-age
@@ -137,19 +129,105 @@ header is also generated.  The default is no Cache-Control or Expires
 headers, which is just fine for most sites.
 .It Cm port = Ar PORT
 The web server Internet port to listen to, defaults to 80, or 443 when
-HTTPS is enabled, below.
+HTTPS is enabled.  See the
+.Cm ssl
+section below for more on configuring an HTTPS server.
 .It Cm url-pattern = Qq Ar PATTERN
 Used with
 .Cm check-referer ,
-see below for more details.
+see
+.Xr merecat 8
+for more details.
 .It Cm username = Qq Ar NAME
 Set username to drop privileges to after startup.  Defaults to "nobody"
 which usually is defined on all UNIX systems.
 .It Cm virtual-host = Ar <true | false>
 Enable virtual hosting, disabled by default.  For more information on
-this, see below.
-.It Cm ssl = Ar <true | false>
-Enable HTTPS, disabled by default.
+this, see
+.Xr merecat 8 .
+.It Cm user-agent-deny = Qq Ar PATTERN
+Wildcard pattern to deny access to illicit hammering bots.  When set a
+matching user-agent will receive a 403 for all its requests.  Use for
+instance
+.Qq **SemrushBot**
+or
+.Qq **SemrushBot**|**MJ12Bot**|**DotBot**
+to match multiple user-agents.  The default is to allow all user-agents.
+.It Cm cgi Qo Ar PATTERN Qc Cm {
+Wildcard pattern for CGI programs, for instance
+.Qq **.cgi
+or
+.Qq **.cgi|/cgi-bin/* .
+See the dedicated CGI section in
+.Xr merecat 8
+for more on this.
+.Pp
+.Bl -tag -offset "" -compact
+.It Cm enabled = Ar <true | false>
+The CGI module is disabled by default.
+.It Cm limit = Ar NUM
+Maximum number of allowed simultaneous CGI programs.  Default 1.
+.El
+.It Cm }
+.It Cm php Qo Ar PATTERN Qc Cm {
+Wildcard pattern for PHP scripts, for instance
+.Qq **.php
+or
+.Qq **.php5|**.php4|**.php .
+.Pp
+.Bl -tag -offset "" -compact
+.It Cm enabled = Ar <true | false>
+The PHP module is disabled by default.
+.It Cm cgi-path = Qq Pa /path/to/php-cgi
+Default is
+.Qq Pa /usr/bin/php-cgi
+.El
+.It Cm }
+.It Cm ssi Qo Ar PATTERN Qc Cm {
+Wildcard pattern for triggering SSI, for instance
+.Qq **.shtml
+or
+.Qq **.shtml|**.stm|**.shtm .
+.Pp
+.Bl -tag -offset "" -compact
+.It Cm enabled = Ar <true | false>
+The SSI module is disabled by default.
+.It Cm cgi-path = Qq Pa /path/to/ssi
+Default is
+.Qq Pa cgi-bin/ssi .
+See
+.Xr ssi 8
+for more information.
+.It Cm silent = Ar <true | false>
+This setting can be used to silence “[an error occurred while processing
+the directive]”, shown when an error occurrs during SSI processing.
+Default disabled (false).
+.El
+.It Cm }
+.It Cm ssl Cm {
+.Bl -tag -offset "" -compact
+.It Cm protocol = Qq Ar PROTOCOL
+Minimum SSL/TLS protocol level to enable.  Can be one of:
+.Ar SSLv3, TLSv1, TLSv1.1, TLSv1.2, TLSv1.3 .
+The default minimum protocol is
+.Ar TLSv1.1 .
+Note, some (Linux) distributions have
+.Ar SSLv3
+disabled by default in their OpenSSL packages.
+.It Cm ciphers = Qq Ar CIPHERS
+The preferred list of ciphers the server supports.  For a list of
+available ciphers, see the
+.Xr ciphers 1
+man page.  The default covers both TLSv1.3 (new ciphersuite) and
+older cipher list:
+.Bd -unfilled -offset indent
+TLS_AES_256_GCM_SHA384:TLS_CHACHA20_POLY1305_SHA256:TLS_AES_128_GCM_SHA256: \\
+HIGH:!aNULL:!kRSA:!PSK:!SRP:!MD5:!RC4:!DHE-RSA-CAMELLIA256-SHA:             \\
+!DHE-RSA-CAMELLIA128-SHA:!ECDHE-RSA-CHACHA20-POLY1305:                      \\
+!DHE-RSA-CHACHA20-POLY1305:!DHE-RSA-AES256-CCM8:!DHE-RSA-AES256-CCM:        \\
+!DHE-RSA-AES128-CCM8:!DHE-RSA-AES128-CCM
+.Ed
+.Pp
 .It Cm certfile = Ar /path/to/cert.pem
 Public part of HTTPS certificate, required for HTTPS.
 .It Cm keyfile = Ar /path/to/key.pem
@@ -164,70 +242,14 @@ can be published online, if necessary.  Create one like this:
 .Bd -unfilled -offset indent
 openssl dhparam -out dhparam.pem 2048
 .Ed
-.It Cm user-agent-deny = Qq Ar PATTERN
-Wildcard pattern to deny access to illicit hammering bots.  When set a
-matching user-agent will receive a 403 for all its requests.  Use for
-instance
-.Qq **SemrushBot**
-or
-.Qq **SemrushBot**|**MJ12Bot**|**DotBot**
-to match multiple user-agents.  The default is to allow all user-agents.
-.It Cm php Cm {
-.Bl -tag -offset indent -compact
-.It Cm enabled = Ar <true | false>
-The PHP module is disabled by default.
-.It Cm pattern = Qo Ar PATTERN Qc
-Wildcard pattern for PHP scripts, for instance
-.Qq **.php
-or
-.Qq **.php5|**.php4|**.php ,
-the default is to allow any script ending in
-.Cm .php
-.It Cm cgi-path = Qq Pa /path/to/php-cgi
-Default is
-.Qq Pa /usr/bin/php-cgi
-.El
-.It Cm }
-.It Cm ssi Cm {
-.Bl -tag -offset indent -compact
-.It Cm enabled = Ar <true | false>
-The SSI module is disabled by default.
-.It Cm pattern = Qo Ar PATTERN Qc
-Wildcard pattern for triggering SSI, for instance
-.Qq **.shtml
-or
-.Qq **.shtml|**.stm|**.shtm ,
-the default is to allow any script ending in
-.Cm .shtml
-.It Cm cgi-path = Qq Pa /path/to/ssi
-Default is
-.Qq Pa cgi-bin/ssi .
-See
-.Xr ssi 8
-for more information.
-.It Cm silent = Ar <true | false>
-This setting can be used to silence “[an error occurred while processing
-the directive]”, shown when an error occurrs during SSI processing.
-Default disabled (false).
 .El
 .It Cm }
 .It Cm server Ar name Cm {
-.Bl -tag -offset indent -compact
+.Bl -tag -offset "" -compact
 .It Cm port = Ar PORT
 Server port to listen to.
-.It Cm ssl = Ar <true | false>
-Enable HTTPS, disabled by default.
-.It Cm certfile = Ar /path/to/cert.pem
-Public part of HTTPS certificate, required for HTTPS.
-.It Cm keyfile = Ar /path/to/key.pem
-Private key of HTTPS certificate, required for HTTPS.  This file must
-be kept private and should not be in the WEBROOT directory.
-.It Cm dhfile = Ar /path/th/dhparam.pem
-Optional Diffie-Hellman parameters.  Not secret, unlike the
-.Cm keyfile
-the
-.Cm dhparm
-can be published online, if necessary.
+.It Cm ssl Cm { Ar ... Cm }
+Same as the global settings, above, only this is for this server only.
 .It Cm redirect Qo Ar PATTERN Qc {
 .Bl -tag -offset "" -compact
 .It Cm code = Ar CODE
