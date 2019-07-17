@@ -58,7 +58,7 @@ ssize_t httpd_ssl_write  (struct http_conn *hc, void *buf, size_t len);
 ssize_t httpd_ssl_writev (struct http_conn *hc, struct iovec *iov, size_t num);
 
 #else
-#define httpd_ssl_init(cert, key, dhparm) NULL
+#define httpd_ssl_init(cert, key, dhparm, proto, ciphers) NULL
 #define httpd_ssl_exit(hs)
 
 #define httpd_ssl_open(hc)             (hc->ssl = NULL)
