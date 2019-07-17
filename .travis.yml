@@ -3,7 +3,7 @@
 language: c
 
 # Enforce a Ubuntu with newer OpenSSL
-dist: xenial
+dist: bionic
 
 # We don't need to install packages, use dockerized build, quicker
 sudo: false
