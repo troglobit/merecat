@@ -36,14 +36,14 @@ addons:
 # all unit tests on a merecat with HTTPS enabled.
 script:
   - ./autogen.sh
-  - ./configure --prefix=/tmp --without-ssl --enable-htaccess --enable-htpasswd
+  - ./configure --prefix=/ --without-ssl --enable-htaccess --enable-htpasswd
   - make clean
   - make V=1 || cat config.h
   - make distclean
-  - ./configure --prefix=/tmp
+  - ./configure --prefix=/
   - make V=1 || cat config.h
-  - make install-strip
   - make check
-  - tree /tmp
-  - ldd /tmp/sbin/merecat
-  - /tmp/sbin/merecat -h
+  - DESTDIR=/tmp/tok make install-strip
+  - tree /tmp/tok
+  - ldd /tmp/tok/sbin/merecat
+  - /tmp/tok/sbin/merecat -h
