@@ -1522,7 +1522,7 @@ int main(int argc, char **argv)
 	/* Get current directory. */
 	getcwd(path, sizeof(path) - 1);
 	if (path[strlen(path) - 1] != '/')
-		strcat(path, "/");
+		strlcat(path, "/", sizeof(path));
 
 	if (background) {
 		/* We're not going to use stdin stdout or stderr from here on,
@@ -1578,7 +1578,7 @@ int main(int argc, char **argv)
 			exit(1);
 		}
 
-		strcpy(path, "/");
+		strlcpy(path, "/", sizeof(path));
 		/* Always chdir to / after a chroot. */
 		if (chdir(path) < 0) {
 			syslog(LOG_CRIT, "chroot chdir: %s", strerror(errno));
