@@ -179,7 +179,7 @@ static int get_filename(char *vfilename, char *filename, char *directive, char *
 	vl = strlen(vfilename);
 	fl = strlen(filename);
 	if (strcmp(tag, "virtual") == 0) {
-		if (strstr(val, "../") != (char *)0) {
+		if (strstr(val, "../")) {
 			not_permitted(directive, tag, val);
 			return -1;
 		}
@@ -191,7 +191,7 @@ static int get_filename(char *vfilename, char *filename, char *directive, char *
 		strncpy(fn, filename, fl - vl);
 		strcpy(&fn[fl - vl], val);
 	} else if (strcmp(tag, "file") == 0) {
-		if (val[0] == '/' || strstr(val, "../") != (char *)0) {
+		if (val[0] == '/' || strstr(val, "../")) {
 			not_permitted(directive, tag, val);
 			return -1;
 		}
@@ -227,14 +227,14 @@ static int check_filename(char *filename)
 		/* Get the cgi pattern. */
 		cgi_pattern = getenv("CGI_PATTERN");
 #ifdef CGI_PATTERN
-		if (cgi_pattern == (char *)0)
+		if (!cgi_pattern)
 			cgi_pattern = CGI_PATTERN;
 #endif				/* CGI_PATTERN */
 		inited = 1;
 	}
 
 	/* ../ is not permitted. */
-	if (strstr(filename, "../") != (char *)0)
+	if (strstr(filename, "../"))
 		return 0;
 
 #ifdef AUTH_FILE
@@ -251,15 +251,15 @@ static int check_filename(char *filename)
 	 ** prohibit access to all auth-protected files.
 	 */
 	dirname = strdup(filename);
-	if (dirname == (char *)0)
+	if (!dirname)
 		return 0;	/* out of memory */
 	cp = strrchr(dirname, '/');
-	if (cp == (char *)0)
+	if (!cp)
 		strcpy(dirname, ".");
 	else
 		*cp = '\0';
 	authname = malloc(strlen(dirname) + 1 + sizeof(AUTH_FILE));
-	if (authname == (char *)0) {
+	if (!authname) {
 		free(dirname);
 		return 0;	/* out of memory */
 	}
@@ -272,7 +272,7 @@ static int check_filename(char *filename)
 #endif				/* AUTH_FILE */
 
 	/* Ensure that we are not reading a CGI file. */
-	if (cgi_pattern != (char *)0 && match(cgi_pattern, filename))
+	if (cgi_pattern && match(cgi_pattern, filename))
 		return 0;
 
 	return 1;
@@ -362,7 +362,7 @@ static void do_include(char *vfilename, char *filename, FILE *fp, char *directiv
 	}
 
 	fp2 = fopen(filename2, "r");
-	if (fp2 == (FILE *)0) {
+	if (!fp2) {
 		not_found2(directive, tag, filename2);
 		return;
 	}
@@ -378,7 +378,7 @@ static void do_include(char *vfilename, char *filename, FILE *fp, char *directiv
 
 			strcpy(vfilename2, vfilename);
 			cp = strrchr(vfilename2, '/');
-			if (cp == (char *)0) {
+			if (!cp) {
 				cp = &vfilename2[strlen(vfilename2)];
 				*cp = '/';
 			}
@@ -414,15 +414,15 @@ static void do_echo(char *vfilename, char *filename, FILE *fp, char *directive, 
 		} else if (strcmp(val, "QUERY_STRING_UNESCAPED") == 0) {
 			/* The unescaped version of any search query the client sent. */
 			cp = getenv("QUERY_STRING");
-			if (cp != (char *)0)
+			if (cp)
 				fputs(cp, stdout);
 		} else if (strcmp(val, "DATE_LOCAL") == 0) {
 			/* The current date, local time zone. */
-			t = time((time_t *)0);
+			t = time(NULL);
 			show_time(t, 0);
 		} else if (strcmp(val, "DATE_GMT") == 0) {
 			/* Same as DATE_LOCAL but in Greenwich mean time. */
-			t = time((time_t *)0);
+			t = time(NULL);
 			show_time(t, 1);
 		} else if (strcmp(val, "LAST_MODIFIED") == 0) {
 			/* The last modification date of the current document. */
@@ -431,7 +431,7 @@ static void do_echo(char *vfilename, char *filename, FILE *fp, char *directive, 
 		} else {
 			/* Try an environment variable. */
 			cp = getenv(val);
-			if (cp == (char *)0)
+			if (!cp)
 				unknown_value(filename, directive, tag, val);
 			else
 				fputs(cp, stdout);
@@ -495,7 +495,7 @@ static void parse(char *vfilename, char *filename, FILE *fp, char *str)
 	cp = directive;
 	for (;;) {
 		cp = strpbrk(cp, " \t\n\r\"");
-		if (cp == (char *)0)
+		if (!cp)
 			break;
 		if (*cp == '"') {
 			cp = strpbrk(cp + 1, "\"");
@@ -530,7 +530,7 @@ static void parse(char *vfilename, char *filename, FILE *fp, char *str)
 		if (i > 0)
 			putchar(' ');
 		val = strchr(tags[i], '=');
-		if (val == (char *)0)
+		if (!val)
 			val = "";
 		else
 			*val++ = '\0';
@@ -677,17 +677,17 @@ int main(int argc, char **argv)
 
 	/* Get the name that we were run as. */
 	script_name = getenv("SCRIPT_NAME");
-	if (script_name == (char *)0) {
+	if (!script_name) {
 		internal_error("Couldn't get SCRIPT_NAME environment variable.");
 		exit(1);
 	}
 
 	/* Append the PATH_INFO, if any, to get the full URL. */
 	path_info = getenv("PATH_INFO");
-	if (path_info == (char *)0)
+	if (!path_info)
 		path_info = "";
-	url = (char *)malloc(strlen(script_name) + strlen(path_info) + 1);
-	if (url == (char *)0) {
+	url = malloc(strlen(script_name) + strlen(path_info) + 1);
+	if (!url) {
 		internal_error("Out of memory.");
 		exit(1);
 	}
@@ -695,7 +695,7 @@ int main(int argc, char **argv)
 
 	/* Get the name of the file to parse. */
 	path_translated = getenv("PATH_TRANSLATED");
-	if (path_translated == (char *)0) {
+	if (!path_translated) {
 		internal_error("Couldn't get PATH_TRANSLATED environment variable.");
 		exit(1);
 	}
@@ -707,7 +707,7 @@ int main(int argc, char **argv)
 
 	/* Open it. */
 	fp = fopen(path_translated, "r");
-	if (fp == (FILE *)0) {
+	if (!fp) {
 		not_found(path_translated);
 		exit(1);
 	}
