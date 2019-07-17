@@ -76,6 +76,9 @@ AC_TYPE_PID_T
 AC_TYPE_SIZE_T
 AC_TYPE_SSIZE_T
 
+# Check for missing/broken API's, which we can replace, e.g. lib/lstat.c
+AC_CONFIG_LIBOBJ_DIR([lib])
+
 # Checks for library functions.
 AC_FUNC_CHOWN
 AC_FUNC_FORK

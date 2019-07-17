@@ -1,3 +1,5 @@
+AUTOMAKE_OPTIONS    = subdir-objects
+
 sbin_PROGRAMS       = merecat
 if ENABLE_HTPASSWD
 sbin_PROGRAMS      += htpasswd
@@ -12,6 +14,7 @@ merecat_CPPFLAGS    = -D_POSIX_SOURCE -D_BSD_SOURCE -D_GNU_SOURCE -D_DEFAULT_SOU
 merecat_CPPFLAGS   += -DCONFDIR='"$(sysconfdir)"' -DLOCALSTATEDIR='"$(localstatedir)"'
 merecat_CPPFLAGS   += -DRUNDIR='"$(runstatedir)"'
 merecat_LDADD       = libmatch.a $(zlib_LIBS)
+merecat_LDADD      += $(LIBS) $(LIBOBJS)
 merecat_SOURCES     = base64.c		base64.h	\
 		      fdwatch.c		fdwatch.h	\
 		      file.c		file.h		\
