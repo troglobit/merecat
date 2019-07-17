@@ -2,12 +2,6 @@
 # Defaults to GNU GCC and autotools: ./configure && make && make test
 language: c
 
-# Enforce a Ubuntu with newer OpenSSL
-dist: bionic
-
-# We don't need to install packages, use dockerized build, quicker
-sudo: false
-
 compiler:
   - gcc
   - clang
@@ -21,13 +15,14 @@ env:
 before_install:
   - echo -n | openssl s_client -connect scan.coverity.com:443 | sed -ne '/-BEGIN CERTIFICATE-/,/-END CERTIFICATE-/p' | sudo tee -a /etc/ssl/certs/ca-
 
+dist: bionic
 addons:
   apt:
     packages:
-      - tree
-      - libconfuse-dev
-      - libssl-dev
-      - zlib1g-dev
+    - tree
+    - libconfuse-dev
+    - libssl-dev
+    - zlib1g-dev
   coverity_scan:
     project:
       name: "troglobit/merecat"
