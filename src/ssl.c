@@ -111,9 +111,10 @@ static void split_ciphers(char *orig, char **list, char **suite)
 
 			c = strtok(NULL, ":");
 		}
-
-		free(str);
 	}
+
+	if (str)
+		free(str);
 
 	*list = pre;
 	*suite = post;
