@@ -2,6 +2,9 @@
 # Defaults to GNU GCC and autotools: ./configure && make && make test
 language: c
 
+# Enforce a Ubuntu with newer OpenSSL
+dist: xenial
+
 # We don't need to install packages, use dockerized build, quicker
 sudo: false
 
