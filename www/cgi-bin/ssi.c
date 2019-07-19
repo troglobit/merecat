@@ -411,7 +411,11 @@ static void do_echo(char *vfilename, char *filename, FILE *fp, char *directive, 
 	else {
 		if (strcmp(val, "DOCUMENT_NAME") == 0) {
 			/* The current filename. */
-			fputs(filename, stdout);
+			cp = strrchr(vfilename, '/');
+			if (cp)
+				fputs(++cp, stdout);
+			else
+				fputs(vfilename, stdout);
 		} else if (strcmp(val, "DOCUMENT_URI") == 0) {
 			/* The virtual path to this file (such as /~robm/foo.shtml). */
 			fputs(vfilename, stdout);
