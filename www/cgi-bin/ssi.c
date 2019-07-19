@@ -166,7 +166,8 @@ static void unknown_value(char *filename, char *directive, char *tag, char *val)
 static int get_filename(char *vfilename, char *filename, char *directive, char *tag, char *val, char *fn, int fnsize)
 {
 	int vl, fl;
-	char *cp;
+
+	memset(fn, 0, fnsize);
 
 	/* Used for the various commands that accept a file name.
 	 ** These commands accept two tags:
@@ -190,8 +191,9 @@ static int get_filename(char *vfilename, char *filename, char *directive, char *
 
 		if (fl - vl + strlen(val) >= fnsize)
 			return -1;
-		strncpy(fn, filename, fl - vl);
-		strcpy(&fn[fl - vl], val);
+
+		memcpy(fn, filename, fl - vl);
+		strlcat(fn, val, fnsize);
 	} else if (strcmp(tag, "file") == 0) {
 		if (val[0] == '/' || strstr(val, "../")) {
 			not_permitted(directive, tag, val);
@@ -200,13 +202,11 @@ static int get_filename(char *vfilename, char *filename, char *directive, char *
 
 		if (fl + 1 + strlen(val) >= fnsize)
 			return -1;
-		strcpy(fn, filename);
-		cp = strrchr(fn, '/');
-		if (cp == (char *)0) {
-			cp = &fn[strlen(fn)];
-			*cp = '/';
-		}
-		strcpy(++cp, val);
+
+		strlcpy(fn, filename, fnsize);
+		if (!strrchr(fn, '/'))
+			strlcat(fn, "/", fnsize);
+		strlcat(fn, val, fnsize);
 	} else {
 		unknown_tag(filename, directive, tag);
 		return -1;
@@ -265,12 +265,15 @@ static int check_filename(char *filename)
 		strcpy(dirname, ".");
 	else
 		*cp = '\0';
-	authname = malloc(strlen(dirname) + 1 + sizeof(AUTH_FILE));
+
+	len = strlen(dirname) + 1 + sizeof(AUTH_FILE);
+	authname = malloc(len);
 	if (!authname) {
 		free(dirname);
 		return 0;	/* out of memory */
 	}
-	sprintf(authname, "%s/%s", dirname, AUTH_FILE);
+
+	snprintf(authname, len, "%s/%s", dirname, AUTH_FILE);
 	r = stat(authname, &sb);
 	free(dirname);
 	free(authname);
@@ -336,8 +339,7 @@ static void do_config(char *vfilename, char *filename, FILE *fp, char *directive
 	 **     displaying the number of kilobytes or megabytes the file occupies.
 	 */
 	if (strcmp(tag, "timefmt") == 0) {
-		strncpy(timefmt, val, sizeof(timefmt) - 1);
-		timefmt[sizeof(timefmt) - 1] = '\0';
+		strlcpy(timefmt, val, sizeof(timefmt));
 	} else if (strcmp(tag, "sizefmt") == 0) {
 		if (strcmp(val, "bytes") == 0)
 			sizefmt = SF_BYTES;
@@ -377,22 +379,17 @@ static void do_include(char *vfilename, char *filename, FILE *fp, char *directiv
 
 	if (strcmp(tag, "virtual") == 0) {
 		if (strlen(val) < sizeof(vfilename2))
-			strcpy(vfilename2, val);
+			strlcpy(vfilename2, val, sizeof(vfilename2));
 		else
-			strcpy(vfilename2, filename2);	/* same size, has to fit */
+			strlcpy(vfilename2, filename2, sizeof(vfilename2));
 	} else {
 		if (strlen(vfilename) + 1 + strlen(val) < sizeof(vfilename2)) {
-			char *cp;
-
-			strcpy(vfilename2, vfilename);
-			cp = strrchr(vfilename2, '/');
-			if (!cp) {
-				cp = &vfilename2[strlen(vfilename2)];
-				*cp = '/';
-			}
-			strcpy(++cp, val);
+			strlcpy(vfilename2, vfilename, sizeof(vfilename2));
+			if (!strrchr(vfilename2, '/'))
+				strlcat(vfilename2, "/", sizeof(vfilename2));
+			strlcat(vfilename2, val, sizeof(vfilename2));
 		} else
-			strcpy(vfilename2, filename2);	/* same size, has to fit */
+			strlcpy(vfilename2, filename2, sizeof(vfilename2));
 	}
 
 	read_file(vfilename2, filename2, fp2);
@@ -666,13 +663,14 @@ static void read_file(char *vfilename, char *filename, FILE *fp)
 
 int main(int argc, char **argv)
 {
+	size_t len;
 	char *script_name;
 	char *path_info;
 	char *path_translated;
 	FILE *fp;
 
 	/* Default formats. */
-	strcpy(timefmt, "%a %b %e %T %Z %Y");
+	strlcpy(timefmt, "%a %b %e %T %Z %Y", sizeof(timefmt));
 	sizefmt = SF_BYTES;
 
 	if (!getenv("SILENT_ERRORS"))
@@ -694,12 +692,14 @@ int main(int argc, char **argv)
 	path_info = getenv("PATH_INFO");
 	if (!path_info)
 		path_info = "";
-	url = malloc(strlen(script_name) + strlen(path_info) + 1);
+
+	len = strlen(script_name) + strlen(path_info) + 1;
+	url = malloc(len);
 	if (!url) {
 		internal_error("Out of memory.");
 		exit(1);
 	}
-	sprintf(url, "%s%s", script_name, path_info);
+	snprintf(url, len, "%s%s", script_name, path_info);
 
 	/* Get the name of the file to parse. */
 	path_translated = getenv("PATH_TRANSLATED");
