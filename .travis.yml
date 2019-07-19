@@ -38,7 +38,7 @@ script:
   - ./configure --prefix=/ --without-ssl --enable-htaccess --enable-htpasswd
   - make clean
   - make V=1 || cat config.h
-  - make distclean
+  - make clean
   - ./configure --prefix=/
   - make V=1 || cat config.h
   - make check
