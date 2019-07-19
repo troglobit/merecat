@@ -9,53 +9,6 @@
 </head>
 <body>
   <div id="wrapper">
-<!DOCTYPE html>
-<html>
-<!-- This is an automatically generated file.  Do not edit.
-   The Merecat web server stems from both sthttpd and thttpd, both of
-   which are free software under the 2-clause simplified BSD license.
-  
-   Copyright (c) 1995-2015  Jef Poskanzer <jef@mail.acme.com>
-   All rights reserved.
-  
-   Redistribution and use in source and binary forms, with or without
-   modification, are permitted provided that the following conditions
-   are met:
-   1. Redistributions of source code must retain the above copyright
-      notice, this list of conditions and the following disclaimer.
-   2. Redistributions in binary form must reproduce the above copyright
-      notice, this list of conditions and the following disclaimer in the
-      documentation and/or other materials provided with the distribution.
-  
-   THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
-   AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
-   IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
-   ARE DISCLAIMED.  IN NO EVENT SHALL THE COPYRIGHT OWNERS OR CONTRIBUTORS BE
-   LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
-   CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
-   SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
-   INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
-   CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
-   ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
-   THE POSSIBILITY OF SUCH DAMAGE.
- -->
-<head>
-  <meta charset="utf-8"/>
-  <style>
-    table.head, table.foot { width: 100%; }
-    td.head-rtitle, td.foot-os { text-align: right; }
-    td.head-vol { text-align: center; }
-    div.Pp { margin: 1ex 0ex; }
-    div.Nd, div.Bf, div.Op { display: inline; }
-    span.Pa, span.Ad { font-style: italic; }
-    span.Ms { font-weight: bold; }
-    dl.Bl-diag > dt { font-weight: bold; }
-    code.Nm, code.Fl, code.Cm, code.Ic, code.In, code.Fd, code.Fn,
-    code.Cd { font-weight: bold; font-family: inherit; }
-  </style>
-  <title>REDIRECT(8) (smm)</title>
-</head>
-<body>
 <table class="head">
   <tr>
     <td class="head-ltitle">REDIRECT(8)</td>
@@ -115,15 +68,14 @@ will cause an access to the /wildtest/somefile.html to be redirected to
   preceded by a slash.)
 <div class="Pp"></div>
 <i class="Em" title="Em">Note:</i> <code class="Nm" title="Nm">redirect</code>
-  is designed for use with
-  <a class="Xr" title="Xr" href="merecat.8.html">merecat(8)</a> and using it
+  is designed for use with <a class="Xr" title="Xr">merecat(8)</a> and using it
   with other web servers may require some hacking. A possible gotcha is with the
   symbolic link from the old file pointing at this script - servers other than
   thttpd may not allow that link to be run as a CGI program, because they don't
   check the link to see that it points into the allowed CGI directory.
 <h1 class="Sh" title="Sh" id="SEE_ALSO"><a class="permalink" href="#SEE_ALSO">SEE
   ALSO</a></h1>
-<a class="Xr" title="Xr" href="merecat.8.html">merecat(8)</a>
+<a class="Xr" title="Xr">merecat(8)</a>
 <h1 class="Sh" title="Sh" id="BUGS_/_DEFICIENCIES"><a class="permalink" href="#BUGS_/_DEFICIENCIES">BUGS
   / DEFICIENCIES</a></h1>
 It would be really cool to have this program look for the .redirects file in the
@@ -139,12 +91,10 @@ The wildcard mechanism is very primitive. In particular, any characters that
 Jef Poskanzer &#x27E8;mailto:jef@mail.acme.com&#x27E9;</div>
 <table class="foot">
   <tr>
-    <td class="foot-date">September 12, 2017</td>
+    <td class="foot-date">July 13, 2019</td>
     <td class="foot-os">merecat (2.32)</td>
   </tr>
 </table>
-</body>
-</html>
     <div id="footer">
       <address><a href="https://github.com/troglobit/merecat/">merecat
 	  httpd</a> is free software under
