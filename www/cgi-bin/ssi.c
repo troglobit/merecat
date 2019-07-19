@@ -172,6 +172,7 @@ static void unknown_value(char *filename, char *directive, char *tag, char *val)
 */
 static int get_filename(char *vfilename, char *filename, char *directive, char *tag, char *val, char *fn, int fnsize)
 {
+	char *cp;
 	int vl, fl;
 
 	memset(fn, 0, fnsize);
@@ -192,7 +193,7 @@ static int get_filename(char *vfilename, char *filename, char *directive, char *
 			return -1;
 
 		memcpy(fn, filename, fl - vl);
-		strlcat(fn, val, fnsize);
+		strlcat(fn, "/", fnsize);
 	} else if (strcmp(tag, "file") == 0) {
 		if (val[0] == '/' || strstr(val, "../")) {
 			not_permitted(directive, tag, val);
@@ -203,13 +204,17 @@ static int get_filename(char *vfilename, char *filename, char *directive, char *
 			return -1;
 
 		strlcpy(fn, filename, fnsize);
-		if (!strrchr(fn, '/'))
+		cp = strrchr(fn, '/');
+		if (!cp)
 			strlcat(fn, "/", fnsize);
-		strlcat(fn, val, fnsize);
+		else
+			*++cp = 0;
 	} else {
 		unknown_tag(filename, directive, tag);
 		return -1;
 	}
+
+	strlcat(fn, val, fnsize);
 
 	return 0;
 }
