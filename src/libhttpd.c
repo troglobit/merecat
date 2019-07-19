@@ -2881,13 +2881,13 @@ int httpd_parse_request(struct http_conn *hc)
 		if (strncmp(hc->expnfilename, hc->hs->cwd, strlen(hc->hs->cwd)) == 0) {
 			/* Elide the current directory. */
 			memmove(hc->expnfilename, &hc->expnfilename[strlen(hc->hs->cwd)],
-				      strlen(hc->expnfilename) - strlen(hc->hs->cwd) + 1);
+				strlen(hc->expnfilename) - strlen(hc->hs->cwd) + 1);
 		}
 #ifdef TILDE_MAP_2
 		else if (hc->altdir[0] != '\0' &&
-			 (strncmp(hc->expnfilename, hc->altdir,
-				  strlen(hc->altdir)) == 0 &&
-			  (hc->expnfilename[strlen(hc->altdir)] == '\0' || hc->expnfilename[strlen(hc->altdir)] == '/'))) {
+			 (strncmp(hc->expnfilename, hc->altdir, strlen(hc->altdir)) == 0 &&
+			  (hc->expnfilename[strlen(hc->altdir)] == '\0' ||
+			   hc->expnfilename[strlen(hc->altdir)] == '/'))) {
 		}
 #endif
 		else if (hc->hs->no_symlink_check) {
@@ -3089,7 +3089,6 @@ static void figure_mime(struct http_conn *hc)
 	}
 
 done:
-
 	/* The last thing we do is actually generate the mime-encoding header. */
 	hc->encodings[0] = '\0';
 	encodings_len = 0;
