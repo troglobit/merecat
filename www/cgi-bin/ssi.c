@@ -183,9 +183,11 @@ static int get_filename(char *vfilename, char *filename, char *directive, char *
 			not_permitted(directive, tag, val);
 			return -1;
 		}
+
 		/* Figure out root using difference between vfilename and filename. */
 		if (vl > fl || strcmp(vfilename, &filename[fl - vl]) != 0)
 			return -1;
+
 		if (fl - vl + strlen(val) >= fnsize)
 			return -1;
 		strncpy(fn, filename, fl - vl);
@@ -195,6 +197,7 @@ static int get_filename(char *vfilename, char *filename, char *directive, char *
 			not_permitted(directive, tag, val);
 			return -1;
 		}
+
 		if (fl + 1 + strlen(val) >= fnsize)
 			return -1;
 		strcpy(fn, filename);
@@ -208,19 +211,21 @@ static int get_filename(char *vfilename, char *filename, char *directive, char *
 		unknown_tag(filename, directive, tag);
 		return -1;
 	}
+
 	return 0;
 }
 
 
 static int check_filename(char *filename)
 {
-	static int inited = 0;
 	static char *cgi_pattern;
-	int fnl;
-	char *cp;
-	char *dirname;
-	char *authname;
+	static int inited = 0;
 	struct stat sb;
+	size_t len;
+	char *authname;
+	char *dirname;
+	char *cp;
+	int fnl;
 	int r;
 
 	if (!inited) {
@@ -229,7 +234,7 @@ static int check_filename(char *filename)
 #ifdef CGI_PATTERN
 		if (!cgi_pattern)
 			cgi_pattern = CGI_PATTERN;
-#endif				/* CGI_PATTERN */
+#endif
 		inited = 1;
 	}
 
@@ -240,9 +245,10 @@ static int check_filename(char *filename)
 #ifdef AUTH_FILE
 	/* Ensure that we are not reading a basic auth password file. */
 	fnl = strlen(filename);
+	len = fnl - sizeof(AUTH_FILE);
 	if (strcmp(filename, AUTH_FILE) == 0 ||
-	    (fnl >= sizeof(AUTH_FILE) &&
-	     strcmp(&filename[fnl - sizeof(AUTH_FILE) + 1], AUTH_FILE) == 0 && filename[fnl - sizeof(AUTH_FILE)] == '/'))
+	    (fnl >= sizeof(AUTH_FILE) && strcmp(&filename[len + 1], AUTH_FILE) == 0
+				      && filename[len] == '/'))
 		return 0;
 
 	/* Check for an auth file in the same directory.  We can't do an actual
@@ -253,6 +259,7 @@ static int check_filename(char *filename)
 	dirname = strdup(filename);
 	if (!dirname)
 		return 0;	/* out of memory */
+
 	cp = strrchr(dirname, '/');
 	if (!cp)
 		strcpy(dirname, ".");
@@ -281,14 +288,15 @@ static int check_filename(char *filename)
 
 static void show_time(time_t t, int gmt)
 {
-	struct tm *tmP;
+	struct tm *tm;
 	char tbuf[500];
 
 	if (gmt)
-		tmP = gmtime(&t);
+		tm = gmtime(&t);
 	else
-		tmP = localtime(&t);
-	if (strftime(tbuf, sizeof(tbuf), timefmt, tmP) > 0)
+		tm = localtime(&t);
+
+	if (strftime(tbuf, sizeof(tbuf), timefmt, tm) > 0)
 		fputs(tbuf, stdout);
 }
 
@@ -299,6 +307,7 @@ static void show_size(off_t size)
 	case SF_BYTES:
 		printf("%ld", (long)size);	/* spec says should have commas */
 		break;
+
 	case SF_ABBREV:
 		if (size < 1024)
 			printf("%ld", (long)size);
@@ -326,7 +335,6 @@ static void do_config(char *vfilename, char *filename, FILE *fp, char *directive
 	 **     (formatted as 1,234,567), or abbrev for an abbreviated version
 	 **     displaying the number of kilobytes or megabytes the file occupies.
 	 */
-
 	if (strcmp(tag, "timefmt") == 0) {
 		strncpy(timefmt, val, sizeof(timefmt) - 1);
 		timefmt[sizeof(timefmt) - 1] = '\0';
