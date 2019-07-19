@@ -162,21 +162,20 @@ static void unknown_value(char *filename, char *directive, char *tag, char *val)
 	show_errmsg();
 }
 
-
+/* Used for the various commands that accept a file name.
+** These commands accept two tags:
+**   virtual
+**     Gives a virtual path to a document on the server.
+**   file
+**     Gives a pathname relative to the current directory. ../ cannot
+**     be used in this pathname, nor can absolute paths be used.
+*/
 static int get_filename(char *vfilename, char *filename, char *directive, char *tag, char *val, char *fn, int fnsize)
 {
 	int vl, fl;
 
 	memset(fn, 0, fnsize);
 
-	/* Used for the various commands that accept a file name.
-	 ** These commands accept two tags:
-	 **   virtual
-	 **     Gives a virtual path to a document on the server.
-	 **   file
-	 **     Gives a pathname relative to the current directory. ../ cannot
-	 **     be used in this pathname, nor can absolute paths be used.
-	 */
 	vl = strlen(vfilename);
 	fl = strlen(filename);
 	if (strcmp(tag, "virtual") == 0) {
@@ -324,20 +323,19 @@ static void show_size(off_t size)
 	}
 }
 
-
+/* The config directive controls various aspects of the file parsing.
+** There are two valid tags:
+**   timefmt
+**     Gives the server a new format to use when providing dates.  This
+**     is a string compatible with the strftime library call.
+**   sizefmt
+**     Determines the formatting to be used when displaying the size of
+**     a file.  Valid choices are bytes, for a formatted byte count
+**     (formatted as 1,234,567), or abbrev for an abbreviated version
+**     displaying the number of kilobytes or megabytes the file occupies.
+*/
 static void do_config(char *vfilename, char *filename, FILE *fp, char *directive, char *tag, char *val)
 {
-	/* The config directive controls various aspects of the file parsing.
-	 ** There are two valid tags:
-	 **   timefmt
-	 **     Gives the server a new format to use when providing dates.  This
-	 **     is a string compatible with the strftime library call.
-	 **   sizefmt
-	 **     Determines the formatting to be used when displaying the size of
-	 **     a file.  Valid choices are bytes, for a formatted byte count
-	 **     (formatted as 1,234,567), or abbrev for an abbreviated version
-	 **     displaying the number of kilobytes or megabytes the file occupies.
-	 */
 	if (strcmp(tag, "timefmt") == 0) {
 		strlcpy(timefmt, val, sizeof(timefmt));
 	} else if (strcmp(tag, "sizefmt") == 0) {
@@ -354,14 +352,12 @@ static void do_config(char *vfilename, char *filename, FILE *fp, char *directive
 		unknown_tag(filename, directive, tag);
 }
 
-
+/* Inserts the text of another document into the parsed document. */
 static void do_include(char *vfilename, char *filename, FILE *fp, char *directive, char *tag, char *val)
 {
 	char vfilename2[1000];
 	char filename2[1000];
 	FILE *fp2;
-
-	/* Inserts the text of another document into the parsed document. */
 
 	if (get_filename(vfilename, filename, directive, tag, val, filename2, sizeof(filename2)) < 0)
 		return;
@@ -396,16 +392,14 @@ static void do_include(char *vfilename, char *filename, FILE *fp, char *directiv
 	fclose(fp2);
 }
 
-
+/* Prints the value of one of the include variables.  Any dates are
+** printed subject to the currently configured timefmt.  The only valid
+** tag is var, whose value is the name of the variable you wish to echo.
+*/
 static void do_echo(char *vfilename, char *filename, FILE *fp, char *directive, char *tag, char *val)
 {
 	char *cp;
 	time_t t;
-
-	/* Prints the value of one of the include variables.  Any dates are
-	 ** printed subject to the currently configured timefmt.  The only valid
-	 ** tag is var, whose value is the name of the variable you wish to echo.
-	 */
 
 	if (strcmp(tag, "var") != 0)
 		unknown_tag(filename, directive, tag);
@@ -444,12 +438,10 @@ static void do_echo(char *vfilename, char *filename, FILE *fp, char *directive, 
 	}
 }
 
-
+/* Prints the size of the specified file. */
 static void do_fsize(char *vfilename, char *filename, FILE *fp, char *directive, char *tag, char *val)
 {
 	char filename2[1000];
-
-	/* Prints the size of the specified file. */
 
 	if (get_filename(vfilename, filename, directive, tag, val, filename2, sizeof(filename2)) < 0)
 		return;
@@ -460,12 +452,10 @@ static void do_fsize(char *vfilename, char *filename, FILE *fp, char *directive,
 	show_size(sb.st_size);
 }
 
-
+/* Prints the last modification date of the specified file. */
 static void do_flastmod(char *vfilename, char *filename, FILE *fp, char *directive, char *tag, char *val)
 {
 	char filename2[1000];
-
-	/* Prints the last modification date of the specified file. */
 
 	if (get_filename(vfilename, filename, directive, tag, val, filename2, sizeof(filename2)) < 0)
 		return;
@@ -563,7 +553,7 @@ static void parse(char *vfilename, char *filename, FILE *fp, char *str)
 	}
 }
 
-
+/* Now slurp in the rest of the comment from the input file. */
 static void slurp(char *vfilename, char *filename, FILE *fp)
 {
 	char buf[1000];
@@ -571,7 +561,6 @@ static void slurp(char *vfilename, char *filename, FILE *fp)
 	int state;
 	int ich;
 
-	/* Now slurp in the rest of the comment from the input file. */
 	i = 0;
 	state = ST_GROUND;
 	while ((ich = getc(fp)) != EOF) {
@@ -600,15 +589,14 @@ static void slurp(char *vfilename, char *filename, FILE *fp)
 	}
 }
 
-
+/* Copy it to output, while running a state-machine to look for
+** SSI directives.
+*/
 static void read_file(char *vfilename, char *filename, FILE *fp)
 {
 	int ich;
 	int state;
 
-	/* Copy it to output, while running a state-machine to look for
-	 ** SSI directives.
-	 */
 	state = ST_GROUND;
 	while ((ich = getc(fp)) != EOF) {
 		switch (state) {
