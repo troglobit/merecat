@@ -169,7 +169,7 @@ int main(int argc, char **argv)
 		/* Check for blank line. */
 		if (*cp != '\0') {
 			/* Parse line. */
-			if (sscanf(cp, "%[^ \t\n] %[^ \t\n]", file, url) == 2) {
+			if (sscanf(cp, "%5000[^ \t\n] %5000[^ \t\n]", file, url) == 2) {
 				/* Check for wildcard match. */
 				star = strchr(file, '*');
 				if (star != (char *)0) {
