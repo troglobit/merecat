@@ -9,53 +9,6 @@
 </head>
 <body>
   <div id="wrapper">
-<!DOCTYPE html>
-<html>
-<!-- This is an automatically generated file.  Do not edit.
-   The Merecat web server stems from both sthttpd and thttpd, both of
-   which are free software under the 2-clause simplified BSD license.
-  
-   Copyright (c) 1995-2015  Jef Poskanzer <jef@mail.acme.com>
-   All rights reserved.
-  
-   Redistribution and use in source and binary forms, with or without
-   modification, are permitted provided that the following conditions
-   are met:
-   1. Redistributions of source code must retain the above copyright
-      notice, this list of conditions and the following disclaimer.
-   2. Redistributions in binary form must reproduce the above copyright
-      notice, this list of conditions and the following disclaimer in the
-      documentation and/or other materials provided with the distribution.
-  
-   THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
-   AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
-   IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
-   ARE DISCLAIMED.  IN NO EVENT SHALL THE COPYRIGHT OWNERS OR CONTRIBUTORS BE
-   LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
-   CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
-   SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
-   INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
-   CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
-   ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
-   THE POSSIBILITY OF SUCH DAMAGE.
- -->
-<head>
-  <meta charset="utf-8"/>
-  <style>
-    table.head, table.foot { width: 100%; }
-    td.head-rtitle, td.foot-os { text-align: right; }
-    td.head-vol { text-align: center; }
-    div.Pp { margin: 1ex 0ex; }
-    div.Nd, div.Bf, div.Op { display: inline; }
-    span.Pa, span.Ad { font-style: italic; }
-    span.Ms { font-weight: bold; }
-    dl.Bl-diag > dt { font-weight: bold; }
-    code.Nm, code.Fl, code.Cm, code.Ic, code.In, code.Fd, code.Fn,
-    code.Cd { font-weight: bold; font-family: inherit; }
-  </style>
-  <title>MERECAT(8) (smm)</title>
-</head>
-<body>
 <table class="head">
   <tr>
     <td class="head-ltitle">MERECAT(8)</td>
@@ -111,17 +64,23 @@ The limited feature set makes Merecat very quick:
   <li>Built-in gzip deflate using zlib</li>
   <li>HTTPS support using OpenSSL/LibreSSL</li>
   <li>Dual server support, both HTTP/HTTPS from one process</li>
+  <li>HTTP redirect support, per server. E.g., possible to redirect from HTTP to
+      HTTPS. Limited sed of Nginx style environment variables supported.</li>
   <li>Native PHP support, using php-cgi, if enabled in
-      <span class="Pa" title="Pa">merecat.conf</span></li>
+      <a class="Xr" title="Xr">merecat.conf(5)</a></li>
 </ul>
 <div class="Pp"></div>
 The resulting footprint (~140 kiB) makes Merecat suitable for small and embedded
-  systems, even those smaller than a Raspberry Pi!
+  systems.
 <h1 class="Sh" title="Sh" id="OPTIONS"><a class="permalink" href="#OPTIONS">OPTIONS</a></h1>
 This program follows the usual UNIX command line syntax. Some options are,
   however, not availble when <code class="Nm" title="Nm">merecat</code> is built
   with support for <span class="Pa" title="Pa">/etc/merecat.conf</span>. The
-  options, in their entirety, are as follows:
+  distributed archive comes with an example configuration file, which should be
+  fairly straightforward to comprehend. For details on the available
+  configuration directives, see <a class="Xr" title="Xr">merecat.conf(5)</a>.
+<div class="Pp"></div>
+The options, in their entirety, are as follows:
 <dl class="Bl-tag">
   <dt><a class="permalink" href="#c"><code class="Fl" title="Fl" id="c">-c</code></a>
     <var class="Ar" title="Ar">CGI</var></dt>
@@ -170,9 +129,9 @@ This program follows the usual UNIX command line syntax. Some options are,
       <var class="Ar" title="Ar">false&gt;</var>.</dd>
   <dt><a class="permalink" href="#I"><code class="Fl" title="Fl" id="I">-I</code></a>
     <var class="Ar" title="Ar">IDENT</var></dt>
-  <dd>The <a class="Xr" title="Xr" href="syslog.3.html">syslog(3)</a> identity
-      to use for all log messages. Useful when running multiple servers.
-      Defaults to use the program name, i.e.
+  <dd>The <a class="Xr" title="Xr">syslog(3)</a> identity to use for all log
+      messages. Useful when running multiple servers. Defaults to use the
+      program name, i.e.
       &#x201C;<code class="Nm" title="Nm">merecat</code>&#x201D;.</dd>
   <dt><a class="permalink" href="#l"><code class="Fl" title="Fl" id="l">-l</code></a>
     <var class="Ar" title="Ar">LEVEL</var></dt>
@@ -250,201 +209,6 @@ This program follows the usual UNIX command line syntax. Some options are,
       config file setting for this flag is <code class="Cm" title="Cm">hostname
       =</code> <var class="Ar" title="Ar">HOSTNAME</var>.</dd>
 </dl>
-<h1 class="Sh" title="Sh" id="CONFIG_FILE"><a class="permalink" href="#CONFIG_FILE">CONFIG
-  FILE</a></h1>
-Several settings are not available from the command line and are instead set in
-  the <span class="Pa" title="Pa">/etc/merecat.conf</span> configuration file.
-  Changes to this file are require a restart of
-  <code class="Nm" title="Nm">merecat</code>, unlike many other UNIX daemons
-  SIGHUP does not reload the <span class="Pa" title="Pa">.conf</span> file.
-<div class="Pp"></div>
-The syntax of the config file is simple UNIX <code class="Cm" title="Cm">key =
-  value</code> separated by whitespace. The settings are listed below:
-<dl class="Bl-tag">
-  <dt><a class="permalink" href="#cgi-limit_="><code class="Cm" title="Cm" id="cgi-limit_=">cgi-limit
-    =</code></a> <var class="Ar" title="Ar">NUM</var></dt>
-  <dd>Maximum number of allowed simultaneous CGI programs. Default 1.</dd>
-  <dt><a class="permalink" href="#cgi-pattern_="><code class="Cm" title="Cm" id="cgi-pattern_=">cgi-pattern
-    =</code></a>
-    &#x201C;<var class="Ar" title="Ar">**.cgi|/cgi-bin/*</var>&#x201D;</dt>
-  <dd>Wildcard pattern for CGI programs, for instance &#x201C;**.cgi&#x201D; or
-      &#x201C;/cgi-bin/*&#x201D;, the default is to allow any program ending in
-      <code class="Cm" title="Cm">.cgi</code> and any program in
-      <code class="Cm" title="Cm">/cgi-bin/</code>. See below CGI section for
-      more on this.</dd>
-  <dt><a class="permalink" href="#charset_="><code class="Cm" title="Cm" id="charset_=">charset
-    =</code></a> &#x201C;<var class="Ar" title="Ar">UTF-8</var>&#x201D;</dt>
-  <dd>Character set to use with text MIME types. If the default unicode charset
-      causes trouble, try &quot;iso-8859-1&quot;.</dd>
-  <dt><a class="permalink" href="#check-referer_="><code class="Cm" title="Cm" id="check-referer_=">check-referer
-    =</code></a> <var class="Ar" title="Ar">&lt;true</var> |
-    <var class="Ar" title="Ar">false&gt;</var></dt>
-  <dd>Enable check for external sites referencing material on your web server.
-      For more information on referrers, see below. Disabled by default.</dd>
-  <dt><a class="permalink" href="#check-symlinks_="><code class="Cm" title="Cm" id="check-symlinks_=">check-symlinks
-    =</code></a> <var class="Ar" title="Ar">&lt;true</var> |
-    <var class="Ar" title="Ar">false&gt;</var></dt>
-  <dd>For increased security, set this to true. Unless running chrooted in which
-      case this is not really necessary. Disabled by default.</dd>
-  <dt><a class="permalink" href="#chroot_="><code class="Cm" title="Cm" id="chroot_=">chroot
-    =</code></a> <var class="Ar" title="Ar">&lt;true</var> |
-    <var class="Ar" title="Ar">false&gt;</var></dt>
-  <dd>Change web server root to <var class="Ar" title="Ar">WEBDIR</var>, or the
-      current directory, if no <var class="Ar" title="Ar">WEBDIR</var> is given
-      as argument. Chrooting is a security measure and means that
-      <code class="Nm" title="Nm">merecat</code> cannot access files outside it,
-      unless files are bind mounted, or similar into the chroot. Disabled by
-      default.</dd>
-  <dt><a class="permalink" href="#compression-level_="><code class="Cm" title="Cm" id="compression-level_=">compression-level
-    =</code></a> <var class="Ar" title="Ar">-1..9</var></dt>
-  <dd>Control the compression level of the built-in Apache-like mod_deflate. The
-      default value is -1, which gives a reasonable compromize between speed and
-      compression. To disable compression set this to
-      <var class="Ar" title="Ar">0</var> and to get maximum compression,
-      <var class="Ar" title="Ar">9</var>.
-    <div class="Pp"></div>
-    The default setting, <var class="Ar" title="Ar">-1</var>, means all
-      &quot;text/*&quot; MIME type files, larger than 256 bytes, are compressed
-      before sending to the client.</dd>
-  <dt><a class="permalink" href="#directory_="><code class="Cm" title="Cm" id="directory_=">directory
-    =</code></a> <var class="Ar" title="Ar">DIR</var></dt>
-  <dd>If no WEBDIR is given on the command line this option can be used to
-      change the web server document root. Defaults to the current
-    directory.</dd>
-  <dt><a class="permalink" href="#data-directory_="><code class="Cm" title="Cm" id="data-directory_=">data-directory
-    =</code></a> <var class="Ar" title="Ar">DIR</var></dt>
-  <dd>When chrooting this can be used to adjust the web server document
-    root.</dd>
-  <dt><a class="permalink" href="#global-passwd_="><code class="Cm" title="Cm" id="global-passwd_=">global-passwd
-    =</code></a> <var class="Ar" title="Ar">&lt;true</var> |
-    <var class="Ar" title="Ar">false&gt;</var></dt>
-  <dd>Set this to true to protect the entire directory tree with a single
-      <span class="Pa" title="Pa">.htpasswd</span> and/or
-      <span class="Pa" title="Pa">.htaccess</span> file. When unset, which is
-      the default, <code class="Nm" title="Nm">merecat</code> looks for a local
-      <span class="Pa" title="Pa">.htpasswd</span> and
-      <span class="Pa" title="Pa">.htaccess</span> file, or serves the file
-      without password.</dd>
-  <dt><a class="permalink" href="#hostname_="><code class="Cm" title="Cm" id="hostname_=">hostname
-    =</code></a> <var class="Ar" title="Ar">HOSTNAME</var></dt>
-  <dd>The hostname to bind to when multihoming. For more details on this, see
-      below discussion.</dd>
-  <dt><a class="permalink" href="#list-dotfiles_="><code class="Cm" title="Cm" id="list-dotfiles_=">list-dotfiles
-    =</code></a> <var class="Ar" title="Ar">&lt;true</var> |
-    <var class="Ar" title="Ar">false&gt;</var></dt>
-  <dd>If dotfiles should be skipped in directory listings. Disabled by
-    default.</dd>
-  <dt><a class="permalink" href="#local-pattern_="><code class="Cm" title="Cm" id="local-pattern_=">local-pattern
-    =</code></a> &#x201C;<var class="Ar" title="Ar">PATTERN</var>&#x201D;</dt>
-  <dd>Used with <code class="Cm" title="Cm">check-referer</code>, see below for
-      more details.</dd>
-  <dt><a class="permalink" href="#max-age_="><code class="Cm" title="Cm" id="max-age_=">max-age
-    =</code></a> <var class="Ar" title="Ar">SEC</var></dt>
-  <dd>Max number of seconds to be used in a
-      &#x201C;<var class="Ar" title="Ar">Cache-Control: max-age</var>&#x201D;
-      header to be returned with all responses. An equivalent
-      &#x201C;<var class="Ar" title="Ar">Expires</var>&#x201D; header is also
-      generated. The default is no Cache-Control or Expires headers, which is
-      just fine for most sites.</dd>
-  <dt><a class="permalink" href="#port_="><code class="Cm" title="Cm" id="port_=">port
-    =</code></a> <var class="Ar" title="Ar">PORT</var></dt>
-  <dd>The web server Internet port to listen to, defaults to 80, or 443 when
-      HTTPS is enabled, below.</dd>
-  <dt><a class="permalink" href="#url-pattern_="><code class="Cm" title="Cm" id="url-pattern_=">url-pattern
-    =</code></a> &#x201C;<var class="Ar" title="Ar">PATTERN</var>&#x201D;</dt>
-  <dd>Used with <code class="Cm" title="Cm">check-referer</code>, see below for
-      more details.</dd>
-  <dt><a class="permalink" href="#username_="><code class="Cm" title="Cm" id="username_=">username
-    =</code></a> &#x201C;<var class="Ar" title="Ar">NAME</var>&#x201D;</dt>
-  <dd>Set username to drop privileges to after startup. Defaults to
-      &quot;nobody&quot; which usually is defined on all UNIX systems.</dd>
-  <dt><a class="permalink" href="#virtual-host_="><code class="Cm" title="Cm" id="virtual-host_=">virtual-host
-    =</code></a> <var class="Ar" title="Ar">&lt;true</var> |
-    <var class="Ar" title="Ar">false&gt;</var></dt>
-  <dd>Enable virtual hosting, disabled by default. For more information on this,
-      see below.</dd>
-  <dt><a class="permalink" href="#ssl_="><code class="Cm" title="Cm" id="ssl_=">ssl
-    =</code></a> <var class="Ar" title="Ar">&lt;true</var> |
-    <var class="Ar" title="Ar">false&gt;</var></dt>
-  <dd>Enable HTTPS, disabled by default.</dd>
-  <dt><a class="permalink" href="#certfile_="><code class="Cm" title="Cm" id="certfile_=">certfile
-    =</code></a> <var class="Ar" title="Ar">/path/to/cert.pem</var></dt>
-  <dd>Public part of HTTPS certificate, required for HTTPS.</dd>
-  <dt><a class="permalink" href="#keyfile_="><code class="Cm" title="Cm" id="keyfile_=">keyfile
-    =</code></a> <var class="Ar" title="Ar">/path/to/key.pem</var></dt>
-  <dd>Private key of HTTPS certificate, required for HTTPS. This file must be
-      kept private and should not be in the WEBROOT directory.</dd>
-  <dt><a class="permalink" href="#dhparm_="><code class="Cm" title="Cm" id="dhparm_=">dhparm
-    =</code></a> <var class="Ar" title="Ar">/path/th/dhparam.pem</var></dt>
-  <dd>Optional Diffie-Hellman parameters. Not secret, unlike the
-      <code class="Cm" title="Cm">keyfile</code> the
-      <code class="Cm" title="Cm">dhparm</code> can be published online, if
-      necessary. Create one like this:
-    <div class="Pp"></div>
-    <div class="Bd Bd-indent">
-    <pre class="Li">
-openssl dhparam -out dhparam.pem 2048
-    </pre>
-    </div>
-  </dd>
-  <dt><a class="permalink" href="#user-agent-deny_="><code class="Cm" title="Cm" id="user-agent-deny_=">user-agent-deny
-    =</code></a> &#x201C;<var class="Ar" title="Ar">PATTERN</var>&#x201D;</dt>
-  <dd>Wildcard pattern to deny access to illicit hammering bots. When set a
-      matching user-agent will receive a 403 for all its requests. Use for
-      instance &#x201C;**SemrushBot**&#x201D; or
-      &#x201C;**SemrushBot**|**MJ12Bot**|**DotBot**&#x201D; to match multiple
-      user-agents. The default is to allow all user-agents.</dd>
-  <dt><a class="permalink" href="#php"><code class="Cm" title="Cm" id="php">php</code></a>
-    <var class="Ar" title="Ar">{</var></dt>
-  <dd>
-    <div class="Bd-indent">
-    <dl class="Bl-tag">
-      <dt><a class="permalink" href="#enabled_="><code class="Cm" title="Cm" id="enabled_=">enabled
-        =</code></a> <var class="Ar" title="Ar">&lt;true</var> |
-        <var class="Ar" title="Ar">false&gt;</var></dt>
-      <dd>The PHP module is disabled by default.</dd>
-      <dt><a class="permalink" href="#pattern_="><code class="Cm" title="Cm" id="pattern_=">pattern
-        =</code></a> <var class="Ar" title="Ar">PATTERN</var></dt>
-      <dd>Wildcard pattern for PHP scripts, for instance &#x201C;**.php&#x201D;
-          or &#x201C;**.php5|**.php4|**.php&#x201D;, the default is to allow any
-          script ending in <code class="Cm" title="Cm">.php</code></dd>
-      <dt><a class="permalink" href="#cgi-path_="><code class="Cm" title="Cm" id="cgi-path_=">cgi-path
-        =</code></a>
-        &#x201C;<span class="Pa" title="Pa">/path/to/php-cgi</span>&#x201D;</dt>
-      <dd>Default is
-          &#x201C;<span class="Pa" title="Pa">/usr/bin/php-cgi</span>&#x201D;</dd>
-    </dl>
-    </div>
-    }</dd>
-  <dt><a class="permalink" href="#server"><code class="Cm" title="Cm" id="server">server</code></a>
-    <var class="Ar" title="Ar">name {</var></dt>
-  <dd>
-    <div class="Bd-indent">
-    <dl class="Bl-tag">
-      <dt><a class="permalink" href="#port_=_2"><code class="Cm" title="Cm" id="port_=_2">port
-        =</code></a> <var class="Ar" title="Ar">PORT</var></dt>
-      <dd>Server port to listen to.</dd>
-      <dt><a class="permalink" href="#ssl_=_2"><code class="Cm" title="Cm" id="ssl_=_2">ssl
-        =</code></a> <var class="Ar" title="Ar">&lt;true</var> |
-        <var class="Ar" title="Ar">false&gt;</var></dt>
-      <dd>Enable HTTPS, disabled by default.</dd>
-      <dt><a class="permalink" href="#certfile_=_2"><code class="Cm" title="Cm" id="certfile_=_2">certfile
-        =</code></a> <var class="Ar" title="Ar">/path/to/cert.pem</var></dt>
-      <dd>Public part of HTTPS certificate, required for HTTPS.</dd>
-      <dt><a class="permalink" href="#keyfile_=_2"><code class="Cm" title="Cm" id="keyfile_=_2">keyfile
-        =</code></a> <var class="Ar" title="Ar">/path/to/key.pem</var></dt>
-      <dd>Private key of HTTPS certificate, required for HTTPS. This file must
-          be kept private and should not be in the WEBROOT directory.</dd>
-      <dt><a class="permalink" href="#dhparm_=_2"><code class="Cm" title="Cm" id="dhparm_=_2">dhparm
-        =</code></a> <var class="Ar" title="Ar">/path/th/dhparam.pem</var></dt>
-      <dd>Optional Diffie-Hellman parameters. Not secret, unlike the
-          <code class="Cm" title="Cm">keyfile</code> the
-          <code class="Cm" title="Cm">dhparm</code> can be published online, if
-          necessary.</dd>
-    </dl>
-    </div>
-    }</dd>
-</dl>
 <h1 class="Sh" title="Sh" id="CHROOT"><a class="permalink" href="#CHROOT">CHROOT</a></h1>
 chroot() is a system call that restricts the program's view of the filesystem to
   the current directory and directories below it. It becomes impossible for
@@ -484,7 +248,8 @@ Substitute in your own chroot tree's pathname, of course. Don't worry about
   create the dev directory.) In Linux the flag is -a instead of -l, and there
   may be other differences.
 <h1 class="Sh" title="Sh" id="CGI"><a class="permalink" href="#CGI">CGI</a></h1>
-Merecat httpd supports the CGI 1.1 spec.
+Merecat httpd supports the CGI 1.1 spec.,
+  <a class="Lk" title="Lk" href="https://tools.ietf.org/html/rfc3875">https://tools.ietf.org/html/rfc3875</a>.
 <div class="Pp"></div>
 In order for a CGI program to be allowed to run, its name must match the pattern
   specified either at compile time, on the command line, or in the config file.
@@ -519,9 +284,8 @@ Basic authentication is available as an option at compile time. See the included
   directory to be protected, called <span class="Pa" title="Pa">.htpasswd</span>
   by default. This file is formatted as the familiar colon-separated
   username/encrypted-password pair, records delimited by newlines. The utility
-  program <a class="Xr" title="Xr" href="htpasswd.1.html">htpasswd(1)</a> is
-  included to help create and modify
-  <span class="Pa" title="Pa">.htpasswd</span> files.
+  program <a class="Xr" title="Xr">htpasswd(1)</a> is included to help create
+  and modify <span class="Pa" title="Pa">.htpasswd</span> files.
 <div class="Pp"></div>
 <code class="Nm" title="Nm">merecat</code> can use a global
   <span class="Pa" title="Pa">.htpasswd</span> file if started with the
@@ -752,7 +516,7 @@ Sometimes another site on the net will embed your image files in their HTML
   the files, that fetch will be blocked. There are three config file variables
   for this feature:
 <dl class="Bl-tag">
-  <dt><a class="permalink" href="#url-pattern_=_2"><code class="Cm" title="Cm" id="url-pattern_=_2">url-pattern
+  <dt><a class="permalink" href="#url-pattern_="><code class="Cm" title="Cm" id="url-pattern_=">url-pattern
     =</code></a>
     &#x201C;<var class="Ar" title="Ar">**.jpg|**.gif|**.au|**.wav</var>&#x201D;</dt>
   <dd>A wildcard pattern for the URLs that should require a local referer. This
@@ -766,13 +530,13 @@ Sometimes another site on the net will embed your image files in their HTML
     <div class="Pp"></div>
     For most sites, that one setting is all you need to enable referer
       filtering.</dd>
-  <dt><a class="permalink" href="#check-referer_=_2"><code class="Cm" title="Cm" id="check-referer_=_2">check-referer
+  <dt><a class="permalink" href="#check-referer_="><code class="Cm" title="Cm" id="check-referer_=">check-referer
     =</code></a> <var class="Ar" title="Ar">&lt;true</var> |
     <var class="Ar" title="Ar">false&gt;</var></dt>
   <dd>By default, requests with no referer at all, or a null referer, or a
       referer with no apparent hostname, are allowed. With this variable set,
       such requests are disallowed.</dd>
-  <dt><a class="permalink" href="#local-pattern_=_2"><code class="Cm" title="Cm" id="local-pattern_=_2">local-pattern
+  <dt><a class="permalink" href="#local-pattern_="><code class="Cm" title="Cm" id="local-pattern_=">local-pattern
     =</code></a> &#x201C;<var class="Ar" title="Ar">PATTERN</var>&#x201D;</dt>
   <dd>A wildcard pattern that specifies the local host or hosts. This is used to
       determine if the host in the referer is local or not. If not specified it
@@ -827,8 +591,8 @@ In summary, data files should be mode 644 (rw-r--r--), directories should be 755
   and CGI programs should be mode 755 (rwxr-xr-x) or 711 (rwx--x--x).
 <h1 class="Sh" title="Sh" id="LOGS"><a class="permalink" href="#LOGS">LOGS</a></h1>
 <code class="Nm" title="Nm">merecat</code> does all of its logging via
-  <a class="Xr" title="Xr" href="syslog.3.html">syslog(3)</a>. All log messages
-  are prepended with the program name, unless the command line option
+  <a class="Xr" title="Xr">syslog(3)</a>. All log messages are prepended with
+  the program name, unless the command line option
   <code class="Fl" title="Fl">-I</code> <var class="Ar" title="Ar">IDENT</var>
   is used. The facility defaults to <var class="Ar" title="Ar">LOG_DAEMON</var>.
   Aside from error messages, there are only a few log entry types of interest,
@@ -851,8 +615,8 @@ Relevant <span class="Pa" title="Pa">merecat.h</span> define:
   <code class="Cm" title="Cm">LOG_FACILITY.</code>
 <h1 class="Sh" title="Sh" id="SIGNALS"><a class="permalink" href="#SIGNALS">SIGNALS</a></h1>
 <code class="Nm" title="Nm">merecat</code> handles a couple of signals, which
-  you can send via the standard UNIX
-  <a class="Xr" title="Xr" href="kill.1.html">kill(1)</a> command:
+  you can send via the standard UNIX <a class="Xr" title="Xr">kill(1)</a>
+  command:
 <dl class="Bl-tag">
   <dt><a class="permalink" href="#INT,TERM"><code class="Cm" title="Cm" id="INT,TERM">INT,TERM</code></a></dt>
   <dd>These signals tell <code class="Nm" title="Nm">merecat</code> to shut down
@@ -870,9 +634,9 @@ Relevant <span class="Pa" title="Pa">merecat.h</span> define:
 </dl>
 <h1 class="Sh" title="Sh" id="SEE_ALSO"><a class="permalink" href="#SEE_ALSO">SEE
   ALSO</a></h1>
-<a class="Xr" title="Xr" href="redirect.8.html">redirect(8)</a>,
-  <a class="Xr" title="Xr" href="ssi.8.html">ssi(8)</a>,
-  <a class="Xr" title="Xr" href="htpasswd.1.html">htpasswd(1)</a>
+<a class="Xr" title="Xr">merecat.conf(5)</a>,
+  <a class="Xr" title="Xr">redirect(8)</a>, <a class="Xr" title="Xr">ssi(8)</a>,
+  <a class="Xr" title="Xr">htpasswd(1)</a>
 <h1 class="Sh" title="Sh" id="THANKS"><a class="permalink" href="#THANKS">THANKS</a></h1>
 <code class="Nm" title="Nm">merecat</code> is a fork of
   <code class="Nm" title="Nm">sthttpd</code>, which in turn is a fork of
@@ -896,12 +660,10 @@ Jef Poskanzer &#x27E8;mailto:jef@mail.acme.com&#x27E9; wrote the famous
   bugs.</div>
 <table class="foot">
   <tr>
-    <td class="foot-date">November 30, 2018</td>
+    <td class="foot-date">July 13, 2019</td>
     <td class="foot-os">merecat (2.32)</td>
   </tr>
 </table>
-</body>
-</html>
     <div id="footer">
       <address><a href="https://github.com/troglobit/merecat/">merecat
 	  httpd</a> is free software under

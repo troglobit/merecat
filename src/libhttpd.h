@@ -36,6 +36,7 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <netdb.h>
+#include <stdlib.h>
 
 #if defined(AF_INET6) && defined(IN6_IS_ADDR_V4MAPPED)
 #define USE_IPV6
@@ -51,7 +52,7 @@
 #define MIN(a,b) ((a) < (b) ? (a) : (b))
 #endif
 #define NEW(t,n)     calloc(1, sizeof(t) * (n))
-#define RENEW(o,t,n) realloc((void*) o, sizeof(t) * (n))
+#define RENEW(o,t,n) realloc2((void *)o, sizeof(t) * (n))
 
 /* From The Practice of Programming, by Kernighan and Pike */
 #ifndef NELEMS
@@ -423,6 +424,20 @@ static inline const char *httpd_css_default(void)
 		"  </style>\n";
 
 	return style;
+}
+
+/*
+** Handle common error usage with realloc(), for RENEW() macro
+*/
+static inline void *realloc2(void *old, size_t len)
+{
+	void *ptr;
+
+	ptr = realloc(old, len);
+	if (!ptr)
+		free(old);
+
+	return ptr;
 }
 
 #endif /* LIBHTTPD_H_ */

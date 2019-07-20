@@ -76,7 +76,7 @@
 
 char        *prognm;		/* Instead of non-portable __progname */
 char        *ident;		/* Used for logging */
-
+int          loglevel          = LOG_NOTICE;
 char         path[MAXPATHLEN + 1];
 
 /* Global config settings */
@@ -107,9 +107,6 @@ char        *charset           = DEFAULT_CHARSET;
 char        *useragent_deny    = NULL;
 
 /* Global options */
-static int   background        = 1;
-static int   do_syslog         = 1;
-static int   loglevel          = LOG_NOTICE;
 static char *throttlefile      = NULL;
 
 typedef struct {
@@ -784,8 +781,6 @@ static void handle_read(connecttab *c, struct timeval *tv)
 
 #ifdef HAVE_ZLIB_H
 	if (hc->compression_type != COMPRESSION_NONE) {
-		unsigned long a;
-
 		/* setup default zlib memory allocation routines */
 		c->zs.zalloc = Z_NULL;
 		c->zs.zfree  = Z_NULL;
@@ -821,7 +816,7 @@ static void handle_read(connecttab *c, struct timeval *tv)
 				0 /*xflags*/,
 				0x03);
 
-			c->zs.next_out  = c->zs_output_head + 10 ;
+			c->zs.next_out  = c->zs_output_head + 10;
 			c->zs.avail_out = ZLIB_OUTPUT_BUF_SIZE - 10;
 		}
 
@@ -1360,19 +1355,21 @@ static char *progname(char *arg0)
 
 int main(int argc, char **argv)
 {
-	int c;
-	int log_opts = LOG_PID | LOG_NDELAY;
-	char *config = NULL;
+	struct http_conn *hc;
+	struct httpd *server;
+	struct timeval tv;
 	struct passwd *pwd;
+	connecttab *ct;
 	uid_t uid = 32767;
 	gid_t gid = 32767;
 	char *pidfn = NULL;
+	char *config = NULL;
+	int log_opts = LOG_PID | LOG_NDELAY;
+	int background = 1;
+	int do_syslog  = 1;
 	int num_ready;
 	int num, cnum;
-	connecttab *ct;
-	struct httpd *server;
-	struct http_conn *hc;
-	struct timeval tv;
+	int c;
 
 	ident = prognm = progname(argv[0]);
 	while ((c = getopt(argc, argv, "c:d:f:ghI:l:np:P:rsSu:vV")) != EOF) {
@@ -1522,7 +1519,7 @@ int main(int argc, char **argv)
 	/* Get current directory. */
 	getcwd(path, sizeof(path) - 1);
 	if (path[strlen(path) - 1] != '/')
-		strcat(path, "/");
+		strlcat(path, "/", sizeof(path));
 
 	if (background) {
 		/* We're not going to use stdin stdout or stderr from here on,
@@ -1578,7 +1575,7 @@ int main(int argc, char **argv)
 			exit(1);
 		}
 
-		strcpy(path, "/");
+		strlcpy(path, "/", sizeof(path));
 		/* Always chdir to / after a chroot. */
 		if (chdir(path) < 0) {
 			syslog(LOG_CRIT, "chroot chdir: %s", strerror(errno));

@@ -2,6 +2,7 @@
 *.o
 .config
 .unpacked
+.gdb_history
 GPATH
 GRTAGS
 GSYMS
@@ -22,10 +23,3 @@ stamp-h1
 test-driver
 Makefile
 Makefile.in
-src/.deps
-src/htpasswd
-src/libmatch.a
-src/merecat
-www/cgi-bin/.deps
-www/cgi-bin/redirect
-www/cgi-bin/ssi

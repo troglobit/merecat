@@ -1,6 +1,6 @@
-/* Simple, stupid and silly stack probe :P
+/* lstat.c - lstat(2) replacement, requires POSIX fstatat(2)
 **
-** Copyright (C) 2017-2018  Joachim Nilsson <troglobit@gmail.com>
+** Copyright (C) 2019  Joachim Nilsson <troglobit@gmail.com>
 ** All rights reserved.
 **
 ** Redistribution and use in source and binary forms, with or without
@@ -25,63 +25,9 @@
 ** THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <syslog.h>
-#include <unistd.h>		/* readlink() */
-#include <execinfo.h>		/* backtrace() */
+#include <fcntl.h>
 
-static char *addr2line(char *addr)
+int lstat(const char *pathname, struct stat *statbuf)
 {
-	FILE *fp;
-	char *tmp;
-	char exec[256] = { 0 };
-	static char buf[512];
-
-	readlink("/proc/self/exe", exec, sizeof(exec));
-	tmp = tmpnam(NULL);
-	snprintf(buf, sizeof(buf), "addr2line -e %s %s > %s", exec, addr, tmp);
-	system(buf);
-
-	fp = fopen(tmp, "r");
-	if (!fp) {
-		buf[0] = 0;
-		goto end;
-	}
-	fgets(buf, sizeof(buf), fp);
-	fclose(fp);
-end:
-	remove(tmp);
-	return buf;
+	return fstatat(AT_FDCWD, pathname, statbuf, AT_SYMLINK_NOFOLLOW);
 }
-
-/*
- * Build with: ./configure CFLAGS="-g -Og -rdynamic"
- */
-void stack_trace(void)
-{
-	void *trace[16];
-	char **messages;
-	int i, trace_size;
-
-	trace_size = backtrace(trace, 16);
-	messages = backtrace_symbols(trace, trace_size);
-
-	syslog(LOG_DEBUG, ">>> STACK TRACE");
-	for (i = 0; i < trace_size; i++) {
-		char *line;
-
-		line = strstr(messages[i], " [0x");
-		if (line) {
-			line += 2;
-			line = addr2line(line);
-		} else {
-			line = "";
-		}
-		syslog(LOG_DEBUG, ">>> %s%s", messages[i], line);
-	}
-
-	free(messages);
-}
-

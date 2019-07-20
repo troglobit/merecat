@@ -258,21 +258,25 @@ int main(int argc, char *argv[])
 
 		if (strlen(argv[2]) > (sizeof(pwfilename) - 1)) {
 			fprintf(stderr, "%s: filename is too long\n", argv[0]);
+			fclose(tfp);
 			return 1;
 		}
 
 		if (strchr(argv[2], ';') || strchr(argv[2], '>')) {
 			fprintf(stderr, "%s: filename contains an illegal character\n", argv[0]);
+			fclose(tfp);
 			return 1;
 		}
 
 		if (strlen(argv[3]) > (sizeof(user) - 1)) {
 			fprintf(stderr, "%s: username is too long\n", argv[0]);
+			fclose(tfp);
 			return 1;
 		}
 
 		if (strchr(argv[3], ':')) {
 			fprintf(stderr, "%s: username contains an illegal character\n", argv[0]);
+			fclose(tfp);
 			return 1;
 		}
 
@@ -289,32 +293,38 @@ int main(int argc, char *argv[])
 	tfp = fdopen(tfd, "w");
 	if (!tfp) {
 		fprintf(stderr, "Could not open temp file.\n");
+		fclose(tfp);
 		return 1;
 	}
 
 	if (strlen(argv[1]) > (sizeof(pwfilename) - 1)) {
 		fprintf(stderr, "%s: filename is too long\n", argv[0]);
+		fclose(tfp);
 		return 1;
 	}
 
 	if (((strchr(argv[1], ';')) != NULL) || ((strchr(argv[1], '>')) != NULL)) {
 		fprintf(stderr, "%s: filename contains an illegal character\n", argv[0]);
+		fclose(tfp);
 		return 1;
 	}
 
 	if (strlen(argv[2]) > (sizeof(user) - 1)) {
 		fprintf(stderr, "%s: username is too long\n", argv[0]);
+		fclose(tfp);
 		return 1;
 	}
 
 	if ((strchr(argv[2], ':')) != NULL) {
 		fprintf(stderr, "%s: username contains an illegal character\n", argv[0]);
+		fclose(tfp);
 		return 1;
 	}
 
 	if (!(f = fopen(argv[1], "r"))) {
 		fprintf(stderr, "Could not open passwd file %s for reading.\n", argv[1]);
 		fprintf(stderr, "Use -c option to create new one.\n");
+		fclose(tfp);
 		return 1;
 	}
 	strncpy(user, argv[2], sizeof(user) - 1);

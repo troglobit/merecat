@@ -37,12 +37,14 @@ int b64_decode(const char *str, unsigned char *space, int size)
 {
 	const char *cp;
 	int space_idx, phase;
-	int d, prev_d = 0;
+	int prev_d = 0;
 	unsigned char c;
 
 	space_idx = 0;
 	phase = 0;
 	for (cp = str; *cp != '\0'; ++cp) {
+		int d;
+
 		d = b64_decode_table[(int)*cp];
 		if (d != -1) {
 			switch (phase) {

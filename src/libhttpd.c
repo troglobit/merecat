@@ -1676,17 +1676,19 @@ static int tilde_map_1(struct http_conn *hc)
 {
 	static char *temp;
 	static size_t maxtemp = 0;
-	int len;
 	static char *prefix = TILDE_MAP_1;
+	size_t len;
 
-	len = strlen(hc->expnfilename) - 1;
-	httpd_realloc_str(&temp, &maxtemp, len);
-	strcpy(temp, &hc->expnfilename[1]);
-	httpd_realloc_str(&hc->expnfilename, &hc->maxexpnfilename, strlen(prefix) + 1 + len);
-	strcpy(hc->expnfilename, prefix);
+	httpd_realloc_str(&temp, &maxtemp, strlen(hc->expnfilename));
+	strlcpy(temp, &hc->expnfilename[1], maxtemp);
+
+	len = strlen(prefix) + 2 + maxtemp;
+	httpd_realloc_str(&hc->expnfilename, &hc->maxexpnfilename, len);
+	strlcpy(hc->expnfilename, prefix, hc->maxexpnfilename);
 	if (prefix[0] != '\0')
-		strcat(hc->expnfilename, "/");
-	strcat(hc->expnfilename, temp);
+		strlcat(hc->expnfilename, "/", hc->maxexpnfilename);
+	strlcat(hc->expnfilename, temp, hc->maxexpnfilename);
+
 	return 1;
 }
 #endif /* TILDE_MAP_1 */
@@ -1698,14 +1700,15 @@ static int tilde_map_2(struct http_conn *hc)
 	static char *temp;
 	static size_t maxtemp = 0;
 	static char *postfix = TILDE_MAP_2;
-	char *cp;
 	struct passwd *pw;
-	char *alt;
+	size_t len;
 	char *rest;
+	char *alt;
+	char *cp;
 
 	/* Get the username. */
-	httpd_realloc_str(&temp, &maxtemp, strlen(hc->expnfilename) - 1);
-	strcpy(temp, &hc->expnfilename[1]);
+	httpd_realloc_str(&temp, &maxtemp, strlen(hc->expnfilename));
+	strlcpy(temp, &hc->expnfilename[1], maxtemp);
 
 	cp = strchr(temp, '/');
 	if (cp)
@@ -1719,22 +1722,24 @@ static int tilde_map_2(struct http_conn *hc)
 		return 0;
 
 	/* Set up altdir. */
-	httpd_realloc_str(&hc->altdir, &hc->maxaltdir, strlen(pw->pw_dir) + 1 + strlen(postfix));
-	strcpy(hc->altdir, pw->pw_dir);
+	len = strlen(pw->pw_dir) + 2 + strlen(postfix);
+	httpd_realloc_str(&hc->altdir, &hc->maxaltdir, len);
+	strlcpy(hc->altdir, pw->pw_dir, hc->maxaltdir);
 	if (postfix[0] != '\0') {
-		strcat(hc->altdir, "/");
-		strcat(hc->altdir, postfix);
+		strlcat(hc->altdir, "/", hc->maxaltdir);
+		strlcat(hc->altdir, postfix, hc->maxaltdir);
 	}
 
 	alt = expand_symlinks(hc->altdir, &rest, 0, 1);
 	if (rest[0] != '\0')
 		return 0;
 
-	httpd_realloc_str(&hc->altdir, &hc->maxaltdir, strlen(alt));
-	strcpy(hc->altdir, alt);
+	httpd_realloc_str(&hc->altdir, &hc->maxaltdir, strlen(alt) + 1);
+	strlcpy(hc->altdir, alt, hc->maxaltdir);
 
 	/* And the filename becomes altdir plus the post-~ part of the original. */
-	httpd_realloc_str(&hc->expnfilename, &hc->maxexpnfilename, strlen(hc->altdir) + 1 + strlen(cp));
+	len = strlen(hc->altdir) + 2 + strlen(cp);
+	httpd_realloc_str(&hc->expnfilename, &hc->maxexpnfilename, len);
 	snprintf(hc->expnfilename, hc->maxexpnfilename, "%s/%s", hc->altdir, cp);
 
 	/* For this type of tilde mapping, we want to defeat vhost mapping. */
@@ -1831,23 +1836,23 @@ static int vhost_map(struct http_conn *hc)
 	}
 	strcpy(cp2, hc->hostname);
 #else /* VHOST_DIRLEVELS */
-	httpd_realloc_str(&hc->hostdir, &hc->maxhostdir, strlen(hc->hostname));
-	strcpy(hc->hostdir, hc->hostname);
+	httpd_realloc_str(&hc->hostdir, &hc->maxhostdir, strlen(hc->hostname) + 1);
+	strlcpy(hc->hostdir, hc->hostname, hc->maxhostdir);
 #endif /* VHOST_DIRLEVELS */
 
 	/* Prepend hostdir to the filename. */
 	len  = strlen(hc->expnfilename);
 	temp = strdup(hc->expnfilename);
 	httpd_realloc_str(&hc->expnfilename, &hc->maxexpnfilename, strlen(hc->hostdir) + 2 + len);
-	strcpy(hc->expnfilename, hc->hostdir);
+	strlcpy(hc->expnfilename, hc->hostdir, hc->maxexpnfilename);
 
 	/* Skip any port number */
 	cp1 = strrchr(hc->expnfilename, ':');
 	if (cp1)
 		*cp1 = 0;
 
-	strcat(hc->expnfilename, "/");
-	strcat(hc->expnfilename, temp);
+	strlcat(hc->expnfilename, "/", hc->maxexpnfilename);
+	strlcat(hc->expnfilename, temp, hc->maxexpnfilename);
 	free(temp);
 
 	return 1;
@@ -1891,9 +1896,9 @@ static char *expand_symlinks(char *path, char **trailer, int no_symlink_check, i
 		struct stat sb;
 
 		if (stat(path, &sb) != -1) {
-			checkedlen = strlen(path);
+			checkedlen = strlen(path) + 1;
 			httpd_realloc_str(&checked, &maxchecked, checkedlen);
-			strcpy(checked, path);
+			strlcpy(checked, path, maxchecked);
 
 			/* Trim trailing slashes. */
 			while (checkedlen && checked[checkedlen - 1] == '/') {
@@ -1913,9 +1918,9 @@ static char *expand_symlinks(char *path, char **trailer, int no_symlink_check, i
 	httpd_realloc_str(&checked, &maxchecked, 1);
 	checked[0] = '\0';
 	checkedlen = 0;
-	restlen = strlen(path);
+	restlen = strlen(path) + 1;
 	httpd_realloc_str(&rest, &maxrest, restlen);
-	strcpy(rest, path);
+	strlcpy(rest, path, maxrest);
 	if (!tildemapped) {
 		/* Remove any leading slashes. */
 		while (restlen && rest[0] == '/') {
@@ -1980,11 +1985,11 @@ static char *expand_symlinks(char *path, char **trailer, int no_symlink_check, i
 					checked[checkedlen] = '\0';
 				}
 			} else {
-				httpd_realloc_str(&checked, &maxchecked, checkedlen + 1 + restlen);
+				httpd_realloc_str(&checked, &maxchecked, checkedlen + 2 + restlen);
 				if (checkedlen > 0 && checked[checkedlen - 1] != '/')
-					checked[checkedlen++] = '/';
-				strcpy(&checked[checkedlen], r);
-				checkedlen += restlen;
+					strlcat(checked, "/", maxchecked);
+				strlcat(checked, r, maxchecked);
+				checkedlen = strlen(checked);
 			}
 			r += restlen;
 			restlen = 0;
@@ -2247,7 +2252,7 @@ int httpd_get_conn(struct httpd *hs, int listen_fd, struct http_conn *hc)
 	 */
 	address = httpd_ntoa(&hc->client);
 	memset(hc->client.address, 0, sizeof(hc->client.address));
-	strncpy(hc->client.address, address, sizeof(hc->client.address));
+	strlcpy(hc->client.address, address, sizeof(hc->client.address));
 
 	if (httpd_ssl_open(hc)) {
 		syslog(LOG_CRIT, "Failed SSL/TLS connection with %s: %s.",
@@ -2464,6 +2469,7 @@ int httpd_got_request(struct http_conn *hc)
 
 int httpd_parse_request(struct http_conn *hc)
 {
+	size_t len;
 	char *buf;
 	char *method_str;
 	char *url, *url_proto;
@@ -2559,11 +2565,11 @@ int httpd_parse_request(struct http_conn *hc)
 	}
 
 	hc->encodedurl = url;
-	httpd_realloc_str(&hc->decodedurl, &hc->maxdecodedurl, strlen(hc->encodedurl));
+	httpd_realloc_str(&hc->decodedurl, &hc->maxdecodedurl, strlen(hc->encodedurl) + 1);
 	strdecode(hc->decodedurl, hc->encodedurl);
 
 	httpd_realloc_str(&hc->origfilename, &hc->maxorigfilename, strlen(hc->decodedurl));
-	strcpy(hc->origfilename, &hc->decodedurl[1]);
+	strlcpy(hc->origfilename, &hc->decodedurl[1], hc->maxorigfilename);
 	/* Special case for top-level URL. */
 	if (hc->origfilename[0] == '\0')
 		strcpy(hc->origfilename, ".");
@@ -2572,8 +2578,8 @@ int httpd_parse_request(struct http_conn *hc)
 	cp = strchr(hc->encodedurl, '?');
 	if (cp) {
 		++cp;
-		httpd_realloc_str(&hc->query, &hc->maxquery, strlen(cp));
-		strcpy(hc->query, cp);
+		httpd_realloc_str(&hc->query, &hc->maxquery, strlen(cp) + 1);
+		strlcpy(hc->query, cp, hc->maxquery);
 		/* Remove query from (decoded) origfilename. */
 		cp = strchr(hc->origfilename, '?');
 		if (cp)
@@ -2618,11 +2624,12 @@ int httpd_parse_request(struct http_conn *hc)
 						syslog(LOG_ERR, "%s way too much Accept: data", httpd_client(hc));
 						continue;
 					}
-					httpd_realloc_str(&hc->accept, &hc->maxaccept, strlen(hc->accept) + 2 + strlen(cp));
-					strcat(hc->accept, ", ");
+					len = strlen(hc->accept) + 2 + strlen(cp);
+					httpd_realloc_str(&hc->accept, &hc->maxaccept, len);
+					strlcat(hc->accept, ", ", hc->maxaccept);
 				} else
-					httpd_realloc_str(&hc->accept, &hc->maxaccept, strlen(cp));
-				strcat(hc->accept, cp);
+					httpd_realloc_str(&hc->accept, &hc->maxaccept, strlen(cp) + 1);
+				strlcat(hc->accept, cp, hc->maxaccept);
 			} else if (strncasecmp(buf, "Accept-Encoding:", 16) == 0) {
 				cp = &buf[16];
 				cp += strspn(cp, " \t");
@@ -2631,12 +2638,13 @@ int httpd_parse_request(struct http_conn *hc)
 						syslog(LOG_ERR, "%s way too much Accept-Encoding: data", httpd_client(hc));
 						continue;
 					}
-					httpd_realloc_str(&hc->accepte, &hc->maxaccepte, strlen(hc->accepte) + 2 + strlen(cp));
-					strcat(hc->accepte, ", ");
+					len = strlen(hc->accepte) + 2 + strlen(cp);
+					httpd_realloc_str(&hc->accepte, &hc->maxaccepte, len);
+					strlcat(hc->accepte, ", ", hc->maxaccepte);
 				} else {
-					httpd_realloc_str(&hc->accepte, &hc->maxaccepte, strlen(cp));
+					httpd_realloc_str(&hc->accepte, &hc->maxaccepte, strlen(cp) + 1);
 				}
-				strcpy(hc->accepte, cp);
+				strlcpy(hc->accepte, cp, hc->maxaccepte);
 			} else if (strncasecmp(buf, "Accept-Language:", 16) == 0) {
 				cp = &buf[16];
 				cp += strspn(cp, " \t");
@@ -2812,8 +2820,8 @@ int httpd_parse_request(struct http_conn *hc)
 	*/
 
 	/* Copy original filename to expanded filename. */
-	httpd_realloc_str(&hc->expnfilename, &hc->maxexpnfilename, strlen(hc->origfilename));
-	strcpy(hc->expnfilename, hc->origfilename);
+	httpd_realloc_str(&hc->expnfilename, &hc->maxexpnfilename, strlen(hc->origfilename) + 1);
+	strlcpy(hc->expnfilename, hc->origfilename, hc->maxexpnfilename);
 
 	/* Tilde mapping. */
 	if (hc->expnfilename[0] == '~') {
@@ -2850,15 +2858,15 @@ int httpd_parse_request(struct http_conn *hc)
 
 	/* Fall back to shared (restricted) top-level directory for missing files */
 	if (hc->hs->vhost && is_vhost_shared(pi)) {
-		httpd_realloc_str(&hc->expnfilename, &hc->maxexpnfilename, strlen(pi));
-		strcpy(hc->expnfilename, pi);
+		httpd_realloc_str(&hc->expnfilename, &hc->maxexpnfilename, strlen(pi) + 1);
+		strlcpy(hc->expnfilename, pi, hc->maxexpnfilename);
 		httpd_realloc_str(&hc->pathinfo, &hc->maxpathinfo, 1);
-		strcpy(hc->pathinfo, "");
+		strlcpy(hc->pathinfo, "", hc->maxpathinfo);
 	} else {
-		httpd_realloc_str(&hc->expnfilename, &hc->maxexpnfilename, strlen(cp));
-		strcpy(hc->expnfilename, cp);
-		httpd_realloc_str(&hc->pathinfo, &hc->maxpathinfo, strlen(pi));
-		strcpy(hc->pathinfo, pi);
+		httpd_realloc_str(&hc->expnfilename, &hc->maxexpnfilename, strlen(cp) + 1);
+		strlcpy(hc->expnfilename, cp, hc->maxexpnfilename);
+		httpd_realloc_str(&hc->pathinfo, &hc->maxpathinfo, strlen(pi) + 1);
+		strlcpy(hc->pathinfo, pi, hc->maxpathinfo);
 	}
 
 	/* Remove pathinfo stuff from the original filename too. */
@@ -2881,13 +2889,13 @@ int httpd_parse_request(struct http_conn *hc)
 		if (strncmp(hc->expnfilename, hc->hs->cwd, strlen(hc->hs->cwd)) == 0) {
 			/* Elide the current directory. */
 			memmove(hc->expnfilename, &hc->expnfilename[strlen(hc->hs->cwd)],
-				      strlen(hc->expnfilename) - strlen(hc->hs->cwd) + 1);
+				strlen(hc->expnfilename) - strlen(hc->hs->cwd) + 1);
 		}
 #ifdef TILDE_MAP_2
 		else if (hc->altdir[0] != '\0' &&
-			 (strncmp(hc->expnfilename, hc->altdir,
-				  strlen(hc->altdir)) == 0 &&
-			  (hc->expnfilename[strlen(hc->altdir)] == '\0' || hc->expnfilename[strlen(hc->altdir)] == '/'))) {
+			 (strncmp(hc->expnfilename, hc->altdir, strlen(hc->altdir)) == 0 &&
+			  (hc->expnfilename[strlen(hc->altdir)] == '\0' ||
+			   hc->expnfilename[strlen(hc->altdir)] == '/'))) {
 		}
 #endif
 		else if (hc->hs->no_symlink_check) {
@@ -3038,7 +3046,7 @@ static void figure_mime(struct http_conn *hc)
 	char *dot;
 	char *ext;
 	int me_indexes[100];
-	size_t ext_len, encodings_len, n_me_indexes;
+	size_t ext_len, n_me_indexes;
 	int i, top, bot, mid;
 	int r;
 	const char *default_type = "text/plain; charset=%s";
@@ -3089,20 +3097,17 @@ static void figure_mime(struct http_conn *hc)
 	}
 
 done:
-
 	/* The last thing we do is actually generate the mime-encoding header. */
 	hc->encodings[0] = '\0';
-	encodings_len = 0;
 	for (i = n_me_indexes - 1; i >= 0; --i) {
-		httpd_realloc_str(&hc->encodings, &hc->maxencodings, encodings_len + enc_tab[me_indexes[i]].val_len + 1);
-		if (hc->encodings[0] != '\0') {
-			strcpy(&hc->encodings[encodings_len], ",");
-			++encodings_len;
-		}
-		strcpy(&hc->encodings[encodings_len], enc_tab[me_indexes[i]].val);
-		encodings_len += enc_tab[me_indexes[i]].val_len;
-	}
+		size_t len;
 
+		len = strlen(hc->encodings) + enc_tab[me_indexes[i]].val_len + 2;
+		httpd_realloc_str(&hc->encodings, &hc->maxencodings, len);
+		if (hc->encodings[0] != '\0')
+			strlcat(hc->encodings, ",", hc->maxencodings);
+		strlcat(hc->encodings, enc_tab[me_indexes[i]].val, hc->maxencodings);
+	}
 }
 
 
@@ -3310,11 +3315,11 @@ static int child_ls_read_names(struct http_conn *hc, DIR *dirp, FILE *fp, int on
 		if (is_reserved_htfile(nameptrs[i]))
 			continue;
 
-		httpd_realloc_str(&name, &maxname, strlen(hc->expnfilename) + 1 + strlen(nameptrs[i]));
-		httpd_realloc_str(&rname, &maxrname, strlen(hc->origfilename) + 1 + strlen(nameptrs[i]));
+		httpd_realloc_str(&name, &maxname, strlen(hc->expnfilename) + 2 + strlen(nameptrs[i]));
+		httpd_realloc_str(&rname, &maxrname, strlen(hc->origfilename) + 2 + strlen(nameptrs[i]));
 		if (hc->expnfilename[0] == '\0' || strcmp(hc->expnfilename, ".") == 0) {
-			strcpy(name, nameptrs[i]);
-			strcpy(rname, nameptrs[i]);
+			strlcpy(name, nameptrs[i], maxname);
+			strlcpy(rname, nameptrs[i], maxrname);
 		} else {
 			snprintf(name, maxname, "%s/%s", hc->expnfilename, nameptrs[i]);
 			if (strcmp(hc->origfilename, ".") == 0)
@@ -3443,9 +3448,8 @@ error:
 
 static int ls(struct http_conn *hc)
 {
-	int r;
 	DIR *dirp;
-	arg_t arg;
+	int r;
 
 	hc->compression_type = COMPRESSION_NONE;
 
@@ -3589,8 +3593,13 @@ static char **make_envp(struct http_conn *hc)
 			envp[envn++] = build_env("PATH_TRANSLATED=%s", cp2);
 		}
 	} else if (is_ssi(hc, NULL)) {
+		char buf[4];
 		char *cp2;
 		size_t l;
+
+		snprintf(buf, sizeof(buf), "%d", loglevel);
+		envp[envn++] = build_env("IDENT=%s", ident);
+		envp[envn++] = build_env("LOG_LEVEL=%s", buf);
 
 		/* Fake PATH_INFO and PATH_TRANSLATED for cgi-bin/ssi
 		** since it uses them to determinte include paths for
@@ -3641,7 +3650,7 @@ static char **make_envp(struct http_conn *hc)
 	*/
 	envp[envn++] = build_env("REMOTE_HOST=%s", httpd_client(hc));
 	/* Non-standard, but common, client's port */
-	snprintf(buf, sizeof(buf), "%hu", httpd_client_port(hc));
+	snprintf(buf, sizeof(buf), "%hd", httpd_client_port(hc));
 	envp[envn++] = build_env("REMOTE_PORT=%s", buf);
 
 	if (hc->referer[0] != '\0')
@@ -4272,8 +4281,9 @@ static char *mod_headers(struct http_conn *hc)
 
 	/* can serve .gz file and there is no previous encodings */
 	if (serve_dotgz && hc->encodings[0] == 0) {
-		httpd_realloc_str(&hc->expnfilename, &hc->maxexpnfilename, strlen(fn) + 1);
-		strncpy(hc->expnfilename, fn, hc->maxexpnfilename);
+		httpd_realloc_str(&hc->expnfilename, &hc->maxexpnfilename, strlen(fn) + 2);
+		strlcpy(hc->expnfilename, fn, hc->maxexpnfilename);
+
 		hc->sb.st_size = st.st_size;
 		hc->compression_type = COMPRESSION_NONE; /* Compressed already, do not call zlib */
 		httpd_realloc_str(&hc->encodings, &hc->maxencodings, 5);
@@ -4424,8 +4434,8 @@ static int really_start_request(struct http_conn *hc, struct timeval *now)
 		}
 
 		expnlen = strlen(cp);
-		httpd_realloc_str(&hc->expnfilename, &hc->maxexpnfilename, expnlen);
-		strcpy(hc->expnfilename, cp);
+		httpd_realloc_str(&hc->expnfilename, &hc->maxexpnfilename, expnlen + 1);
+		strlcpy(hc->expnfilename, cp, hc->maxexpnfilename);
 
 		/* Now, is the index version world-readable or world-executable? */
 		if (!(hc->sb.st_mode & (S_IROTH | S_IXOTH))) {

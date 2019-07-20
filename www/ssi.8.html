@@ -9,53 +9,6 @@
 </head>
 <body>
   <div id="wrapper">
-<!DOCTYPE html>
-<html>
-<!-- This is an automatically generated file.  Do not edit.
-   The Merecat web server stems from both sthttpd and thttpd, both of
-   which are free software under the 2-clause simplified BSD license.
-  
-   Copyright (c) 1995-2015  Jef Poskanzer <jef@mail.acme.com>
-   All rights reserved.
-  
-   Redistribution and use in source and binary forms, with or without
-   modification, are permitted provided that the following conditions
-   are met:
-   1. Redistributions of source code must retain the above copyright
-      notice, this list of conditions and the following disclaimer.
-   2. Redistributions in binary form must reproduce the above copyright
-      notice, this list of conditions and the following disclaimer in the
-      documentation and/or other materials provided with the distribution.
-  
-   THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
-   AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
-   IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
-   ARE DISCLAIMED.  IN NO EVENT SHALL THE COPYRIGHT OWNERS OR CONTRIBUTORS BE
-   LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
-   CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
-   SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
-   INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
-   CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
-   ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
-   THE POSSIBILITY OF SUCH DAMAGE.
- -->
-<head>
-  <meta charset="utf-8"/>
-  <style>
-    table.head, table.foot { width: 100%; }
-    td.head-rtitle, td.foot-os { text-align: right; }
-    td.head-vol { text-align: center; }
-    div.Pp { margin: 1ex 0ex; }
-    div.Nd, div.Bf, div.Op { display: inline; }
-    span.Pa, span.Ad { font-style: italic; }
-    span.Ms { font-weight: bold; }
-    dl.Bl-diag > dt { font-weight: bold; }
-    code.Nm, code.Fl, code.Cm, code.Ic, code.In, code.Fd, code.Fn,
-    code.Cd { font-weight: bold; font-family: inherit; }
-  </style>
-  <title>SSI(8) (smm)</title>
-</head>
-<body>
 <table class="head">
   <tr>
     <td class="head-ltitle">SSI(8)</td>
@@ -75,15 +28,33 @@
   </tr>
 </table>
 <h1 class="Sh" title="Sh" id="DESCRIPTION"><a class="permalink" href="#DESCRIPTION">DESCRIPTION</a></h1>
-This is an external CGI program that gives you the same functionality as the
-  built-in server-side-includes feature in some HTTP daemons. It is written for
-  use with <a class="Xr" title="Xr" href="merecat.8.html">merecat(8)</a>, but
-  should be easy to adapt to other systems.
+This is an external CGI program that provides the same functionality as the
+  built-in server-side-includes feature in many HTTP daemons. It is written for
+  use with <a class="Xr" title="Xr">merecat(8)</a>, but should be easy to adapt
+  to other systems.
 <div class="Pp"></div>
-To use this program, first make sure it is installed in your server's CGI area,
-  and that CGI is enabled. Then set up your URLs with the path to the document
-  you want parsed as the &quot;pathinfo&quot;. That's the part of the URL that
-  comes after the CGI program name. For example, if the URL to this program is:
+There are two ways to use this; the modern way of using a
+  <code class="Cm" title="Cm">.shtml</code> pattern in
+  <code class="Nm" title="Nm">merecat.conf</code> to trigger the SSI script,
+  which requires enabling the SSI module. Then there is the traditional
+  <code class="Nm" title="Nm">thttpd</code> approach. We start with the relevant
+  settings needed in <code class="Nm" title="Nm">merecat.conf</code>:
+<div class="Pp"></div>
+<div class="Bd Bd-indent">
+<pre class="Li">
+ssi { 
+    enabled = true 
+    pattern = &quot;**.shtml&quot;	# default 
+    cgi-path = &quot;cgi-bin/ssi&quot;    # default, web server root is used 
+}
+</pre>
+</div>
+<div class="Pp"></div>
+The traditional <code class="Nm" title="Nm">thttpd</code> way runs ssi as a
+  simple CGI script, which requires placing the ssi binary in the web server CGI
+  area, and enabling CGI. Then set up URLs with the path to the document to
+  parse as the &quot;pathinfo&quot;. That's the part of the URL that comes after
+  the CGI program name. For example, if the URL to this program is:
 <div class="Pp"></div>
 <div class="Bd">
 <pre class="Li">
@@ -92,7 +63,7 @@ To use this program, first make sure it is installed in your server's CGI area,
 
 </pre>
 </div>
-and the url for your document is:
+and the url for the document is:
 <div class="Pp"></div>
 <div class="Bd">
 <pre class="Li">
@@ -101,8 +72,7 @@ and the url for your document is:
 
 </pre>
 </div>
-then the compound URL that gives you the document filtered through the program
-  would be:
+then the compound URL would be:
 <div class="Pp"></div>
 <div class="Bd">
 <pre class="Li">
@@ -111,10 +81,11 @@ then the compound URL that gives you the document filtered through the program
 
 </pre>
 </div>
-The format description below is adapted from
-  &#x27E8;http://hoohoo.ncsa.uiuc.edu/docs/tutorials/includes.html&#x27E9;
 <h1 class="Sh" title="Sh" id="INCLUDE_FORMAT"><a class="permalink" href="#INCLUDE_FORMAT">INCLUDE
   FORMAT</a></h1>
+The format description below is adapted from
+  &#x27E8;http://hoohoo.ncsa.uiuc.edu/docs/tutorials/includes.html&#x27E9;.
+<div class="Pp"></div>
 All directives are formatted as SGML comments within the document. This is in
   case the document should ever find itself in the client's hands unparsed. Each
   directive has the following format:
@@ -135,14 +106,16 @@ Each command takes different arguments, most only accept one tag at a time. Here
     <dl class="Bl-tag">
       <dt><a class="permalink" href="#timefmt"><code class="Cm" title="Cm" id="timefmt">timefmt</code></a></dt>
       <dd>gives the server a new format to use when providing dates. This is a
-          string compatible with the
-          <a class="Xr" title="Xr" href="strftime.3.html">strftime(3)</a>
+          string compatible with the <a class="Xr" title="Xr">strftime(3)</a>
           library call.</dd>
       <dt><a class="permalink" href="#sizefmt"><code class="Cm" title="Cm" id="sizefmt">sizefmt</code></a></dt>
       <dd>determines the formatting to be used when displaying the size of a
           file. Valid choices are bytes, for a formatted byte count (formatted
           as 1,234,567), or abbrev for an abbreviated version displaying the
           number of kilobytes or megabytes the file occupies.</dd>
+      <dt><a class="permalink" href="#errmsg"><code class="Cm" title="Cm" id="errmsg">errmsg</code></a></dt>
+      <dd>overrides the default; &#x201C;[an error occurred while processing
+          this directive]&#x201D;</dd>
     </dl>
   </dd>
   <dt><a class="permalink" href="#include"><code class="Cm" title="Cm" id="include">include</code></a></dt>
@@ -191,24 +164,27 @@ A number of variables are made available to parsed documents. In addition to the
   <dd>The last modification date of the current document. Subject to timefmt
       like the others.</dd>
 </dl>
-<h1 class="Sh" title="Sh" id="BUGS_/_DEFICIENCIES"><a class="permalink" href="#BUGS_/_DEFICIENCIES">BUGS
-  / DEFICIENCIES</a></h1>
-Does not implement the <code class="Cm" title="Cm">exec</code> directive.
-  Actually, I consider this neither a bug nor a deficiency, but some may.
+<h1 class="Sh" title="Sh" id="BUGS"><a class="permalink" href="#BUGS">BUGS</a></h1>
+Does not implement all &quot;modern&quot; SSI directives are supported. E.g.,
+  <code class="Cm" title="Cm">exec cgi</code> and
+  <code class="Cm" title="Cm">exec cmd</code> or any control directives like
+  <code class="Cm" title="Cm">if, elif, else, endif,</code> etc. Patches and
+  pull-requests are welcome :)
 <h1 class="Sh" title="Sh" id="SEE_ALSO"><a class="permalink" href="#SEE_ALSO">SEE
   ALSO</a></h1>
-<a class="Xr" title="Xr" href="merecat.8.html">merecat(8)</a>,
-  <a class="Xr" title="Xr" href="strftime.3.html">strftime(3)</a>
+<a class="Xr" title="Xr">merecat(8)</a>,
+  <a class="Xr" title="Xr">strftime(3)</a>
 <h1 class="Sh" title="Sh" id="AUTHOR"><a class="permalink" href="#AUTHOR">AUTHOR</a></h1>
-Jef Poskanzer &#x27E8;mailto:jef@mail.acme.com&#x27E9;</div>
+Jef Poskanzer &#x27E8;mailto:jef@mail.acme.com&#x27E9; wrote the original, and
+  Joachim Nilsson &#x27E8;mailto:troglobit@gmail.com&#x27E9; added some minor
+  features and enabled support for <code class="Cm" title="Cm">.shtml</code>
+  pattern matching in <code class="Nm" title="Nm">merecat</code>.</div>
 <table class="foot">
   <tr>
-    <td class="foot-date">September 12, 2017</td>
+    <td class="foot-date">July 13, 2019</td>
     <td class="foot-os">merecat (2.32)</td>
   </tr>
 </table>
-</body>
-</html>
     <div id="footer">
       <address><a href="https://github.com/troglobit/merecat/">merecat
 	  httpd</a> is free software under

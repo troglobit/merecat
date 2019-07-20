@@ -162,87 +162,99 @@ static void unknown_value(char *filename, char *directive, char *tag, char *val)
 	show_errmsg();
 }
 
-
+/* Used for the various commands that accept a file name.
+** These commands accept two tags:
+**   virtual
+**     Gives a virtual path to a document on the server.
+**   file
+**     Gives a pathname relative to the current directory. ../ cannot
+**     be used in this pathname, nor can absolute paths be used.
+*/
 static int get_filename(char *vfilename, char *filename, char *directive, char *tag, char *val, char *fn, int fnsize)
 {
-	int vl, fl;
 	char *cp;
+	int vl, fl;
 
-	/* Used for the various commands that accept a file name.
-	 ** These commands accept two tags:
-	 **   virtual
-	 **     Gives a virtual path to a document on the server.
-	 **   file
-	 **     Gives a pathname relative to the current directory. ../ cannot
-	 **     be used in this pathname, nor can absolute paths be used.
-	 */
+	memset(fn, 0, fnsize);
+
 	vl = strlen(vfilename);
 	fl = strlen(filename);
 	if (strcmp(tag, "virtual") == 0) {
-		if (strstr(val, "../") != (char *)0) {
+		if (strstr(val, "../")) {
 			not_permitted(directive, tag, val);
 			return -1;
 		}
+
 		/* Figure out root using difference between vfilename and filename. */
 		if (vl > fl || strcmp(vfilename, &filename[fl - vl]) != 0)
 			return -1;
+
 		if (fl - vl + strlen(val) >= fnsize)
 			return -1;
-		strncpy(fn, filename, fl - vl);
-		strcpy(&fn[fl - vl], val);
+
+		memcpy(fn, filename, fl - vl);
+		strlcat(fn, "/", fnsize);
 	} else if (strcmp(tag, "file") == 0) {
-		if (val[0] == '/' || strstr(val, "../") != (char *)0) {
+		if (val[0] == '/' || strstr(val, "../")) {
 			not_permitted(directive, tag, val);
 			return -1;
 		}
+
 		if (fl + 1 + strlen(val) >= fnsize)
 			return -1;
-		strcpy(fn, filename);
+
+		strlcpy(fn, filename, fnsize);
 		cp = strrchr(fn, '/');
-		if (cp == (char *)0) {
-			cp = &fn[strlen(fn)];
-			*cp = '/';
-		}
-		strcpy(++cp, val);
+		if (!cp)
+			strlcat(fn, "/", fnsize);
+		else
+			*++cp = 0;
 	} else {
 		unknown_tag(filename, directive, tag);
 		return -1;
 	}
+
+	strlcat(fn, val, fnsize);
+
 	return 0;
 }
 
 
 static int check_filename(char *filename)
 {
-	static int inited = 0;
 	static char *cgi_pattern;
-	int fnl;
-	char *cp;
-	char *dirname;
-	char *authname;
+	static int inited = 0;
+#ifdef AUTH_FILE
 	struct stat sb;
+	size_t len;
+	char *authname;
+	char *dirname;
+	char *cp;
+	int fnl;
 	int r;
+#endif
 
 	if (!inited) {
 		/* Get the cgi pattern. */
 		cgi_pattern = getenv("CGI_PATTERN");
 #ifdef CGI_PATTERN
-		if (cgi_pattern == (char *)0)
+		if (!cgi_pattern)
 			cgi_pattern = CGI_PATTERN;
-#endif				/* CGI_PATTERN */
+#endif
 		inited = 1;
 	}
 
 	/* ../ is not permitted. */
-	if (strstr(filename, "../") != (char *)0)
+	if (strstr(filename, "../"))
 		return 0;
 
 #ifdef AUTH_FILE
 	/* Ensure that we are not reading a basic auth password file. */
 	fnl = strlen(filename);
+	len = fnl - sizeof(AUTH_FILE);
 	if (strcmp(filename, AUTH_FILE) == 0 ||
-	    (fnl >= sizeof(AUTH_FILE) &&
-	     strcmp(&filename[fnl - sizeof(AUTH_FILE) + 1], AUTH_FILE) == 0 && filename[fnl - sizeof(AUTH_FILE)] == '/'))
+	    (fnl >= sizeof(AUTH_FILE) && strcmp(&filename[len + 1], AUTH_FILE) == 0
+				      && filename[len] == '/'))
 		return 0;
 
 	/* Check for an auth file in the same directory.  We can't do an actual
@@ -251,19 +263,23 @@ static int check_filename(char *filename)
 	 ** prohibit access to all auth-protected files.
 	 */
 	dirname = strdup(filename);
-	if (dirname == (char *)0)
+	if (!dirname)
 		return 0;	/* out of memory */
+
 	cp = strrchr(dirname, '/');
-	if (cp == (char *)0)
+	if (!cp)
 		strcpy(dirname, ".");
 	else
 		*cp = '\0';
-	authname = malloc(strlen(dirname) + 1 + sizeof(AUTH_FILE));
-	if (authname == (char *)0) {
+
+	len = strlen(dirname) + 1 + sizeof(AUTH_FILE);
+	authname = malloc(len);
+	if (!authname) {
 		free(dirname);
 		return 0;	/* out of memory */
 	}
-	sprintf(authname, "%s/%s", dirname, AUTH_FILE);
+
+	snprintf(authname, len, "%s/%s", dirname, AUTH_FILE);
 	r = stat(authname, &sb);
 	free(dirname);
 	free(authname);
@@ -272,7 +288,7 @@ static int check_filename(char *filename)
 #endif				/* AUTH_FILE */
 
 	/* Ensure that we are not reading a CGI file. */
-	if (cgi_pattern != (char *)0 && match(cgi_pattern, filename))
+	if (cgi_pattern && match(cgi_pattern, filename))
 		return 0;
 
 	return 1;
@@ -281,14 +297,15 @@ static int check_filename(char *filename)
 
 static void show_time(time_t t, int gmt)
 {
-	struct tm *tmP;
+	struct tm *tm;
 	char tbuf[500];
 
 	if (gmt)
-		tmP = gmtime(&t);
+		tm = gmtime(&t);
 	else
-		tmP = localtime(&t);
-	if (strftime(tbuf, sizeof(tbuf), timefmt, tmP) > 0)
+		tm = localtime(&t);
+
+	if (strftime(tbuf, sizeof(tbuf), timefmt, tm) > 0)
 		fputs(tbuf, stdout);
 }
 
@@ -299,12 +316,13 @@ static void show_size(off_t size)
 	case SF_BYTES:
 		printf("%ld", (long)size);	/* spec says should have commas */
 		break;
+
 	case SF_ABBREV:
 		if (size < 1024)
 			printf("%ld", (long)size);
-		else if (size < 1024)
-			printf("%ldK", (long)size / 1024L);
 		else if (size < 1024 * 1024)
+			printf("%ldK", (long)size / 1024L);
+		else if (size < 1024 * 1024 * 1024)
 			printf("%ldM", (long)size / (1024L * 1024L));
 		else
 			printf("%ldG", (long)size / (1024L * 1024L * 1024L));
@@ -312,24 +330,21 @@ static void show_size(off_t size)
 	}
 }
 
-
+/* The config directive controls various aspects of the file parsing.
+** There are two valid tags:
+**   timefmt
+**     Gives the server a new format to use when providing dates.  This
+**     is a string compatible with the strftime library call.
+**   sizefmt
+**     Determines the formatting to be used when displaying the size of
+**     a file.  Valid choices are bytes, for a formatted byte count
+**     (formatted as 1,234,567), or abbrev for an abbreviated version
+**     displaying the number of kilobytes or megabytes the file occupies.
+*/
 static void do_config(char *vfilename, char *filename, FILE *fp, char *directive, char *tag, char *val)
 {
-	/* The config directive controls various aspects of the file parsing.
-	 ** There are two valid tags:
-	 **   timefmt
-	 **     Gives the server a new format to use when providing dates.  This
-	 **     is a string compatible with the strftime library call.
-	 **   sizefmt
-	 **     Determines the formatting to be used when displaying the size of
-	 **     a file.  Valid choices are bytes, for a formatted byte count
-	 **     (formatted as 1,234,567), or abbrev for an abbreviated version
-	 **     displaying the number of kilobytes or megabytes the file occupies.
-	 */
-
 	if (strcmp(tag, "timefmt") == 0) {
-		strncpy(timefmt, val, sizeof(timefmt) - 1);
-		timefmt[sizeof(timefmt) - 1] = '\0';
+		strlcpy(timefmt, val, sizeof(timefmt));
 	} else if (strcmp(tag, "sizefmt") == 0) {
 		if (strcmp(val, "bytes") == 0)
 			sizefmt = SF_BYTES;
@@ -344,14 +359,12 @@ static void do_config(char *vfilename, char *filename, FILE *fp, char *directive
 		unknown_tag(filename, directive, tag);
 }
 
-
+/* Inserts the text of another document into the parsed document. */
 static void do_include(char *vfilename, char *filename, FILE *fp, char *directive, char *tag, char *val)
 {
 	char vfilename2[1000];
 	char filename2[1000];
 	FILE *fp2;
-
-	/* Inserts the text of another document into the parsed document. */
 
 	if (get_filename(vfilename, filename, directive, tag, val, filename2, sizeof(filename2)) < 0)
 		return;
@@ -362,67 +375,64 @@ static void do_include(char *vfilename, char *filename, FILE *fp, char *directiv
 	}
 
 	fp2 = fopen(filename2, "r");
-	if (fp2 == (FILE *)0) {
+	if (!fp2) {
 		not_found2(directive, tag, filename2);
 		return;
 	}
 
 	if (strcmp(tag, "virtual") == 0) {
 		if (strlen(val) < sizeof(vfilename2))
-			strcpy(vfilename2, val);
+			strlcpy(vfilename2, val, sizeof(vfilename2));
 		else
-			strcpy(vfilename2, filename2);	/* same size, has to fit */
+			strlcpy(vfilename2, filename2, sizeof(vfilename2));
 	} else {
 		if (strlen(vfilename) + 1 + strlen(val) < sizeof(vfilename2)) {
-			char *cp;
-
-			strcpy(vfilename2, vfilename);
-			cp = strrchr(vfilename2, '/');
-			if (cp == (char *)0) {
-				cp = &vfilename2[strlen(vfilename2)];
-				*cp = '/';
-			}
-			strcpy(++cp, val);
+			strlcpy(vfilename2, vfilename, sizeof(vfilename2));
+			if (!strrchr(vfilename2, '/'))
+				strlcat(vfilename2, "/", sizeof(vfilename2));
+			strlcat(vfilename2, val, sizeof(vfilename2));
 		} else
-			strcpy(vfilename2, filename2);	/* same size, has to fit */
+			strlcpy(vfilename2, filename2, sizeof(vfilename2));
 	}
 
 	read_file(vfilename2, filename2, fp2);
 	fclose(fp2);
 }
 
-
+/* Prints the value of one of the include variables.  Any dates are
+** printed subject to the currently configured timefmt.  The only valid
+** tag is var, whose value is the name of the variable you wish to echo.
+*/
 static void do_echo(char *vfilename, char *filename, FILE *fp, char *directive, char *tag, char *val)
 {
 	char *cp;
 	time_t t;
-
-	/* Prints the value of one of the include variables.  Any dates are
-	 ** printed subject to the currently configured timefmt.  The only valid
-	 ** tag is var, whose value is the name of the variable you wish to echo.
-	 */
 
 	if (strcmp(tag, "var") != 0)
 		unknown_tag(filename, directive, tag);
 	else {
 		if (strcmp(val, "DOCUMENT_NAME") == 0) {
 			/* The current filename. */
-			fputs(filename, stdout);
+			cp = strrchr(vfilename, '/');
+			if (cp)
+				fputs(++cp, stdout);
+			else
+				fputs(vfilename, stdout);
 		} else if (strcmp(val, "DOCUMENT_URI") == 0) {
 			/* The virtual path to this file (such as /~robm/foo.shtml). */
 			fputs(vfilename, stdout);
 		} else if (strcmp(val, "QUERY_STRING_UNESCAPED") == 0) {
 			/* The unescaped version of any search query the client sent. */
 			cp = getenv("QUERY_STRING");
-			if (cp != (char *)0)
+			if (cp)
 				fputs(cp, stdout);
 		} else if (strcmp(val, "DATE_LOCAL") == 0) {
 			/* The current date, local time zone. */
-			t = time((time_t *)0);
+			t = time(NULL);
 			show_time(t, 0);
 		} else if (strcmp(val, "DATE_GMT") == 0) {
 			/* Same as DATE_LOCAL but in Greenwich mean time. */
-			t = time((time_t *)0);
+			t = time(NULL);
 			show_time(t, 1);
 		} else if (strcmp(val, "LAST_MODIFIED") == 0) {
 			/* The last modification date of the current document. */
@@ -431,7 +441,7 @@ static void do_echo(char *vfilename, char *filename, FILE *fp, char *directive, 
 		} else {
 			/* Try an environment variable. */
 			cp = getenv(val);
-			if (cp == (char *)0)
+			if (!cp)
 				unknown_value(filename, directive, tag, val);
 			else
 				fputs(cp, stdout);
@@ -439,12 +449,10 @@ static void do_echo(char *vfilename, char *filename, FILE *fp, char *directive, 
 	}
 }
 
-
+/* Prints the size of the specified file. */
 static void do_fsize(char *vfilename, char *filename, FILE *fp, char *directive, char *tag, char *val)
 {
 	char filename2[1000];
-
-	/* Prints the size of the specified file. */
 
 	if (get_filename(vfilename, filename, directive, tag, val, filename2, sizeof(filename2)) < 0)
 		return;
@@ -455,12 +463,10 @@ static void do_fsize(char *vfilename, char *filename, FILE *fp, char *directive,
 	show_size(sb.st_size);
 }
 
-
+/* Prints the last modification date of the specified file. */
 static void do_flastmod(char *vfilename, char *filename, FILE *fp, char *directive, char *tag, char *val)
 {
 	char filename2[1000];
-
-	/* Prints the last modification date of the specified file. */
 
 	if (get_filename(vfilename, filename, directive, tag, val, filename2, sizeof(filename2)) < 0)
 		return;
@@ -486,7 +492,6 @@ static void parse(char *vfilename, char *filename, FILE *fp, char *str)
 #define DI_FSIZE 3
 #define DI_FLASTMOD 4
 	int i;
-	char *val;
 
 	directive = str;
 	directive += strspn(directive, " \t\n\r");
@@ -495,7 +500,7 @@ static void parse(char *vfilename, char *filename, FILE *fp, char *str)
 	cp = directive;
 	for (;;) {
 		cp = strpbrk(cp, " \t\n\r\"");
-		if (cp == (char *)0)
+		if (!cp)
 			break;
 		if (*cp == '"') {
 			cp = strpbrk(cp + 1, "\"");
@@ -527,10 +532,12 @@ static void parse(char *vfilename, char *filename, FILE *fp, char *str)
 	}
 
 	for (i = 0; i < ntags; ++i) {
+		char *val;
+
 		if (i > 0)
 			putchar(' ');
 		val = strchr(tags[i], '=');
-		if (val == (char *)0)
+		if (!val)
 			val = "";
 		else
 			*val++ = '\0';
@@ -558,7 +565,7 @@ static void parse(char *vfilename, char *filename, FILE *fp, char *str)
 	}
 }
 
-
+/* Now slurp in the rest of the comment from the input file. */
 static void slurp(char *vfilename, char *filename, FILE *fp)
 {
 	char buf[1000];
@@ -566,7 +573,6 @@ static void slurp(char *vfilename, char *filename, FILE *fp)
 	int state;
 	int ich;
 
-	/* Now slurp in the rest of the comment from the input file. */
 	i = 0;
 	state = ST_GROUND;
 	while ((ich = getc(fp)) != EOF) {
@@ -595,15 +601,14 @@ static void slurp(char *vfilename, char *filename, FILE *fp)
 	}
 }
 
-
+/* Copy it to output, while running a state-machine to look for
+** SSI directives.
+*/
 static void read_file(char *vfilename, char *filename, FILE *fp)
 {
 	int ich;
 	int state;
 
-	/* Copy it to output, while running a state-machine to look for
-	 ** SSI directives.
-	 */
 	state = ST_GROUND;
 	while ((ich = getc(fp)) != EOF) {
 		switch (state) {
@@ -658,13 +663,30 @@ static void read_file(char *vfilename, char *filename, FILE *fp)
 
 int main(int argc, char **argv)
 {
+	size_t len;
 	char *script_name;
 	char *path_info;
 	char *path_translated;
+	char *log_level;
+	char *ident;
 	FILE *fp;
+	int loglevel = LOG_NOTICE;
+
+	ident = getenv("IDENT");
+	if (!ident)
+		ident = PACKAGE_NAME;
+	log_level = getenv("LOG_LEVEL");
+	if (log_level)
+		loglevel = atoi(log_level);
+
+	openlog(ident, LOG_PID, LOG_FACILITY);
+	setlogmask(LOG_UPTO(loglevel));
+
+	unsetenv("IDENT");
+	unsetenv("LOG_LEVEL");
 
 	/* Default formats. */
-	strcpy(timefmt, "%a %b %e %T %Z %Y");
+	strlcpy(timefmt, "%a %b %e %T %Z %Y", sizeof(timefmt));
 	sizefmt = SF_BYTES;
 
 	if (!getenv("SILENT_ERRORS"))
@@ -677,25 +699,27 @@ int main(int argc, char **argv)
 
 	/* Get the name that we were run as. */
 	script_name = getenv("SCRIPT_NAME");
-	if (script_name == (char *)0) {
+	if (!script_name) {
 		internal_error("Couldn't get SCRIPT_NAME environment variable.");
 		exit(1);
 	}
 
 	/* Append the PATH_INFO, if any, to get the full URL. */
 	path_info = getenv("PATH_INFO");
-	if (path_info == (char *)0)
+	if (!path_info)
 		path_info = "";
-	url = (char *)malloc(strlen(script_name) + strlen(path_info) + 1);
-	if (url == (char *)0) {
+
+	len = strlen(script_name) + strlen(path_info) + 1;
+	url = malloc(len);
+	if (!url) {
 		internal_error("Out of memory.");
 		exit(1);
 	}
-	sprintf(url, "%s%s", script_name, path_info);
+	snprintf(url, len, "%s%s", script_name, path_info);
 
 	/* Get the name of the file to parse. */
 	path_translated = getenv("PATH_TRANSLATED");
-	if (path_translated == (char *)0) {
+	if (!path_translated) {
 		internal_error("Couldn't get PATH_TRANSLATED environment variable.");
 		exit(1);
 	}
@@ -707,7 +731,7 @@ int main(int argc, char **argv)
 
 	/* Open it. */
 	fp = fopen(path_translated, "r");
-	if (fp == (FILE *)0) {
+	if (!fp) {
 		not_found(path_translated);
 		exit(1);
 	}

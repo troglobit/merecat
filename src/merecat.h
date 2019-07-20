@@ -443,6 +443,7 @@
 */
 extern char *prognm;
 extern char *ident;
+extern int   loglevel;
 extern char  path[];
 
 /*
@@ -473,5 +474,13 @@ extern char     *hostname;
 extern char     *user;
 extern char     *charset;
 extern char     *useragent_deny;
+
+/* Replacement functions for often missing APIs */
+#ifndef strlcpy
+size_t  strlcpy (char *dst, const char *src, size_t len);
+#endif
+#ifndef strlcat
+size_t  strlcat (char *dst, const char *src, size_t len);
+#endif
 
 #endif /* MERECAT_H_ */
