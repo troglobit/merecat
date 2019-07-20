@@ -443,6 +443,7 @@
 */
 extern char *prognm;
 extern char *ident;
+extern int   loglevel;
 extern char  path[];
 
 /*

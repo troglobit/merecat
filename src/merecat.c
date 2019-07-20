@@ -76,7 +76,7 @@
 
 char        *prognm;		/* Instead of non-portable __progname */
 char        *ident;		/* Used for logging */
-
+int          loglevel          = LOG_NOTICE;
 char         path[MAXPATHLEN + 1];
 
 /* Global config settings */
@@ -107,9 +107,6 @@ char        *charset           = DEFAULT_CHARSET;
 char        *useragent_deny    = NULL;
 
 /* Global options */
-static int   background        = 1;
-static int   do_syslog         = 1;
-static int   loglevel          = LOG_NOTICE;
 static char *throttlefile      = NULL;
 
 typedef struct {
@@ -1360,19 +1357,21 @@ static char *progname(char *arg0)
 
 int main(int argc, char **argv)
 {
-	int c;
-	int log_opts = LOG_PID | LOG_NDELAY;
-	char *config = NULL;
+	struct http_conn *hc;
+	struct httpd *server;
+	struct timeval tv;
 	struct passwd *pwd;
+	connecttab *ct;
 	uid_t uid = 32767;
 	gid_t gid = 32767;
 	char *pidfn = NULL;
+	char *config = NULL;
+	int log_opts = LOG_PID | LOG_NDELAY;
+	int background = 1;
+	int do_syslog  = 1;
 	int num_ready;
 	int num, cnum;
-	connecttab *ct;
-	struct httpd *server;
-	struct http_conn *hc;
-	struct timeval tv;
+	int c;
 
 	ident = prognm = progname(argv[0]);
 	while ((c = getopt(argc, argv, "c:d:f:ghI:l:np:P:rsSu:vV")) != EOF) {
