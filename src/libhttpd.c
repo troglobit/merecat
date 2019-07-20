@@ -3448,9 +3448,8 @@ error:
 
 static int ls(struct http_conn *hc)
 {
-	int r;
 	DIR *dirp;
-	arg_t arg;
+	int r;
 
 	hc->compression_type = COMPRESSION_NONE;
 

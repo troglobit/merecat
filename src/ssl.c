@@ -262,8 +262,6 @@ void httpd_ssl_exit(struct httpd *hs)
 int httpd_ssl_open(struct http_conn *hc)
 {
 	SSL_CTX *ctx = NULL;
-	SSL *ssl;
-	int rc;
 
 	if (!hc) {
 		errno = EINVAL;
@@ -275,6 +273,8 @@ int httpd_ssl_open(struct http_conn *hc)
 		ctx = hc->hs->ctx;
 
 	if (ctx) {
+		int rc;
+
 		hc->ssl = SSL_new(ctx);
 		if (!hc->ssl) {
 			hc->ssl_error = "unknown error";

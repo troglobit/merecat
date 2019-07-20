@@ -781,8 +781,6 @@ static void handle_read(connecttab *c, struct timeval *tv)
 
 #ifdef HAVE_ZLIB_H
 	if (hc->compression_type != COMPRESSION_NONE) {
-		unsigned long a;
-
 		/* setup default zlib memory allocation routines */
 		c->zs.zalloc = Z_NULL;
 		c->zs.zfree  = Z_NULL;
@@ -818,7 +816,7 @@ static void handle_read(connecttab *c, struct timeval *tv)
 				0 /*xflags*/,
 				0x03);
 
-			c->zs.next_out  = c->zs_output_head + 10 ;
+			c->zs.next_out  = c->zs_output_head + 10;
 			c->zs.avail_out = ZLIB_OUTPUT_BUF_SIZE - 10;
 		}
 

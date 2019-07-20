@@ -120,7 +120,6 @@ static void conf_redirect(struct srv *srv, cfg_t *cfg)
 
 static void conf_ssl(struct srv *srv, cfg_t *cfg)
 {
-	size_t i;
 	cfg_t *ssl;
 
 	ssl = cfg_getnsec(cfg, "ssl", 0);
