@@ -665,14 +665,18 @@ int main(int argc, char **argv)
 	char *path_info;
 	char *path_translated;
 	char *log_level;
+	char *ident;
 	FILE *fp;
 	int loglevel = LOG_NOTICE;
 
+	ident = getenv("IDENT");
+	if (!ident)
+		ident = PACKAGE_NAME;
 	log_level = getenv("LOG_LEVEL");
 	if (log_level)
 		loglevel = atoi(log_level);
 
-	openlog(getenv("IDENT"), LOG_PID, LOG_FACILITY);
+	openlog(ident, LOG_PID, LOG_FACILITY);
 	setlogmask(LOG_UPTO(loglevel));
 
 	unsetenv("IDENT");
