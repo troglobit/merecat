@@ -224,6 +224,7 @@ static int check_filename(char *filename)
 {
 	static char *cgi_pattern;
 	static int inited = 0;
+#ifdef AUTH_FILE
 	struct stat sb;
 	size_t len;
 	char *authname;
@@ -231,6 +232,7 @@ static int check_filename(char *filename)
 	char *cp;
 	int fnl;
 	int r;
+#endif
 
 	if (!inited) {
 		/* Get the cgi pattern. */
@@ -490,7 +492,6 @@ static void parse(char *vfilename, char *filename, FILE *fp, char *str)
 #define DI_FSIZE 3
 #define DI_FLASTMOD 4
 	int i;
-	char *val;
 
 	directive = str;
 	directive += strspn(directive, " \t\n\r");
@@ -531,6 +532,8 @@ static void parse(char *vfilename, char *filename, FILE *fp, char *str)
 	}
 
 	for (i = 0; i < ntags; ++i) {
+		char *val;
+
 		if (i > 0)
 			putchar(' ');
 		val = strchr(tags[i], '=');
