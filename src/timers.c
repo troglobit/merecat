@@ -226,10 +226,9 @@ struct timeval *tmr_timeout(struct timeval *now)
 
 long tmr_mstimeout(struct timeval *now)
 {
-	int h;
-	int gotone;
 	long msecs, m;
-	struct timer *t;
+	int gotone;
+	int h;
 
 	gotone = 0;
 	msecs  = 0;
@@ -238,15 +237,18 @@ long tmr_mstimeout(struct timeval *now)
 	** the first timer on each one.
 	*/
 	for (h = 0; h < HASH_SIZE; ++h) {
+		struct timer *t;
+
 		t = timers[h];
-		if (t) {
-			m = (t->time.tv_sec - now->tv_sec) * 1000L + (t->time.tv_usec - now->tv_usec) / 1000L;
-			if (!gotone) {
-				msecs = m;
-				gotone = 1;
-			} else if (m < msecs) {
-				msecs = m;
-			}
+		if (!t)
+			continue;
+
+		m = (t->time.tv_sec - now->tv_sec) * 1000L + (t->time.tv_usec - now->tv_usec) / 1000L;
+		if (!gotone) {
+			msecs = m;
+			gotone = 1;
+		} else if (m < msecs) {
+			msecs = m;
 		}
 	}
 
