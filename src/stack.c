@@ -62,8 +62,8 @@ end:
 void stack_trace(void)
 {
 	void *trace[16];
-	char **messages = (char **)NULL;
-	int i, trace_size = 0;
+	char **messages;
+	int i, trace_size;
 
 	trace_size = backtrace(trace, 16);
 	messages = backtrace_symbols(trace, trace_size);
