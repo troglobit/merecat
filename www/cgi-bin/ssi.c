@@ -318,9 +318,9 @@ static void show_size(off_t size)
 	case SF_ABBREV:
 		if (size < 1024)
 			printf("%ld", (long)size);
-		else if (size < 1024)
-			printf("%ldK", (long)size / 1024L);
 		else if (size < 1024 * 1024)
+			printf("%ldK", (long)size / 1024L);
+		else if (size < 1024 * 1024 * 1024)
 			printf("%ldM", (long)size / (1024L * 1024L));
 		else
 			printf("%ldG", (long)size / (1024L * 1024L * 1024L));
