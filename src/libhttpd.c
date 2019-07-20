@@ -3651,7 +3651,7 @@ static char **make_envp(struct http_conn *hc)
 	*/
 	envp[envn++] = build_env("REMOTE_HOST=%s", httpd_client(hc));
 	/* Non-standard, but common, client's port */
-	snprintf(buf, sizeof(buf), "%hu", httpd_client_port(hc));
+	snprintf(buf, sizeof(buf), "%hd", httpd_client_port(hc));
 	envp[envn++] = build_env("REMOTE_PORT=%s", buf);
 
 	if (hc->referer[0] != '\0')
