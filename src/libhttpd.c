@@ -3594,8 +3594,13 @@ static char **make_envp(struct http_conn *hc)
 			envp[envn++] = build_env("PATH_TRANSLATED=%s", cp2);
 		}
 	} else if (is_ssi(hc, NULL)) {
+		char buf[4];
 		char *cp2;
 		size_t l;
+
+		snprintf(buf, sizeof(buf), "%d", loglevel);
+		envp[envn++] = build_env("IDENT=%s", ident);
+		envp[envn++] = build_env("LOG_LEVEL=%s", buf);
 
 		/* Fake PATH_INFO and PATH_TRANSLATED for cgi-bin/ssi
 		** since it uses them to determinte include paths for

@@ -664,7 +664,19 @@ int main(int argc, char **argv)
 	char *script_name;
 	char *path_info;
 	char *path_translated;
+	char *log_level;
 	FILE *fp;
+	int loglevel = LOG_NOTICE;
+
+	log_level = getenv("LOG_LEVEL");
+	if (log_level)
+		loglevel = atoi(log_level);
+
+	openlog(getenv("IDENT"), LOG_PID, LOG_FACILITY);
+	setlogmask(LOG_UPTO(loglevel));
+
+	unsetenv("IDENT");
+	unsetenv("LOG_LEVEL");
 
 	/* Default formats. */
 	strlcpy(timefmt, "%a %b %e %T %Z %Y", sizeof(timefmt));
