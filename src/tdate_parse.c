@@ -143,7 +143,7 @@ static int scan_mon(char *str_mon, long *tm_monP)
 
 static int is_leap(int year)
 {
-	return year % 400 ? (year % 100 ? (year % 4 ? 0 : 1) : 0) : 1;
+	return (year % 400) ? ((year % 100) ? ((year % 4) ? 0 : 1) : 0) : 1;
 }
 
 
