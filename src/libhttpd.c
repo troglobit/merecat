@@ -2241,7 +2241,7 @@ int httpd_get_conn(struct httpd *hs, int listen_fd, struct http_conn *hc)
 		goto error;
 	}
 
-	fcntl(hc->conn_fd, F_SETFD, 1);
+	fcntl(hc->conn_fd, F_SETFD, FD_CLOEXEC);
 	hc->hs = hs;
 	memset(&hc->client, 0, sizeof(hc->client));
 	memcpy(&hc->client, &sa, sizeof(sa));
