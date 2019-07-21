@@ -72,7 +72,7 @@ HTTPS support using OpenSSL/LibreSSL
 Dual server support, both HTTP/HTTPS from one process
 .It
 HTTP redirect support, per server.  E.g., possible to redirect from HTTP
-to HTTPS.  Limited sed of Nginx style environment variables supported.
+to HTTPS.  Limited set of Nginx style environment variables supported.
 .It
 Native PHP support, using php-cgi, if enabled in
 .Xr merecat.conf 5
@@ -82,7 +82,7 @@ The resulting footprint (~140 kiB) makes Merecat suitable for small and
 embedded systems.
 .Sh OPTIONS
 This program follows the usual UNIX command line syntax.  Some options
-are, however, not availble when
+are, however, not available when
 .Nm
 is built with support for
 .Pa /etc/merecat.conf .
@@ -315,7 +315,7 @@ can use a global
 file if started with the
 .Fl g
 switch, or you can rely on a per directory file which also protects
-sub-directories.
+subdirectories.
 .Pp
 Relevant
 .Pa merecat.h
@@ -330,8 +330,8 @@ by default.  This file consists of a rule and a host address or a
 network range per line.  Valid rules are:
 .Bl -tag -width Ds
 .It Cm allow from
-The following host address or network range is allowed to access the requested
-directory and its files.
+The following host address or network range is allowed to access the
+requested directory and its files.
 .It Cm deny from
 The following host address or network range is not allowed to access the
 requested directory and its files.
@@ -353,7 +353,7 @@ can use a global
 file if started with the
 .Fl g
 switch, or you can rely on a per directory file which also protects
-sub-directories.
+subdirectories.
 .Pp
 Note that rules are processed in the same order as they are listed in the
 access file and that the first rule which matches the client's address is
@@ -414,7 +414,7 @@ you should not even bother \(em the server returns the
 code and the connection is not even started.
 .Pp
 There is no provision for setting a maximum connections/second throttle,
-because throttling a request uses as much cpu as handling it, so there
+because throttling a request uses as much CPU as handling it, so there
 would be no point.  There is also no provision for throttling the number
 of simultaneous connections on a per-URL basis.  However you can control
 the overall number of connections for the whole server very simply, by
@@ -437,7 +437,7 @@ this, allowed by HTTP/1.1, is to use CNAME aliases, like so:
 .Ed
 .Pp
 However, this is incompatible with older HTTP/1.0 browsers.  If you want
-to stay compatible, there's a different way - use A records instead,
+to stay compatible, there is a different way - use A records instead,
 each with a different IP address, like so:
 .Bd -unfilled -offset left
   www.acme.com IN A 192.100.66.1
@@ -488,7 +488,7 @@ symbolic links from the numeric addresses to the names, like so:
 .Pp
 This lets the older HTTP/1.0 browsers find the right subdirectory.
 .Pp
-There's an optional alternate step three if you're using multiple-IP
+There is an optional alternate step three if you're using multiple-IP
 multihosting: run a separate merecat process for each hostname This
 gives you more flexibility, since you can run each of these processes in
 separate directories, with different throttle files, etc.  Example:
@@ -505,7 +505,7 @@ the
 flag.
 .Sh "CUSTOM ERRORS"
 merecat lets you define your own custom error pages for the various HTTP
-errors.  There's a separate file for each error number, all stored in
+errors.  There is a separate file for each error number, all stored in
 one special directory.  The directory name is
 .Pa errors/ ,
 at the top of the web directory tree.  The error files should be named
@@ -566,9 +566,9 @@ returns an error page for them.
 .Pp
 This means you cannot set up your web directory with a bunch of symlinks
 pointing to individual users' home web directories.  Instead you do it
-the other way around \(em the user web directories are real subdirs of
-the main web directory, and in each user's home dir there's a symlink
-pointing to their actual web dir.
+the other way around \(em the user web directories are real
+subdirectories of the main web directory, and in each user's home
+directory there is a symlink pointing to their actual web directory.
 .Pp
 The CGI pattern is also affected \(em it gets matched against the
 fully-expanded filename.  So, if you have a single CGI directory but
