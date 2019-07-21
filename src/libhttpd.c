@@ -2534,7 +2534,7 @@ int httpd_parse_request(struct http_conn *hc)
 		}
 
 		httpd_realloc_str(&hc->reqhost, &hc->maxreqhost, strlen(reqhost));
-		strcpy(hc->reqhost, reqhost);
+		strlcpy(hc->reqhost, reqhost, hc->maxreqhost);
 		*url = '/';
 	}
 
