@@ -26,6 +26,8 @@
 */
 
 #include <config.h>
+#include <fcntl.h>
+#include <poll.h>
 #include <string.h>
 #include <syslog.h>
 #include <sys/stat.h>
@@ -259,6 +261,60 @@ void httpd_ssl_exit(struct httpd *hs)
 	COMP_zlib_cleanup();
 }
 
+static int poll_connection(int fd, int *timeout)
+{
+	struct pollfd pfd = {
+		.events = POLLIN | POLLOUT,
+		.fd     = fd,
+	};
+	int rc;
+
+	do {
+		rc = poll(&pfd, 1, 100);
+		if (rc > 0)
+			return 0;
+
+		if (rc < 0)
+			break;
+
+		*timeout -= 100;
+	} while (*timeout > 0);
+
+	return -1;
+}
+
+static int accept_connection(struct http_conn *hc)
+{
+	int timeout = 500;
+	int rc;
+
+	while ((rc = SSL_accept(hc->ssl)) <= 0) {
+		unsigned long err;
+
+		err = SSL_get_error(hc->ssl, rc);
+		switch (err) {
+		case SSL_ERROR_WANT_READ:
+		case SSL_ERROR_WANT_WRITE:
+			if (!poll_connection(hc->conn_fd, &timeout))
+				continue;
+
+			if (!timeout)
+				hc->ssl_error = "timeout";
+			break;
+
+		default:
+			hc->ssl_error = ERR_reason_error_string(err);
+			if (!hc->ssl_error)
+				hc->ssl_error = "unknown connection error";
+			break;
+		}
+
+		return -1;
+	}
+
+	return 0;
+}
+
 int httpd_ssl_open(struct http_conn *hc)
 {
 	SSL_CTX *ctx = NULL;
@@ -273,23 +329,21 @@ int httpd_ssl_open(struct http_conn *hc)
 		ctx = hc->hs->ctx;
 
 	if (ctx) {
-		int rc;
+		int rc, flags;
 
 		hc->ssl = SSL_new(ctx);
 		if (!hc->ssl) {
-			hc->ssl_error = "unknown error";
+			hc->ssl_error = "creating connection";
 			return 1;
 		}
 
-		SSL_set_fd(hc->ssl, hc->conn_fd);
-		rc = SSL_accept(hc->ssl);
-		if (rc <= 0) {
-			unsigned long err;
+		flags  = fcntl(hc->conn_fd, F_GETFL, 0);
+		flags |= O_NONBLOCK;
+		fcntl(hc->conn_fd, F_SETFL, flags);
 
-			err = ERR_peek_last_error();
-			hc->ssl_error = ERR_reason_error_string(err);
-			if (!hc->ssl_error)
-				hc->ssl_error = "unknown error";
+		SSL_set_fd(hc->ssl, hc->conn_fd);
+		rc = accept_connection(hc);
+		if (rc) {
 			ERR_clear_error();
 			SSL_free(hc->ssl);
 
