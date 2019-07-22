@@ -1920,6 +1920,7 @@ static char *expand_symlinks(char *path, char **trailer, int no_symlink_check, i
 	checkedlen = 0;
 	restlen = strlen(path) + 1;
 	httpd_realloc_str(&rest, &maxrest, restlen);
+	memset(rest, 0, maxrest);
 	strlcpy(rest, path, maxrest);
 	if (!tildemapped) {
 		/* Remove any leading slashes. */
