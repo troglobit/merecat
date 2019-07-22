@@ -272,7 +272,7 @@ static int poll_connection(int fd, int *timeout)
 	do {
 		rc = poll(&pfd, 1, 100);
 		if (rc > 0)
-			return 0;
+			return 1; /* TRUE, data available */
 
 		if (rc < 0)
 			break;
@@ -280,7 +280,7 @@ static int poll_connection(int fd, int *timeout)
 		*timeout -= 100;
 	} while (*timeout > 0);
 
-	return -1;
+	return 0;		/* FALSe, error or timeout */
 }
 
 static int accept_connection(struct http_conn *hc)
@@ -288,15 +288,18 @@ static int accept_connection(struct http_conn *hc)
 	int timeout = 500;
 	int rc;
 
-	while ((rc = SSL_accept(hc->ssl)) <= 0) {
+	while (poll_connection(hc->conn_fd, &timeout)) {
 		unsigned long err;
+
+		rc = SSL_accept(hc->ssl);
+		if (rc > 0)
+			break;
 
 		err = SSL_get_error(hc->ssl, rc);
 		switch (err) {
 		case SSL_ERROR_WANT_READ:
 		case SSL_ERROR_WANT_WRITE:
-			if (!poll_connection(hc->conn_fd, &timeout))
-				continue;
+			continue;
 
 			if (!timeout)
 				hc->ssl_error = "timeout";
@@ -309,15 +312,16 @@ static int accept_connection(struct http_conn *hc)
 			break;
 		}
 
-		return -1;
+		return 0;	/* FALSE, connection not accepted */
 	}
 
-	return 0;
+	return 1;		/* TRUE, connection accepted */
 }
 
 int httpd_ssl_open(struct http_conn *hc)
 {
 	SSL_CTX *ctx = NULL;
+	int flags;
 
 	if (!hc) {
 		errno = EINVAL;
@@ -329,8 +333,6 @@ int httpd_ssl_open(struct http_conn *hc)
 		ctx = hc->hs->ctx;
 
 	if (ctx) {
-		int rc, flags;
-
 		hc->ssl = SSL_new(ctx);
 		if (!hc->ssl) {
 			hc->ssl_error = "creating connection";
@@ -342,8 +344,7 @@ int httpd_ssl_open(struct http_conn *hc)
 		fcntl(hc->conn_fd, F_SETFL, flags);
 
 		SSL_set_fd(hc->ssl, hc->conn_fd);
-		rc = accept_connection(hc);
-		if (rc) {
+		if (!accept_connection(hc)) {
 			ERR_clear_error();
 			SSL_free(hc->ssl);
 
