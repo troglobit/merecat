@@ -1,7 +1,7 @@
 body {
     background-color:#f2f1f0;
     font-family: sans-serif;
-    font-size: 100%;     /* flexible baseline */
+    font-size: 110%;     /* flexible baseline */
     line-height: 1.2;
     text-align: center; /*For IE6 Shenanigans*/
 }
@@ -76,7 +76,7 @@ code.Cd { font-weight: bold; font-family: inherit; }
 
 @media screen and (max-width: 1023px) {
     #wrapper {
-	width:      480px;
+	width:      80%;
 	text-align: left;
 
 	padding:  0.5em;
@@ -93,7 +93,7 @@ code.Cd { font-weight: bold; font-family: inherit; }
 
 @media screen and (min-width: 1024px) {
     #wrapper {
-	width:      800px;
+	width:      60%;
 	text-align: left;
 
 	position: absolute;
