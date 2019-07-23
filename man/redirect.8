@@ -73,14 +73,21 @@ be preceded by a slash.)
 .Em Note:
 .Nm
 is designed for use with
-.Xr merecat 8
-and using it with other web servers may require some hacking.  A
-possible gotcha is with the symbolic link from the old file pointing at
-this script - servers other than thttpd may not allow that link to be
-run as a CGI program, because they don't check the link to see that it
-points into the allowed CGI directory.
+.Xr thttpd 8
+and
+.xr merecat 8,
+but the latter has its own built-in redirect support today which is
+probably what you want.  Using
+.Nm
+with other web servers may require some hacking.  A possible gotcha is
+with the symbolic link from the old file pointing at this script -
+servers other than thttpd may not allow that link to be run as a CGI
+program, because they don't check the link to see that it points into
+the allowed CGI directory.
 .Sh SEE ALSO
-.Xr merecat 8
+.Xr thttpd 8 ,
+.Xr merecat 8 ,
+.Xr merecat.conf 5
 .Sh BUGS / DEFICIENCIES
 It would be really cool to have this program look for the .redirects
 file in the same directory as the file being redirected, instead of in
