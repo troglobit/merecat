@@ -68,14 +68,17 @@ will cause an access to the /wildtest/somefile.html to be redirected to
   preceded by a slash.)
 <div class="Pp"></div>
 <i class="Em" title="Em">Note:</i> <code class="Nm" title="Nm">redirect</code>
-  is designed for use with <a class="Xr" title="Xr">merecat(8)</a> and using it
-  with other web servers may require some hacking. A possible gotcha is with the
-  symbolic link from the old file pointing at this script - servers other than
-  thttpd may not allow that link to be run as a CGI program, because they don't
-  check the link to see that it points into the allowed CGI directory.
+  is designed for use with <a class="Xr" title="Xr">thttpd(8)</a> and but the
+  latter has its own built-in redirect support today which is probably what you
+  want. Using <code class="Nm" title="Nm">redirect</code> with other web servers
+  may require some hacking. A possible gotcha is with the symbolic link from the
+  old file pointing at this script - servers other than thttpd may not allow
+  that link to be run as a CGI program, because they don't check the link to see
+  that it points into the allowed CGI directory.
 <h1 class="Sh" title="Sh" id="SEE_ALSO"><a class="permalink" href="#SEE_ALSO">SEE
   ALSO</a></h1>
-<a class="Xr" title="Xr">merecat(8)</a>
+<a class="Xr" title="Xr">thttpd(8)</a>, <a class="Xr" title="Xr">merecat(8)</a>,
+  <a class="Xr" title="Xr">merecat.conf(5)</a>
 <h1 class="Sh" title="Sh" id="BUGS_/_DEFICIENCIES"><a class="permalink" href="#BUGS_/_DEFICIENCIES">BUGS
   / DEFICIENCIES</a></h1>
 It would be really cool to have this program look for the .redirects file in the

@@ -65,7 +65,7 @@ The limited feature set makes Merecat very quick:
   <li>HTTPS support using OpenSSL/LibreSSL</li>
   <li>Dual server support, both HTTP/HTTPS from one process</li>
   <li>HTTP redirect support, per server. E.g., possible to redirect from HTTP to
-      HTTPS. Limited sed of Nginx style environment variables supported.</li>
+      HTTPS. Limited set of Nginx style environment variables supported.</li>
   <li>Native PHP support, using php-cgi, if enabled in
       <a class="Xr" title="Xr">merecat.conf(5)</a></li>
 </ul>
@@ -74,10 +74,10 @@ The resulting footprint (~140 kiB) makes Merecat suitable for small and embedded
   systems.
 <h1 class="Sh" title="Sh" id="OPTIONS"><a class="permalink" href="#OPTIONS">OPTIONS</a></h1>
 This program follows the usual UNIX command line syntax. Some options are,
-  however, not availble when <code class="Nm" title="Nm">merecat</code> is built
-  with support for <span class="Pa" title="Pa">/etc/merecat.conf</span>. The
-  distributed archive comes with an example configuration file, which should be
-  fairly straightforward to comprehend. For details on the available
+  however, not available when <code class="Nm" title="Nm">merecat</code> is
+  built with support for <span class="Pa" title="Pa">/etc/merecat.conf</span>.
+  The distributed archive comes with an example configuration file, which should
+  be fairly straightforward to comprehend. For details on the available
   configuration directives, see <a class="Xr" title="Xr">merecat.conf(5)</a>.
 <div class="Pp"></div>
 The options, in their entirety, are as follows:
@@ -290,7 +290,7 @@ Basic authentication is available as an option at compile time. See the included
 <code class="Nm" title="Nm">merecat</code> can use a global
   <span class="Pa" title="Pa">.htpasswd</span> file if started with the
   <code class="Fl" title="Fl">-g</code> switch, or you can rely on a per
-  directory file which also protects sub-directories.
+  directory file which also protects subdirectories.
 <div class="Pp"></div>
 Relevant <span class="Pa" title="Pa">merecat.h</span> define:
   <code class="Cm" title="Cm">AUTH_FILE</code>
@@ -327,7 +327,7 @@ There are three ways to specify a valid host address or network range:
 <code class="Nm" title="Nm">merecat</code> can use a global
   <span class="Pa" title="Pa">.htaccess</span> file if started with the
   <code class="Fl" title="Fl">-g</code> switch, or you can rely on a per
-  directory file which also protects sub-directories.
+  directory file which also protects subdirectories.
 <div class="Pp"></div>
 Note that rules are processed in the same order as they are listed in the access
   file and that the first rule which matches the client's address is applied
@@ -383,7 +383,7 @@ The minimum rates are implemented similarly. If too many people are trying to
   connection is not even started.
 <div class="Pp"></div>
 There is no provision for setting a maximum connections/second throttle, because
-  throttling a request uses as much cpu as handling it, so there would be no
+  throttling a request uses as much CPU as handling it, so there would be no
   point. There is also no provision for throttling the number of simultaneous
   connections on a per-URL basis. However you can control the overall number of
   connections for the whole server very simply, by setting the operating
@@ -409,7 +409,7 @@ One, make DNS entries for all of the hostnames. The current way to do this,
 </div>
 <div class="Pp"></div>
 However, this is incompatible with older HTTP/1.0 browsers. If you want to stay
-  compatible, there's a different way - use A records instead, each with a
+  compatible, there is a different way - use A records instead, each with a
   different IP address, like so:
 <div class="Pp"></div>
 <div class="Bd">
@@ -470,7 +470,7 @@ If you're using old-style multiple-IP multihosting, you should also create
 <div class="Pp"></div>
 This lets the older HTTP/1.0 browsers find the right subdirectory.
 <div class="Pp"></div>
-There's an optional alternate step three if you're using multiple-IP
+There is an optional alternate step three if you're using multiple-IP
   multihosting: run a separate merecat process for each hostname This gives you
   more flexibility, since you can run each of these processes in separate
   directories, with different throttle files, etc. Example:
@@ -489,7 +489,7 @@ Remember, this multiple-process method does not work with CNAME multihosting
 <h1 class="Sh" title="Sh" id="CUSTOM_ERRORS"><a class="permalink" href="#CUSTOM_ERRORS">CUSTOM
   ERRORS</a></h1>
 merecat lets you define your own custom error pages for the various HTTP errors.
-  There's a separate file for each error number, all stored in one special
+  There is a separate file for each error number, all stored in one special
   directory. The directory name is <span class="Pa" title="Pa">errors/</span>,
   at the top of the web directory tree. The error files should be named
   <span class="Pa" title="Pa">errNNN.html</span>, where NNN is the error number.
@@ -555,9 +555,9 @@ Along the way it checks for things like links with &#x201C;..&#x201D; that go
 <div class="Pp"></div>
 This means you cannot set up your web directory with a bunch of symlinks
   pointing to individual users' home web directories. Instead you do it the
-  other way around &#x2014; the user web directories are real subdirs of the
-  main web directory, and in each user's home dir there's a symlink pointing to
-  their actual web dir.
+  other way around &#x2014; the user web directories are real subdirectories of
+  the main web directory, and in each user's home directory there is a symlink
+  pointing to their actual web directory.
 <div class="Pp"></div>
 The CGI pattern is also affected &#x2014; it gets matched against the
   fully-expanded filename. So, if you have a single CGI directory but then put a
