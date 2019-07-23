@@ -37,16 +37,18 @@
 This is an external CGI program that provides the same functionality as
 the built-in server-side-includes feature in many HTTP daemons.  It is
 written for use with
+.Xr thttpd 8
+and
 .Xr merecat 8 ,
 but should be easy to adapt to other systems.
 .Pp
 There are two ways to use this; the modern way of using a
 .Cm .shtml
 pattern in
-.Nm merecat.conf
+.Xr merecat.conf 5
 to trigger the SSI script, which requires enabling the SSI module.  Then
 there is the traditional
-.Nm thttpd
+.Xr thttpd 8
 approach.  We start with the relevant settings needed in
 .Nm merecat.conf :
 .Bd -literal -offset indent
@@ -93,6 +95,11 @@ unparsed.  Each directive has the following format:
     <!--#command tag1="value1" tag2="value2" -->
 
 .Ed
+.Em Note:
+the lack of space between the initial HTML comment start and the
+#command.  This is explicitly stated in the standard and strictly
+enforced by all web servers implementing SSI.
+.Pp
 Each command takes different arguments, most only accept one tag at a
 time.  Here is a breakdown of the commands and their associated tags:
 .Bl -tag -width Ds
@@ -171,6 +178,7 @@ or any control directives like
 etc.  Patches and pull-requests are welcome :)
 .Sh "SEE ALSO"
 .Xr merecat 8 ,
+.Xr merecat.conf 5 ,
 .Xr strftime 3
 .Sh AUTHOR
 Jef Poskanzer
