@@ -158,6 +158,7 @@ struct httpd {
 /* A connection. */
 struct http_conn {
 	int initialized;
+	const char *errmsg;	/* General HTTP/HTTPS error message */
 	struct httpd *hs;
 	sockaddr_t client;
 	char *read_buf;
@@ -226,7 +227,6 @@ struct http_conn {
 	char *file_address;
 
 	void *ssl;		/* Opaque SSL* */
-	const char *ssl_error;
 };
 
 /* Methods. */

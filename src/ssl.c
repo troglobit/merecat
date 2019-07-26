@@ -302,13 +302,13 @@ static int accept_connection(struct http_conn *hc)
 			continue;
 
 			if (!timeout)
-				hc->ssl_error = "timeout";
+				hc->errmsg = "timeout";
 			break;
 
 		default:
-			hc->ssl_error = ERR_reason_error_string(err);
-			if (!hc->ssl_error)
-				hc->ssl_error = "unknown connection error";
+			hc->errmsg = ERR_reason_error_string(err);
+			if (!hc->errmsg)
+				hc->errmsg = "unknown connection error";
 			break;
 		}
 
@@ -335,7 +335,7 @@ int httpd_ssl_open(struct http_conn *hc)
 	if (ctx) {
 		hc->ssl = SSL_new(ctx);
 		if (!hc->ssl) {
-			hc->ssl_error = "creating connection";
+			hc->errmsg = "creating connection";
 			return 1;
 		}
 
