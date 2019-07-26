@@ -357,11 +357,9 @@ int httpd_ssl_open(struct http_conn *hc)
 
 void httpd_ssl_close(struct http_conn *hc)
 {
-	if (hc->ssl) {
+	if (hc->ssl)
 		SSL_free(hc->ssl);
-		hc->ssl = NULL;
-	}
-	close(hc->conn_fd);
+	hc->ssl = NULL;
 }
 
 void httpd_ssl_shutdown(struct http_conn *hc)
@@ -391,66 +389,55 @@ void httpd_ssl_log_errors(void)
 
 ssize_t httpd_ssl_read(struct http_conn *hc, void *buf, size_t len)
 {
-	if (hc->ssl)
-		return SSL_read(hc->ssl, buf, len);
-
-	/* Yes, it's a regular read() here, not file_read() */
-	return read(hc->conn_fd, buf, len);
+	return SSL_read(hc->ssl, buf, len);
 }
 
 ssize_t httpd_ssl_write(struct http_conn *hc, void *buf, size_t len)
 {
-	if (hc->ssl)
-		return SSL_write(hc->ssl, buf, len);
-
-	return file_write(hc->conn_fd, buf, len);
+	return SSL_write(hc->ssl, buf, len);
 }
 
 ssize_t httpd_ssl_writev(struct http_conn *hc, struct iovec *iov, size_t num)
 {
-	if (hc->ssl) {
-		char *buf;
-		size_t i, pos = 0, len = 0;
-		ssize_t rc;
+	char *buf;
+	size_t i, pos = 0, len = 0;
+	ssize_t rc;
 
-		for (i = 0; i < num; i++)
-			len += iov[i].iov_len;
+	for (i = 0; i < num; i++)
+		len += iov[i].iov_len;
 
-		buf = malloc(len);
-		for (i = 0; i < num; i++) {
-			memcpy(&buf[pos], iov[i].iov_base, iov[i].iov_len);
-			pos += iov[i].iov_len;
-		}
-
-		rc = SSL_write(hc->ssl, buf, len);
-		if (rc < 0 && BIO_should_retry(SSL_get_wbio(hc->ssl))) {
-			usleep(100000);
-			rc = SSL_write(hc->ssl, buf, len);
-		}
-
-		free(buf);
-		if (rc <= 0) {
-			rc = SSL_get_error(hc->ssl, rc);
-			switch (rc) {
-			case SSL_ERROR_WANT_WRITE:
-				errno = EAGAIN;
-				break;
-
-			case SSL_ERROR_SYSCALL:
-				/* errno set already */
-				break;
-
-			default:
-				errno = EINVAL;
-				break;
-			}
-
-			/* Signal error to callee, like writev() */
-			rc = -1;
-		}
-
-		return rc;
+	buf = malloc(len);
+	for (i = 0; i < num; i++) {
+		memcpy(&buf[pos], iov[i].iov_base, iov[i].iov_len);
+		pos += iov[i].iov_len;
 	}
 
-	return writev(hc->conn_fd, iov, num);
+	rc = SSL_write(hc->ssl, buf, len);
+	if (rc < 0 && BIO_should_retry(SSL_get_wbio(hc->ssl))) {
+		usleep(100000);
+		rc = SSL_write(hc->ssl, buf, len);
+	}
+
+	free(buf);
+	if (rc <= 0) {
+		rc = SSL_get_error(hc->ssl, rc);
+		switch (rc) {
+		case SSL_ERROR_WANT_WRITE:
+			errno = EAGAIN;
+			break;
+
+		case SSL_ERROR_SYSCALL:
+			/* errno set already */
+			break;
+
+		default:
+			errno = EINVAL;
+			break;
+		}
+
+		/* Signal error to callee, like writev() */
+		rc = -1;
+	}
+
+	return rc;
 }

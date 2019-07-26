@@ -62,14 +62,14 @@ ssize_t httpd_ssl_writev (struct http_conn *hc, struct iovec *iov, size_t num);
 #define httpd_ssl_exit(hs)
 
 #define httpd_ssl_open(hc)             (hc->ssl = NULL)
-#define httpd_ssl_close(hc)            close(hc->conn_fd)
+#define httpd_ssl_close(hc)
 #define httpd_ssl_shutdown(hc)
 
 #define httpd_ssl_log_errors()
 
-#define httpd_ssl_read(hc, buf, len)   read       (hc->conn_fd, buf, len)
-#define httpd_ssl_write(hc, buf, len)  file_write (hc->conn_fd, buf, len)
-#define httpd_ssl_writev(hc, iov, num) writev     (hc->conn_fd, iov, num)
+#define httpd_ssl_read(hc, buf, len)   -1
+#define httpd_ssl_write(hc, buf, len)  -1
+#define httpd_ssl_writev(hc, iov, num) -1
 #endif
 
 #endif /* MERECAT_SSL_H_ */
