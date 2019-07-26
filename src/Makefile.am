@@ -22,7 +22,7 @@ merecat_SOURCES     = base64.c		base64.h	\
 		      md5.c 		md5.h		\
 		      merecat.c		merecat.h	\
 		      mmc.c 		mmc.h		\
-		      pidfile.c				\
+		      pidfile.c		stack.c		\
 		      srv.c		srv.h		\
 		      timers.c		timers.h	\
 		      tdate_parse.c	tdate_parse.h	\

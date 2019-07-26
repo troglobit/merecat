@@ -68,7 +68,7 @@ void stack_trace(void)
 	trace_size = backtrace(trace, 16);
 	messages = backtrace_symbols(trace, trace_size);
 
-	syslog(LOG_DEBUG, ">>> STACK TRACE");
+	syslog(LOG_NOTICE, ">>> STACK TRACE");
 	for (i = 0; i < trace_size; i++) {
 		char *line;
 
@@ -79,7 +79,7 @@ void stack_trace(void)
 		} else {
 			line = "";
 		}
-		syslog(LOG_DEBUG, ">>> %s%s", messages[i], line);
+		syslog(LOG_NOTICE, ">>> %s%s", messages[i], line);
 	}
 
 	free(messages);
