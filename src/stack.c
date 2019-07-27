@@ -32,14 +32,12 @@
 #include <unistd.h>		/* readlink() */
 #include <execinfo.h>		/* backtrace() */
 
-static char *addr2line(char *addr)
+static char *addr2line(char *addr, char *exec)
 {
-	FILE *fp;
-	char *tmp;
-	char exec[256] = { 0 };
 	static char buf[512];
+	char *tmp;
+	FILE *fp;
 
-	readlink("/proc/self/exe", exec, sizeof(exec));
 	tmp = tmpnam(NULL);
 	snprintf(buf, sizeof(buf), "addr2line -e %s %s > %s", exec, addr, tmp);
 	system(buf);
@@ -61,21 +59,26 @@ end:
  */
 void stack_trace(void)
 {
-	void *trace[16];
 	char **messages;
-	int i, trace_size;
+	void *trace[16];
+	char exec[256] = { 0 };
+	int i, rc, len;
 
-	trace_size = backtrace(trace, 16);
-	messages = backtrace_symbols(trace, trace_size);
+	rc = readlink("/proc/self/exe", exec, sizeof(exec));
+	if (-1 == rc)
+		return;
+
+	len = backtrace(trace, 16);
+	messages = backtrace_symbols(trace, len);
 
 	syslog(LOG_NOTICE, ">>> STACK TRACE");
-	for (i = 0; i < trace_size; i++) {
+	for (i = 0; i < len; i++) {
 		char *line;
 
 		line = strstr(messages[i], " [0x");
 		if (line) {
 			line += 2;
-			line = addr2line(line);
+			line = addr2line(line, exec);
 		} else {
 			line = "";
 		}
