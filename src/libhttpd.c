@@ -4826,29 +4826,47 @@ static long long atoll(const char *str)
 /* Read the requested buffer completely, accounting for interruptions. */
 ssize_t httpd_read(struct http_conn *hc, void *buf, size_t len)
 {
+	ssize_t rc;
+
 	if (hc->ssl)
 		return httpd_ssl_read(hc, buf, len);
 
 	/* Yes, it's a regular read() here, not file_read() */
-	return read(hc->conn_fd, buf, len);
+	rc = read(hc->conn_fd, buf, len);
+	if (rc == -1)
+		hc->errmsg = strerror(errno);
+
+	return rc;
 }
 
 
 /* Write the requested buffer completely, accounting for interruptions. */
 ssize_t httpd_write(struct http_conn *hc, void *buf, size_t len)
 {
+	ssize_t rc;
+
 	if (hc->ssl)
 		return httpd_ssl_write(hc, buf, len);
 
-	return file_write(hc->conn_fd, buf, len);
+	rc = file_write(hc->conn_fd, buf, len);
+	if (rc == -1)
+		hc->errmsg = strerror(errno);
+
+	return rc;
 }
 
 ssize_t httpd_writev(struct http_conn *hc, struct iovec *iov, size_t num)
 {
+	ssize_t rc;
+
 	if (hc->ssl)
 		return httpd_ssl_writev(hc, iov, num);
 
-	return writev(hc->conn_fd, iov, num);
+	rc = writev(hc->conn_fd, iov, num);
+	if (rc == -1)
+		hc->errmsg = strerror(errno);
+
+	return rc;
 }
 
 
