@@ -263,6 +263,8 @@ void httpd_ssl_exit(struct httpd *hs)
 
 static int status(struct http_conn *hc, int rc)
 {
+	static char errmsg[32];
+
 	if (rc > 0) {
 		hc->errmsg = NULL;
 		return rc;
@@ -291,8 +293,10 @@ static int status(struct http_conn *hc, int rc)
 	}
 
 	hc->errmsg = ERR_reason_error_string(rc);
-	if (!hc->errmsg)
-		hc->errmsg = "unknown connection error";
+	if (!hc->errmsg) {
+		snprintf(errmsg, sizeof(errmsg), "SSL error code %d", rc);
+		hc->errmsg = errmsg;
+	}
 
 	return -1;
 }
