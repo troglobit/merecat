@@ -326,11 +326,9 @@ static int poll_connection(int fd, int *timeout)
 static int accept_connection(struct http_conn *hc)
 {
 	int timeout = 500;
-	int rc;
 
 	while (poll_connection(hc->conn_fd, &timeout)) {
-		rc = status(hc, SSL_accept(hc->ssl));
-		if (rc > 0)
+		if (!status(hc, SSL_accept(hc->ssl)))
 			break;
 
 		if (EAGAIN == errno) {
