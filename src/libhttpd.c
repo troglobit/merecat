@@ -3440,7 +3440,7 @@ error:
 	rewind(fp);
 	fread(buf, (size_t)len, 1, fp);
 	if (httpd_write(hc, buf, (size_t)len) <= 0)
-		syslog(LOG_ERR, "Failed sending dirlisting to client: %s", strerror(errno));
+		syslog(LOG_ERR, "Failed sending dirlisting to client: %s", hc->errmsg);
 
 	free(buf);
 	fclose(fp);

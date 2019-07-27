@@ -954,7 +954,7 @@ static void handle_send(connecttab *c, struct timeval *tv)
 		 ** And ECONNRESET isn't interesting either.
 		 */
 		if (errno != EPIPE && errno != EINVAL && errno != ECONNRESET)
-			syslog(LOG_ERR, "write failed: %s while sending %s", strerror(errno), hc->encodedurl);
+			syslog(LOG_ERR, "write failed: %s while sending %s", hc->errmsg, hc->encodedurl);
 		clear_connection(c, tv);
 		return;
 	}
