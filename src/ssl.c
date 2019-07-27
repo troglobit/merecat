@@ -261,6 +261,11 @@ void httpd_ssl_exit(struct httpd *hs)
 	COMP_zlib_cleanup();
 }
 
+/*
+ * Translates OpenSSL error code/status to human readable text.
+ * Skips prototol (hacking) errors, connection reset, and the
+ * odd cases where SSL_ERROR_SYSCALL and errno is unset.
+ */
 static int status(struct http_conn *hc, int rc)
 {
 	static char errmsg[80];
@@ -280,11 +285,11 @@ static int status(struct http_conn *hc, int rc)
 
 	case SSL_ERROR_SSL:	/* rc = 1 */
 		errno = EPROTO;
-		/* fallthrough */
+		goto leave;
 
 	case SSL_ERROR_SYSCALL:	/* rc = 5 */
-		/* errno set already */
-		if (errno > 0)
+		/* errno set already. */
+		if (errno != 0 && errno != ECONNRESET && errno != EPROTO)
 			hc->errmsg = strerror(errno);
 		goto leave;
 
