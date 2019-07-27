@@ -269,7 +269,6 @@ static int status(struct http_conn *hc, int rc)
 	if (rc > 0)
 		return 0;
 
-	errno = 0;
 	rc = SSL_get_error(hc->ssl, rc);
 	switch (rc) {
 	case SSL_ERROR_WANT_READ:
