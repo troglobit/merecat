@@ -299,10 +299,9 @@ static int accept_connection(struct http_conn *hc)
 		switch (err) {
 		case SSL_ERROR_WANT_READ:
 		case SSL_ERROR_WANT_WRITE:
-			continue;
-
-			if (!timeout)
-				hc->errmsg = "timeout";
+			if (timeout > 0)
+				continue;
+			hc->errmsg = "client timeout";
 			break;
 
 		default:
