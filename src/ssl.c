@@ -316,16 +316,16 @@ static int poll_connection(int fd, int *timeout)
 	};
 	int rc;
 
-	do {
+	while (*timeout > 0) {
 		rc = poll(&pfd, 1, 100);
+		*timeout -= 100;
+
 		if (rc > 0)
 			return 1; /* TRUE, data available */
 
 		if (rc < 0)
 			break;
-
-		*timeout -= 100;
-	} while (*timeout > 0);
+	}
 
 	return 0;		/* FALSe, error or timeout */
 }
