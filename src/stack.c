@@ -34,25 +34,24 @@
 #include <unistd.h>		/* readlink() */
 #include <execinfo.h>		/* backtrace() */
 
-static char *addr2line(char *addr, char *exec)
+/* From The Practice of Programming, by Kernighan and Pike */
+#ifndef NELEMS
+#define NELEMS(array) (sizeof(array) / sizeof(array[0]))
+#endif
+
+static char *addr2line(char *exec, char *addr)
 {
 	static char buf[512];
-	char *tmp;
 	FILE *fp;
 
-	tmp = tmpnam(NULL);
-	snprintf(buf, sizeof(buf), "addr2line -e %s %s > %s", exec, addr, tmp);
-	system(buf);
+	snprintf(buf, sizeof(buf), "addr2line -e %s %s", exec, addr);
+	fp = popen(buf, "r");
+	if (!fp)
+		return NULL;
 
-	fp = fopen(tmp, "r");
-	if (!fp) {
-		buf[0] = 0;
-		goto end;
-	}
 	fgets(buf, sizeof(buf), fp);
-	fclose(fp);
-end:
-	remove(tmp);
+	pclose(fp);
+
 	return buf;
 }
 
@@ -70,20 +69,21 @@ void stack_trace(void)
 	if (-1 == rc)
 		return;
 
-	len = backtrace(trace, 16);
+	len = backtrace(trace, NELEMS(trace));
 	messages = backtrace_symbols(trace, len);
+	if (!messages)
+		return;
 
 	syslog(LOG_NOTICE, ">>> STACK TRACE");
 	for (i = 0; i < len; i++) {
 		char *line;
 
 		line = strstr(messages[i], " [0x");
-		if (line) {
-			line += 2;
-			line = addr2line(line, exec);
-		} else {
+		if (line)
+			line = addr2line(exec, line + 2);
+		if (!line)
 			line = "";
-		}
+
 		syslog(LOG_NOTICE, ">>> %s%s", messages[i], line);
 	}
 
