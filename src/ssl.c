@@ -267,7 +267,7 @@ static int status(struct http_conn *hc, int rc)
 
 	if (rc > 0) {
 		hc->errmsg = NULL;
-		return rc;
+		return 0;
 	}
 
 	rc = SSL_get_error(hc->ssl, rc);
@@ -417,12 +417,18 @@ void httpd_ssl_log_errors(void)
 
 ssize_t httpd_ssl_read(struct http_conn *hc, void *buf, size_t len)
 {
-	return status(hc, SSL_read(hc->ssl, buf, len));
+	if (status(hc, SSL_read(hc->ssl, buf, len)))
+		return -1;
+
+	return len;
 }
 
 ssize_t httpd_ssl_write(struct http_conn *hc, void *buf, size_t len)
 {
-	return status(hc, SSL_write(hc->ssl, buf, len));
+	if (status(hc, SSL_write(hc->ssl, buf, len)))
+		return -1;
+
+	return len;
 }
 
 ssize_t httpd_ssl_writev(struct http_conn *hc, struct iovec *iov, size_t num)
@@ -448,5 +454,8 @@ ssize_t httpd_ssl_writev(struct http_conn *hc, struct iovec *iov, size_t num)
 
 	free(buf);
 
-	return status(hc, rc);
+	if (status(hc, rc))
+		return -1;
+
+	return len;
 }
