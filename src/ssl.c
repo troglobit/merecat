@@ -265,13 +265,18 @@ static int status(struct http_conn *hc, int rc)
 {
 	static char errmsg[80];
 
-	if (rc > 0) {
-		hc->errmsg = NULL;
+	hc->errmsg = NULL;
+	if (rc > 0)
 		return 0;
-	}
 
+	errno = 0;
 	rc = SSL_get_error(hc->ssl, rc);
 	switch (rc) {
+	case 1:			/* unknown? */
+	case 5:			/* DH lib. */
+		errno = EPROTO;
+		break;
+
 	case SSL_ERROR_WANT_READ:
 	case SSL_ERROR_WANT_WRITE:
 	case SSL_ERROR_WANT_ACCEPT:
@@ -297,9 +302,11 @@ static int status(struct http_conn *hc, int rc)
 //		snprintf(errmsg, sizeof(errmsg), "SSL error code %d", rc);
 //		hc->errmsg = errmsg;
 //	}
-	snprintf(errmsg, sizeof(errmsg), "%s, code %d",
-		 ERR_reason_error_string(rc) ?: "unknown", rc);
-	hc->errmsg = errmsg;
+	if (EPROTO != errno) {
+		snprintf(errmsg, sizeof(errmsg), "%s, code %d",
+			 ERR_reason_error_string(rc) ?: "unknown", rc);
+		hc->errmsg = errmsg;
+	}
 
 	return -1;
 }

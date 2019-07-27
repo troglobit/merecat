@@ -2257,8 +2257,9 @@ int httpd_get_conn(struct httpd *hs, int listen_fd, struct http_conn *hc)
 	strlcpy(hc->client.address, address, sizeof(hc->client.address));
 
 	if (httpd_ssl_open(hc)) {
-		syslog(LOG_CRIT, "Failed SSL/TLS connection with %s: %s.",
-		       hc->client.address, hc->errmsg);
+		if (hc->errmsg)
+			syslog(LOG_CRIT, "Failed HTTPS connection with %s: %s.",
+			       hc->client.address, hc->errmsg);
 		goto error;
 	}
 	httpd_init_conn_content(hc);
@@ -3439,8 +3440,10 @@ error:
 
 	rewind(fp);
 	fread(buf, (size_t)len, 1, fp);
-	if (httpd_write(hc, buf, (size_t)len) <= 0)
-		syslog(LOG_ERR, "Failed sending dirlisting to client: %s", hc->errmsg);
+	if (httpd_write(hc, buf, (size_t)len) <= 0) {
+		if (hc->errmsg)
+			syslog(LOG_ERR, "Failed sending dirlisting to client: %s", hc->errmsg);
+	}
 
 	free(buf);
 	fclose(fp);
