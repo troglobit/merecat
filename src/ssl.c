@@ -280,12 +280,12 @@ static int status(struct http_conn *hc, int rc)
 
 	case SSL_ERROR_SSL:	/* rc = 1 */
 		errno = EPROTO;
-		hc->errmsg = strerror(errno);
-		break;
+		/* fallthrough */
 
 	case SSL_ERROR_SYSCALL:	/* rc = 5 */
 		/* errno set already */
-		hc->errmsg = strerror(errno);
+		if (errno > 0)
+			hc->errmsg = strerror(errno);
 		break;
 
 	default:
