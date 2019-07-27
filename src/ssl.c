@@ -286,7 +286,7 @@ static int status(struct http_conn *hc, int rc)
 		/* errno set already */
 		if (errno > 0)
 			hc->errmsg = strerror(errno);
-		break;
+		goto leave;
 
 	default:
 		errno = EINVAL;
@@ -299,6 +299,7 @@ static int status(struct http_conn *hc, int rc)
 		hc->errmsg = errmsg;
 	}
 
+leave:
 	return -1;
 }
 
