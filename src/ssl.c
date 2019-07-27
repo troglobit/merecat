@@ -261,6 +261,42 @@ void httpd_ssl_exit(struct httpd *hs)
 	COMP_zlib_cleanup();
 }
 
+static int status(struct http_conn *hc, int rc)
+{
+	if (rc > 0) {
+		hc->errmsg = NULL;
+		return rc;
+	}
+
+	rc = SSL_get_error(hc->ssl, rc);
+	switch (rc) {
+	case SSL_ERROR_WANT_READ:
+	case SSL_ERROR_WANT_WRITE:
+	case SSL_ERROR_WANT_ACCEPT:
+	case SSL_ERROR_WANT_CONNECT:
+		errno = EAGAIN;
+		break;
+
+	case SSL_ERROR_SSL:
+		errno = EPROTO;
+		break;
+
+	case SSL_ERROR_SYSCALL:
+		/* errno set already */
+		break;
+
+	default:
+		errno = EINVAL;
+		break;
+	}
+
+	hc->errmsg = ERR_reason_error_string(rc);
+	if (!hc->errmsg)
+		hc->errmsg = "unknown connection error";
+
+	return -1;
+}
+
 static int poll_connection(int fd, int *timeout)
 {
 	struct pollfd pfd = {
@@ -289,26 +325,15 @@ static int accept_connection(struct http_conn *hc)
 	int rc;
 
 	while (poll_connection(hc->conn_fd, &timeout)) {
-		unsigned long err;
-
-		rc = SSL_accept(hc->ssl);
+		rc = status(hc, SSL_accept(hc->ssl));
 		if (rc > 0)
 			break;
 
-		err = SSL_get_error(hc->ssl, rc);
-		switch (err) {
-		case SSL_ERROR_WANT_READ:
-		case SSL_ERROR_WANT_WRITE:
+		if (EAGAIN == errno) {
 			if (timeout > 0)
 				continue;
-			hc->errmsg = "client timeout";
-			break;
 
-		default:
-			hc->errmsg = ERR_reason_error_string(err);
-			if (!hc->errmsg)
-				hc->errmsg = "unknown connection error";
-			break;
+			hc->errmsg = "client timeout";
 		}
 
 		return 0;	/* FALSE, connection not accepted */
@@ -388,19 +413,19 @@ void httpd_ssl_log_errors(void)
 
 ssize_t httpd_ssl_read(struct http_conn *hc, void *buf, size_t len)
 {
-	return SSL_read(hc->ssl, buf, len);
+	return status(hc, SSL_read(hc->ssl, buf, len));
 }
 
 ssize_t httpd_ssl_write(struct http_conn *hc, void *buf, size_t len)
 {
-	return SSL_write(hc->ssl, buf, len);
+	return status(hc, SSL_write(hc->ssl, buf, len));
 }
 
 ssize_t httpd_ssl_writev(struct http_conn *hc, struct iovec *iov, size_t num)
 {
-	char *buf;
 	size_t i, pos = 0, len = 0;
-	ssize_t rc;
+	char *buf;
+	int rc;
 
 	for (i = 0; i < num; i++)
 		len += iov[i].iov_len;
@@ -418,25 +443,6 @@ ssize_t httpd_ssl_writev(struct http_conn *hc, struct iovec *iov, size_t num)
 	}
 
 	free(buf);
-	if (rc <= 0) {
-		rc = SSL_get_error(hc->ssl, rc);
-		switch (rc) {
-		case SSL_ERROR_WANT_WRITE:
-			errno = EAGAIN;
-			break;
 
-		case SSL_ERROR_SYSCALL:
-			/* errno set already */
-			break;
-
-		default:
-			errno = EINVAL;
-			break;
-		}
-
-		/* Signal error to callee, like writev() */
-		rc = -1;
-	}
-
-	return rc;
+	return status(hc, rc);
 }
