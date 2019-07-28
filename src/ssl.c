@@ -276,18 +276,19 @@ static int status(struct http_conn *hc, int rc)
 
 	rc = SSL_get_error(hc->ssl, rc);
 	switch (rc) {
-	case SSL_ERROR_WANT_READ:
-	case SSL_ERROR_WANT_WRITE:
-	case SSL_ERROR_WANT_ACCEPT:
-	case SSL_ERROR_WANT_CONNECT:
-		errno = EAGAIN;
-		break;
-
-	case SSL_ERROR_SSL:	/* rc = 1 */
+	case SSL_ERROR_SSL:	          /* rc = 1 */
 		errno = EPROTO;
 		goto leave;
 
-	case SSL_ERROR_SYSCALL:	/* rc = 5 */
+	case SSL_ERROR_WANT_READ:         /* rc = 2 */
+	case SSL_ERROR_WANT_WRITE:        /* rc = 3 */
+	case SSL_ERROR_WANT_X509_LOOKUP:  /* rc = 4 */
+	case SSL_ERROR_WANT_CONNECT:      /* rc = 7 */
+	case SSL_ERROR_WANT_ACCEPT:       /* rc = 8 */
+		errno = EAGAIN;
+		break;
+
+	case SSL_ERROR_SYSCALL:	          /* rc = 5 */
 		/* errno set already. */
 		if (errno != 0 && errno != ECONNRESET && errno != EPROTO)
 			hc->errmsg = strerror(errno);
