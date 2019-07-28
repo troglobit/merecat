@@ -319,24 +319,27 @@ static int accept_connection(struct http_conn *hc)
 		.events = POLLIN | POLLOUT,
 		.fd     = hc->conn_fd,
 	};
-	int rc, retries = 10;
+	int rc, retries = 5;
 
 retry:
 	rc = poll(&pfd, 1, 100);
 	if (rc > 0) {
 		rc = status(hc, SSL_accept(hc->ssl));
-		if (-1 == rc && EAGAIN == errno) {
-			if (--retries > 0)
-				goto retry;
-		}
+		if (-1 == rc && EAGAIN == errno)
+			goto retry;
 
 		return rc;
 	}
 
-	if (rc < 0)
+	if (rc < 0) {
 		hc->errmsg = strerror(errno);
-	else
-		hc->errmsg = "client timeout";
+		return -1;
+	}
+
+	if (--retries > 0)
+		goto retry;
+
+	hc->errmsg = "client timeout";
 
 	return -1;
 }
