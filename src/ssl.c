@@ -319,7 +319,7 @@ static int accept_connection(struct http_conn *hc)
 		.events = POLLIN | POLLOUT,
 		.fd     = hc->conn_fd,
 	};
-	int rc, retries = 5;
+	int rc, retries = 10;
 
 retry:
 	rc = poll(&pfd, 1, 100);
