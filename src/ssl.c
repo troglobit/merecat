@@ -308,47 +308,36 @@ leave:
 	return -1;
 }
 
-static int poll_connection(int fd, int *timeout)
+/*
+** Poll underlying fd and call SSL_accept() as long as it
+** wants more ... or until our patience runs out.
+*/
+static int accept_connection(struct http_conn *hc)
 {
 	struct pollfd pfd = {
 		.events = POLLIN | POLLOUT,
-		.fd     = fd,
+		.fd     = hc->conn_fd,
 	};
-	int rc;
+	int rc, retries = 5;
 
-	while (*timeout > 0) {
-		rc = poll(&pfd, 1, 100);
-		if (rc > 0)
-			return 1; /* TRUE, data available */
-
-		if (rc < 0)
-			break;
-
-		*timeout -= 100;
-	}
-
-	return 0;		/* FALSe, error or timeout */
-}
-
-static int accept_connection(struct http_conn *hc)
-{
-	int timeout = 500;
-
-	while (poll_connection(hc->conn_fd, &timeout)) {
-		if (!status(hc, SSL_accept(hc->ssl)))
-			break;
-
-		if (EAGAIN == errno) {
-			if (timeout > 0)
-				continue;
-
-			hc->errmsg = "client timeout";
+retry:
+	rc = poll(&pfd, 1, 100);
+	if (rc > 0) {
+		rc = status(hc, SSL_accept(hc->ssl));
+		if (-1 == rc && EAGAIN == errno) {
+			if (--retries > 0)
+				goto retry;
 		}
 
-		return 0;	/* FALSE, connection not accepted */
+		return rc;
 	}
 
-	return 1;		/* TRUE, connection accepted */
+	if (rc < 0)
+		hc->errmsg = strerror(errno);
+	else
+		hc->errmsg = "client timeout";
+
+	return -1;
 }
 
 int httpd_ssl_open(struct http_conn *hc)
@@ -377,7 +366,7 @@ int httpd_ssl_open(struct http_conn *hc)
 		fcntl(hc->conn_fd, F_SETFL, flags);
 
 		SSL_set_fd(hc->ssl, hc->conn_fd);
-		if (!accept_connection(hc)) {
+		if (-1 == accept_connection(hc)) {
 			ERR_clear_error();
 			SSL_free(hc->ssl);
 
