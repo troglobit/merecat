@@ -2258,7 +2258,7 @@ int httpd_get_conn(struct httpd *hs, int listen_fd, struct http_conn *hc)
 
 	if (httpd_ssl_open(hc)) {
 		if (hc->errmsg)
-			syslog(LOG_CRIT, "Failed HTTPS connection with %s: %s.",
+			syslog(LOG_INFO, "Failed HTTPS connection with %s: %s.",
 			       hc->client.address, hc->errmsg);
 		goto error;
 	}
