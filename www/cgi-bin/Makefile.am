@@ -1,4 +1,4 @@
-AUTOMAKE_OPTIONS    = subdir-objects
+AUTOMAKE_OPTIONS    = subdir-objects no-dependencies
 
 cgidir              = $(WEBDIR)/cgi-bin
 cgi_PROGRAMS        = redirect ssi
