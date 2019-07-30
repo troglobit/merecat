@@ -211,6 +211,40 @@ static long long atoll(const char *str);
 static int sub_process = 0;
 
 
+/* Set no-delay / non-blocking mode on a socket. */
+int httpd_set_ndelay(int sd)
+{
+	int flags, newflags;
+
+	flags = fcntl(sd, F_GETFL, 0);
+	if (-1 == flags)
+		return -1;
+
+	newflags = flags | (int)O_NDELAY;
+	if (newflags != flags)
+		return fcntl(sd, F_SETFL, newflags);
+
+	return 0;
+}
+
+
+/* Clear no-delay / non-blocking mode on a socket. */
+int httpd_clear_ndelay(int sd)
+{
+	int flags, newflags;
+
+	flags = fcntl(sd, F_GETFL, 0);
+	if (-1 == flags)
+		return -1;
+
+	newflags = flags & ~(int)O_NDELAY;
+	if (newflags != flags)
+		return fcntl(sd, F_SETFL, newflags);
+
+	return 0;
+}
+
+
 static void check_options(void)
 {
 #if defined(TILDE_MAP_1) && defined(TILDE_MAP_2)
@@ -640,34 +674,6 @@ void httpd_send_response(struct http_conn *hc)
 		make_log_entry(hc);
 		httpd_write(hc, hc->response, hc->responselen);
 		hc->responselen = 0;
-	}
-}
-
-
-/* Set no-delay / non-blocking mode on a socket. */
-void httpd_set_ndelay(int fd)
-{
-	int flags, newflags;
-
-	flags = fcntl(fd, F_GETFL, 0);
-	if (flags != -1) {
-		newflags = flags | (int)O_NDELAY;
-		if (newflags != flags)
-			fcntl(fd, F_SETFL, newflags);
-	}
-}
-
-
-/* Clear no-delay / non-blocking mode on a socket. */
-void httpd_clear_ndelay(int fd)
-{
-	int flags, newflags;
-
-	flags = fcntl(fd, F_GETFL, 0);
-	if (flags != -1) {
-		newflags = flags & ~(int)O_NDELAY;
-		if (newflags != flags)
-			fcntl(fd, F_SETFL, newflags);
 	}
 }
 

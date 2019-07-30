@@ -375,10 +375,10 @@ extern char *httpd_ntoa(sockaddr_t *sa);
 extern short httpd_port(sockaddr_t *sa);
 
 /* Set NDELAY mode on a socket. */
-extern void httpd_set_ndelay(int fd);
+extern int httpd_set_ndelay(int sd);
 
 /* Clear NDELAY mode on a socket. */
-extern void httpd_clear_ndelay(int fd);
+extern int httpd_clear_ndelay(int sd);
 
 /* Read the requested buffer completely, accounting for interruptions. */
 extern ssize_t httpd_read(struct http_conn *hc, void *buf, size_t len);
