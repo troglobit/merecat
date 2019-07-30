@@ -250,7 +250,7 @@ static void read_throttlefile(char *throttlefile)
 
 		++numthrottles;
 	}
-	fclose(fp);
+	(void)fclose(fp);
 }
 
 
@@ -1524,9 +1524,9 @@ int main(int argc, char **argv)
 		/* We're not going to use stdin stdout or stderr from here on,
 		** so close them to save file descriptors.
 		*/
-		fclose(stdin);
-		fclose(stdout);
-		fclose(stderr);
+		(void)fclose(stdin);
+		(void)fclose(stdout);
+		(void)fclose(stderr);
 
 		/* Daemonize - make ourselves a subprocess. */
 #ifdef HAVE_DAEMON

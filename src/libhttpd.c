@@ -539,7 +539,7 @@ static int initialize_listen_socket(sockaddr_t *sa)
 	/* Bind to it. */
 	if (bind(listen_fd, &sa->sa, sockaddr_len(sa)) < 0) {
 		syslog(LOG_CRIT, "Failed binding to %s port %d: %s", httpd_ntoa(sa), httpd_port(sa), strerror(errno));
-		close(listen_fd);
+		(void)close(listen_fd);
 		return -1;
 	}
 
@@ -547,14 +547,14 @@ static int initialize_listen_socket(sockaddr_t *sa)
 	if (-1 == httpd_set_ndelay(listen_fd)) {
 		syslog(LOG_ERR, "failed setting listen socket non-blocking: %s",
 		       strerror(errno));
-		close(listen_fd);
+		(void)close(listen_fd);
 		return -1;
 	}
 
 	/* Start a listen going. */
 	if (listen(listen_fd, LISTEN_BACKLOG) < 0) {
 		syslog(LOG_CRIT, "listen: %s", strerror(errno));
-		close(listen_fd);
+		(void)close(listen_fd);
 		return -1;
 	}
 
@@ -590,11 +590,11 @@ void httpd_exit(struct httpd *hs)
 void httpd_unlisten(struct httpd *hs)
 {
 	if (hs->listen4_fd != -1) {
-		close(hs->listen4_fd);
+		(void)close(hs->listen4_fd);
 		hs->listen4_fd = -1;
 	}
 	if (hs->listen6_fd != -1) {
-		close(hs->listen6_fd);
+		(void)close(hs->listen6_fd);
 		hs->listen6_fd = -1;
 	}
 }
@@ -1038,7 +1038,7 @@ static int send_err_file(struct http_conn *hc, int status, char *title, const ch
 		buf[r] = '\0';
 		add_response(hc, buf);
 	}
-	fclose(fp);
+	(void)fclose(fp);
 
 #ifdef ERR_APPEND_SERVER_INFO
 	send_response_tail(hc);
@@ -1208,7 +1208,7 @@ static int access_check2(struct http_conn *hc, char *dir)
 
 		if (!addr) {
 		err:
-			fclose(fp);
+			(void)fclose(fp);
 			syslog(LOG_ERR, "%.80s access file %.80s: invalid line: %s",
 			       httpd_client(hc), hc->accesspath, line);
 			httpd_send_err(hc, 403, err403title, "",
@@ -1256,7 +1256,7 @@ static int access_check2(struct http_conn *hc, char *dir)
 
 			case 'a':
 			case 'A':
-				fclose(fp);
+				(void)fclose(fp);
 				return 1;
 
 			default:
@@ -1268,7 +1268,7 @@ static int access_check2(struct http_conn *hc, char *dir)
 	httpd_send_err(hc, 403, err403title, "",
 		       ERROR_FORM(err403form, "The requested URL '%.80s' is protected by an address restriction."),
 		       hc->encodedurl);
-	fclose(fp);
+	(void)fclose(fp);
 
 	return -1;
 }
@@ -1448,7 +1448,7 @@ static int auth_check2(struct http_conn *hc, char *dir)
 		/* Is this the right user? */
 		if (strcmp(line, authinfo) == 0) {
 			/* Yes. */
-			fclose(fp);
+			(void)fclose(fp);
 
 			/* So is the password right? */
 			crypt_result = crypt(authpass, cryp);
@@ -1482,7 +1482,7 @@ static int auth_check2(struct http_conn *hc, char *dir)
 	}
 
 	/* Didn't find that user.  Access denied. */
-	fclose(fp);
+	(void)fclose(fp);
 	send_authenticate(hc, dir);
 
 	return -1;
@@ -2091,7 +2091,7 @@ void httpd_close_conn(struct http_conn *hc, struct timeval *now)
 
 	if (hc->conn_fd >= 0) {
 		httpd_ssl_close(hc);
-		close(hc->conn_fd);
+		(void)close(hc->conn_fd);
 		hc->conn_fd = -1;
 	}
 }
@@ -2284,7 +2284,7 @@ int httpd_get_conn(struct httpd *hs, int listen_fd, struct http_conn *hc)
 	return GC_OK;
 error:
 //	httpd_ssl_log_errors();
-	close(hc->conn_fd);
+	(void)close(hc->conn_fd);
 	hc->conn_fd = -1;
 
 	return GC_FAIL;
@@ -3442,13 +3442,13 @@ error:
 	len = ftell(fp);
 	if (len == -1) {
 		syslog(LOG_ERR, "ftell: %s", strerror(errno));
-		fclose(fp);
+		(void)fclose(fp);
 		goto error;
 	}
 
 	buf = malloc((size_t)len);
 	if (!buf) {
-		fclose(fp);
+		(void)fclose(fp);
 		goto error;
 	}
 
@@ -3463,7 +3463,7 @@ error:
 	}
 
 	free(buf);
-	fclose(fp);
+	(void)fclose(fp);
 
 	return 0;
 }
@@ -4030,16 +4030,16 @@ static void cgi_child(struct http_conn *hc)
 		if (r == 0) {
 			/* Interposer process. */
 			sub_process = 1;
-			close(p[0]);
+			(void)close(p[0]);
 			cgi_interpose_input(hc, p[1]);
 			exit(0);
 		}
 
 		/* Need to schedule a kill for process r; but in the main process! */
-		close(p[1]);
+		(void)close(p[1]);
 		if (p[0] != STDIN_FILENO) {
 			dup2(p[0], STDIN_FILENO);
-			close(p[0]);
+			(void)close(p[0]);
 		}
 	} else {
 		/* Otherwise, the request socket is stdin. */
@@ -4069,18 +4069,18 @@ static void cgi_child(struct http_conn *hc)
 		if (r == 0) {
 			/* Interposer process. */
 			sub_process = 1;
-			close(p[1]);
+			(void)close(p[1]);
 			cgi_interpose_output(hc, p[0]);
 			exit(0);
 		}
 		/* Need to schedule a kill for process r; but in the main process! */
-		close(p[0]);
+		(void)close(p[0]);
 		if (p[1] != STDOUT_FILENO)
 			dup2(p[1], STDOUT_FILENO);
 		if (p[1] != STDERR_FILENO)
 			dup2(p[1], STDERR_FILENO);
 		if (p[1] != STDOUT_FILENO && p[1] != STDERR_FILENO)
-			close(p[1]);
+			(void)close(p[1]);
 	} else {
 		/* Otherwise, the request socket is stdout/stderr. */
 		if (hc->conn_fd != STDOUT_FILENO)
