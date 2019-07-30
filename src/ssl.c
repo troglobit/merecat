@@ -347,7 +347,6 @@ retry:
 int httpd_ssl_open(struct http_conn *hc)
 {
 	SSL_CTX *ctx = NULL;
-	int flags;
 
 	if (!hc) {
 		errno = EINVAL;
@@ -359,6 +358,8 @@ int httpd_ssl_open(struct http_conn *hc)
 		ctx = hc->hs->ctx;
 
 	if (ctx) {
+		int flags;
+
 		hc->ssl = SSL_new(ctx);
 		if (!hc->ssl) {
 			hc->errmsg = "creating connection";
@@ -366,8 +367,10 @@ int httpd_ssl_open(struct http_conn *hc)
 		}
 
 		flags  = fcntl(hc->conn_fd, F_GETFL, 0);
-		flags |= O_NONBLOCK;
-		fcntl(hc->conn_fd, F_SETFL, flags);
+		if (flags > -1) {
+			flags |= O_NONBLOCK;
+			fcntl(hc->conn_fd, F_SETFL, flags);
+		}
 
 		SSL_set_fd(hc->ssl, hc->conn_fd);
 		if (-1 == accept_connection(hc)) {
