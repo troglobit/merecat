@@ -344,6 +344,24 @@ retry:
 	return -1;
 }
 
+static int set_nonblocking(int sd)
+{
+	int flags;
+
+	flags  = fcntl(sd, F_GETFL, 0);
+	if (-1 == flags)
+		goto fail;
+
+	flags |= O_NONBLOCK;
+	if (-1 == fcntl(sd, F_SETFL, flags)) {
+	fail:
+		syslog(LOG_ERR, "Failed setting SSL socket non-blocking: %s",
+		       strerror(errno));
+	}
+
+	return sd;
+}
+
 int httpd_ssl_open(struct http_conn *hc)
 {
 	SSL_CTX *ctx = NULL;
@@ -358,21 +376,13 @@ int httpd_ssl_open(struct http_conn *hc)
 		ctx = hc->hs->ctx;
 
 	if (ctx) {
-		int flags;
-
 		hc->ssl = SSL_new(ctx);
 		if (!hc->ssl) {
 			hc->errmsg = "creating connection";
 			return 1;
 		}
 
-		flags  = fcntl(hc->conn_fd, F_GETFL, 0);
-		if (flags > -1) {
-			flags |= O_NONBLOCK;
-			fcntl(hc->conn_fd, F_SETFL, flags);
-		}
-
-		SSL_set_fd(hc->ssl, hc->conn_fd);
+		SSL_set_fd(hc->ssl, set_nonblocking(hc->conn_fd));
 		if (-1 == accept_connection(hc)) {
 			ERR_clear_error();
 			SSL_free(hc->ssl);
