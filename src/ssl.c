@@ -316,7 +316,7 @@ leave:
 static int accept_connection(struct http_conn *hc)
 {
 	struct pollfd pfd = {
-		.events = POLLIN | POLLOUT,
+		.events = POLLIN,
 		.fd     = hc->conn_fd,
 	};
 	int rc, retries = 5;
