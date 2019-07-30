@@ -211,6 +211,16 @@ static long long atoll(const char *str);
 static int sub_process = 0;
 
 
+static int set_cloexec(int sd)
+{
+	return fcntl(sd, F_SETFD, FD_CLOEXEC);
+}
+
+static int clear_cloexec(int sd)
+{
+	return fcntl(sd, F_SETFD, 0);
+}
+
 /* Set no-delay / non-blocking mode on a socket. */
 int httpd_set_ndelay(int sd)
 {
@@ -516,7 +526,10 @@ static int initialize_listen_socket(sockaddr_t *sa)
 		syslog(LOG_CRIT, "Failed opening socket for %s: %s", httpd_ntoa(sa), strerror(errno));
 		return -1;
 	}
-	fcntl(listen_fd, F_SETFD, 1);
+
+	if (-1 == set_cloexec(listen_fd))
+		syslog(LOG_ERR, "failed setting CLOEXEC on listen socket: %s",
+		       strerror(errno));
 
 	/* Allow reuse of local addresses. */
 	SETSOCKOPT(listen_fd, SOL_SOCKET, SO_REUSEADDR);
@@ -2244,7 +2257,10 @@ int httpd_get_conn(struct httpd *hs, int listen_fd, struct http_conn *hc)
 		goto error;
 	}
 
-	fcntl(hc->conn_fd, F_SETFD, FD_CLOEXEC);
+	if (-1 == set_cloexec(hc->conn_fd))
+		syslog(LOG_ERR, "failed setting CLOEXEC on client socket: %s",
+		       strerror(errno));
+
 	hc->hs = hs;
 	memset(&hc->client, 0, sizeof(hc->client));
 	memcpy(&hc->client, &sa, sizeof(sa));
@@ -3969,7 +3985,7 @@ static void cgi_child(struct http_conn *hc)
 	** dup()'d descriptor, so we have to clear it.  This could be
 	** ifdeffed for Linux only.
 	*/
-	fcntl(hc->conn_fd, F_SETFD, 0);
+	clear_cloexec(hc->conn_fd);
 
 	/* If the connection happens to be using one of the stdio
 	** descriptors move it to another descriptor so that the
@@ -4084,7 +4100,7 @@ static void cgi_child(struct http_conn *hc)
 	** probably already has that file open via stdin stdout and/or stderr,
 	** this is not a problem.
 	*/
-	/* fcntl(hc->conn_fd, F_SETFD, 1); */
+	/* set_cloexec(hc->conn_fd); */
 
 #ifdef CGI_NICE
 	/* Set priority. */
