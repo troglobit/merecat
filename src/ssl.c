@@ -26,7 +26,6 @@
 */
 
 #include <config.h>
-#include <fcntl.h>
 #include <poll.h>
 #include <string.h>
 #include <syslog.h>
@@ -344,24 +343,6 @@ retry:
 	return -1;
 }
 
-static int set_nonblocking(int sd)
-{
-	int flags;
-
-	flags  = fcntl(sd, F_GETFL, 0);
-	if (-1 == flags)
-		goto fail;
-
-	flags |= O_NONBLOCK;
-	if (-1 == fcntl(sd, F_SETFL, flags)) {
-	fail:
-		syslog(LOG_ERR, "Failed setting SSL socket non-blocking: %s",
-		       strerror(errno));
-	}
-
-	return sd;
-}
-
 int httpd_ssl_open(struct http_conn *hc)
 {
 	SSL_CTX *ctx = NULL;
@@ -382,7 +363,11 @@ int httpd_ssl_open(struct http_conn *hc)
 			return 1;
 		}
 
-		SSL_set_fd(hc->ssl, set_nonblocking(hc->conn_fd));
+		if (-1 == httpd_set_ndelay(hc->conn_fd))
+			syslog(LOG_ERR, "Failed setting SSL non-blocking: %s",
+			       strerror(errno));
+
+		SSL_set_fd(hc->ssl, hc->conn_fd);
 		if (-1 == accept_connection(hc)) {
 			ERR_clear_error();
 			SSL_free(hc->ssl);

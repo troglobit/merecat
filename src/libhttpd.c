@@ -531,14 +531,9 @@ static int initialize_listen_socket(sockaddr_t *sa)
 	}
 
 	/* Set the listen file descriptor to no-delay / non-blocking mode. */
-	flags = fcntl(listen_fd, F_GETFL, 0);
-	if (flags == -1) {
-		syslog(LOG_CRIT, "fcntl F_GETFL: %s", strerror(errno));
-		close(listen_fd);
-		return -1;
-	}
-	if (fcntl(listen_fd, F_SETFL, flags | O_NDELAY) < 0) {
-		syslog(LOG_CRIT, "fcntl O_NDELAY: %s", strerror(errno));
+	if (-1 == httpd_set_ndelay(listen_fd)) {
+		syslog(LOG_ERR, "failed setting listen socket non-blocking: %s",
+		       strerror(errno));
 		close(listen_fd);
 		return -1;
 	}
