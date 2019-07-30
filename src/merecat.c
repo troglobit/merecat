@@ -28,9 +28,6 @@
 
 #include <config.h>
 
-#ifdef HAVE_FCNTL_H
-#include <fcntl.h>
-#endif
 #include <getopt.h>
 #include <pwd.h>
 #ifdef HAVE_GRP_H
@@ -545,7 +542,7 @@ static void clear_connection(connecttab *c, struct timeval *tv)
 		httpd_init_conn_content(c->hc);
 
 		/* Reset the connection file descriptor to no-delay mode. */
-		httpd_set_ndelay(c->hc->conn_fd);
+		(void)httpd_set_ndelay(c->hc->conn_fd);
 
 		c->linger_timer = tmr_create(tv, linger_clear_connection, arg, KEEPALIVE_TIMELIMIT, 0);
 		if (!c->linger_timer) {
@@ -651,7 +648,7 @@ int handle_newconnect(struct httpd *hs, struct timeval *tv, int fd)
 		c->numtnums = 0;
 
 		/* Set the connection file descriptor to no-delay mode. */
-		httpd_set_ndelay(c->hc->conn_fd);
+		(void)httpd_set_ndelay(c->hc->conn_fd);
 
 		fdwatch_add_fd(c->hc->conn_fd, c, FDW_READ);
 

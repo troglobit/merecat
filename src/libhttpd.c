@@ -675,7 +675,7 @@ void httpd_send_response(struct http_conn *hc)
 {
 	/* If we are in a sub-process, turn off no-delay mode. */
 	if (sub_process)
-		httpd_clear_ndelay(hc->conn_fd);
+		(void)httpd_clear_ndelay(hc->conn_fd);
 
 	/* Send the response, if necessary. */
 	if (hc->responselen > 0) {
@@ -3836,7 +3836,7 @@ static void post_post_garbage_hack(struct http_conn *hc)
 	** previously cleared it.
 	*/
 	if (sub_process)
-		httpd_set_ndelay(hc->conn_fd);
+		(void)httpd_set_ndelay(hc->conn_fd);
 
 	/* And read up to 2 bytes. */
 	httpd_read(hc, buf, sizeof(buf));
@@ -3864,7 +3864,7 @@ static void cgi_interpose_output(struct http_conn *hc, int rfd)
 	/* Make sure the connection is in blocking mode.  It should already
 	** be blocking, but we might as well be sure.
 	*/
-	httpd_clear_ndelay(hc->conn_fd);
+	(void)httpd_clear_ndelay(hc->conn_fd);
 
 	/* Slurp in all headers. */
 	headers_size = 0;
@@ -3985,7 +3985,7 @@ static void cgi_child(struct http_conn *hc)
 	** dup()'d descriptor, so we have to clear it.  This could be
 	** ifdeffed for Linux only.
 	*/
-	clear_cloexec(hc->conn_fd);
+	(void)clear_cloexec(hc->conn_fd);
 
 	/* If the connection happens to be using one of the stdio
 	** descriptors move it to another descriptor so that the
@@ -4100,7 +4100,7 @@ static void cgi_child(struct http_conn *hc)
 	** probably already has that file open via stdin stdout and/or stderr,
 	** this is not a problem.
 	*/
-	/* set_cloexec(hc->conn_fd); */
+	/* (void)set_cloexec(hc->conn_fd); */
 
 #ifdef CGI_NICE
 	/* Set priority. */
@@ -4200,7 +4200,7 @@ static int cgi(struct http_conn *hc)
 		return -1;
 	}
 
-	httpd_clear_ndelay(hc->conn_fd);
+	(void)httpd_clear_ndelay(hc->conn_fd);
 	pid = fork();
 	if (pid < 0) {
 		syslog(LOG_ERR, "fork: %s", strerror(errno));
