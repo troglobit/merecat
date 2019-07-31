@@ -642,15 +642,14 @@ command:
 .It Cm INT,TERM
 These signals tell
 .Nm
-to shut down immediately.  Any requests in progress get aborted.
+to shut down immediately.
 .It Cm USR1
 This signal tells
 .Nm
-to shut down as soon as it is done servicing
-all current requests.  In addition, the network socket it uses to accept
-new connections gets closed immediately, which means a fresh
+to toggle log level, between current log level and LOG_DEBUG.  If
 .Nm
-can be started up immediately.
+was started with LOG_DEBUG the toggle will be to LOG_NOTICE, which is
+the default log level.
 .It Cm USR2
 This signal tells
 .Nm

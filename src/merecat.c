@@ -74,6 +74,7 @@
 char        *prognm;		/* Instead of non-portable __progname */
 char        *ident;		/* Used for logging */
 int          loglevel          = LOG_NOTICE;
+int          dbglevel          = LOG_DEBUG;
 char         path[MAXPATHLEN + 1];
 
 /* Global config settings */
@@ -1178,26 +1179,11 @@ static void handle_hup(int signo)
 }
 
 
-/* SIGUSR1 says to exit as soon as all current connections are done. */
+/* SIGUSR1 says to toggle debug mode. */
 static void handle_usr1(int signo)
 {
-	/* Don't need to set up the handler again, since it's a one-shot. */
-
-	if (num_connects == 0) {
-		/* If there are no active connections we want to exit immediately
-		** here.  Not only is it faster, but without any connections the
-		** main loop won't wake up until the next new connection.
-		*/
-		shut_down();
-		syslog(LOG_NOTICE, "Exiting due to SIGUSR1");
-		closelog();
-		exit(0);
-	}
-
-	/* Otherwise, just set a flag that we got the signal. */
-	got_usr1 = 1;
-
-	/* Don't need to restore old errno, since we didn't do any syscalls. */
+	if (!got_usr1)
+		got_usr1 = 1;
 }
 
 
@@ -1407,6 +1393,8 @@ int main(int argc, char **argv)
 			loglevel = loglvl(optarg);
 			if (-1 == loglevel)
 				return usage(1);
+			if (LOG_DEBUG == loglevel)
+				dbglevel = LOG_NOTICE;
 			break;
 
 		case 'n':
@@ -1778,10 +1766,12 @@ int main(int argc, char **argv)
 		}
 		tmr_run(&tv);
 
-		if (got_usr1 && !terminate) {
-			terminate = 1;
-			LIST_FOREACH(server, server_list)
-				srv_stop(server);
+		if (got_usr1) {
+			loglevel = loglevel + dbglevel;
+			dbglevel = loglevel - dbglevel;
+			loglevel = loglevel - dbglevel;
+			setlogmask(LOG_UPTO(loglevel));
+			got_usr1 = 0;
 		}
 
 		/* From handle_send()/writev; see handle_sigbus(). */
