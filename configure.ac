@@ -194,7 +194,6 @@ AC_CONFIG_FILES([Makefile
                  merecat.service
                  src/Makefile
                  man/Makefile
-                 scripts/Makefile
                  tests/Makefile
                  www/Makefile
                  www/cgi-bin/Makefile

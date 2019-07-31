@@ -1,4 +1,4 @@
-SUBDIRS                   = src www man scripts tests
+SUBDIRS                   = src www man tests
 doc_DATA                  = README.md LICENSE ChangeLog.md
 EXTRA_DIST                = README.md LICENSE ChangeLog.md throttle.conf merecat.conf
 DISTCHECK_CONFIGURE_FLAGS = --with-systemd=$$dc_install_base/$(systemd)
