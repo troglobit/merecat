@@ -251,9 +251,6 @@ int srv_connect(struct httpd *hs, struct timeval *tv)
 
 void srv_exit(struct httpd *hs)
 {
-	if (hs->listen4_fd != -1)
-		fdwatch_del_fd(hs->listen4_fd);
-	if (hs->listen6_fd != -1)
-		fdwatch_del_fd(hs->listen6_fd);
+	srv_stop(hs);
 	httpd_exit(hs);
 }
