@@ -447,7 +447,7 @@ static void really_unmap(Map **mm)
 	Map *m;
 
 	m = *mm;
-	if (m->size) {
+	if (m->size > 0) {
 		if (munmap(m->addr, m->size) < 0)
 			syslog(LOG_ERR, "munmap: %s", strerror(errno));
 	}
