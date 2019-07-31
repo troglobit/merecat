@@ -1465,6 +1465,9 @@ int main(int argc, char **argv)
 	if (optind < argc)
 		hostname = argv[optind++];
 
+	/* Read merecat.conf, if available */
+	conf_init(config);
+
 #ifdef LOG_PERROR
 	if (!background && !do_syslog)
 		log_opts |= LOG_PERROR;
@@ -1648,9 +1651,6 @@ int main(int argc, char **argv)
 	first_free_connect = 0;
 	num_connects = 0;
 	httpd_conn_count = 0;
-
-	/* Read merecat.conf, if available */
-	conf_init(config);
 
 	/* Create PID file */
 	if (!pidfn)
