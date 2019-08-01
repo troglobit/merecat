@@ -452,7 +452,7 @@ static void really_unmap(struct map **mm)
 	m = *mm;
 	if (m->size > 0) {
 		if (munmap(m->addr, m->size) < 0)
-			syslog(LOG_ERR, "munmap(%p, %d): %s", m->addr, m->size, strerror(errno));
+			syslog(LOG_ERR, "munmap(%p, %td): %s", m->addr, m->size, strerror(errno));
 	}
 
 	/* Update the total byte count. */
