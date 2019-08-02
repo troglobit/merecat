@@ -2726,17 +2726,34 @@ int httpd_parse_request(struct http_conn *hc)
 					hc->do_keep_alive = 10; /* Our intention, which might change later */
 				}
 			} else if (strncasecmp(buf, "X-Forwarded-For:", 16) == 0) {
-				int i;
+				sockaddr_t sa;
+				char *client;
 
 				/* Syntax: X-Forwarded-For: client[, proxy1, proxy2, ...] */
-				cp = &buf[16];
+				cp  = &buf[16];
 				cp += strspn(cp, " \t");
-				for (i = 0; cp[i]; i++) {
-					hc->client.address[i] = cp[i];
-					if (isblank(cp[i]))
-						break;
+
+				client = cp;
+				cp  = strstr(cp, ", ");
+				if (cp) {
+					*cp = 0;
+					cp += 2;
+
+					/* Skip first entry if localhost, likely Squid proxy */
+					if (!strcmp(client, "127.0.0.1"))
+						client = cp;
 				}
-				hc->client.address[i] = 0;
+
+				if (-1 == httpd_aton(client, &sa)) {
+					syslog(LOG_WARNING, "%.80s: invalid X-Forwarded-For: %s",
+					       httpd_client(hc), client);
+					httpd_send_err(hc, 400, httpd_err400title, "",
+						       httpd_err400form, "X-Forwarded-For");
+
+					return -1;
+				}
+
+				strlcpy(hc->client.address, sa.address, sizeof(hc->client.address));
 			}
 			/*
 			 * Possibly add support for X-Real-IP: here?
