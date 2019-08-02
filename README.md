@@ -126,8 +126,10 @@ on the fly, which it otherwise does.
 HTTPS Support
 -------------
 
-If the `configure` script finds OpenSSL installed HTTPS support will be
-enabled, this can be disabled using `--without-ssl`.
+If `configure` finds OpenSSL installed, HTTPS support is enabled, this
+can be disabled using `--without-ssl`.  However, to gain access to the
+SSL/TLS settings you also need support for `merecat.conf`, so you must
+install [libConfuse][].  See below for all Build Requirements.
 
 The HTTPS support has SSLv2, SSLv3, and TLSv1 disabled (hard coded) by
 default.  Only TLSv2 and later will be enabled and negotiated on a per
@@ -214,8 +216,8 @@ Build Requirements
 ------------------
 
 Merecat depends on a few external libraries, if enabled, e.g. OpenSSL,
-zlib, and [libConfuse](https://github.com/martinh/libconfuse/).  On
-Debian/Ubuntu systems you can install the dependencies with:
+zlib, and [libConfuse][].  On Debian/Ubuntu systems you can install the
+dependencies with:
 
 ```shell
 user@example:~/> sudo apt install pkg-config libconfuse-dev libssl-dev zlib1g-dev
@@ -300,6 +302,7 @@ the original [thttpd][] -- the tiny/turbo/throttling HTTP server.
 [license]:       https://github.com/troglobit/merecat/blob/master/LICENSE
 [Mongoose]:      https://github.com/cesanta/mongoose
 [Let's Encrypt]: https://letsencrypt.org/
+[libConfuse]:    https://github.com/martinh/libconfuse/
 [FAQ]:           http://halplant.com:2001/server/thttpd_FAQ.html
 [thttpd]:        http://www.acme.com/software/thttpd/
 [sthttpd]:       https://github.com/blueness/sthttpd/
