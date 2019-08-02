@@ -1424,7 +1424,8 @@ static int auth_check2(struct http_conn *hc, char *dir)
 	fp = fopen(hc->authpath, "r");
 	if (!fp) {
 		/* The file exists but we can't open it?  Disallow access. */
-		syslog(LOG_ERR, "%s auth file %s could not be opened: %s", httpd_client(hc), hc->authpath, strerror(errno));
+		syslog(LOG_ERR, "%.80s auth file %s could not be opened: %s",
+		       httpd_client(hc), hc->authpath, strerror(errno));
 		httpd_send_err(hc, 403, err403title, "",
 			       ERROR_FORM(err403form,
 					  "The requested URL '%s' is protected by an authentication file, but the authentication file cannot be opened.\n"),
@@ -2275,8 +2276,8 @@ int httpd_get_conn(struct httpd *hs, int listen_fd, struct http_conn *hc)
 
 	if (httpd_ssl_open(hc)) {
 		if (hc->errmsg)
-			syslog(LOG_INFO, "Failed HTTPS connection with %s: %s.",
-			       hc->client.address, hc->errmsg);
+			syslog(LOG_INFO, "%.80s: failed HTTPS connection: %s.",
+			       httpd_client(hc), hc->errmsg);
 		goto error;
 	}
 	httpd_init_conn_content(hc);
@@ -2641,7 +2642,7 @@ int httpd_parse_request(struct http_conn *hc)
 				cp += strspn(cp, " \t");
 				if (hc->accept[0] != '\0') {
 					if (strlen(hc->accept) > 5000) {
-						syslog(LOG_ERR, "%s way too much Accept: data", httpd_client(hc));
+						syslog(LOG_ERR, "%.80s way too much Accept: data", httpd_client(hc));
 						continue;
 					}
 					len = strlen(hc->accept) + 2 + strlen(cp);
@@ -2655,7 +2656,8 @@ int httpd_parse_request(struct http_conn *hc)
 				cp += strspn(cp, " \t");
 				if (hc->accepte[0] != '\0') {
 					if (strlen(hc->accepte) > 5000) {
-						syslog(LOG_ERR, "%s way too much Accept-Encoding: data", httpd_client(hc));
+						syslog(LOG_ERR, "%.80s way too much Accept-Encoding: data",
+						       httpd_client(hc));
 						continue;
 					}
 					len = strlen(hc->accepte) + 2 + strlen(cp);
@@ -2922,7 +2924,8 @@ int httpd_parse_request(struct http_conn *hc)
 			httpd_send_err(hc, 404, err404title, "", err404form, hc->encodedurl);
 			return -1;
 		} else {
-			syslog(LOG_NOTICE, "%s URL \"%s\" goes outside the web tree", httpd_client(hc), hc->encodedurl);
+			syslog(LOG_NOTICE, "%.80s URL \"%s\" goes outside the web tree",
+			       httpd_client(hc), hc->encodedurl);
 			httpd_send_err(hc, 403, err403title, "",
 				       ERROR_FORM(err403form,
 						  "The requested URL '%s' resolves to a file outside the permitted web server directory tree.\n"),
@@ -3489,7 +3492,7 @@ static int ls(struct http_conn *hc)
 		child_ls(hc, dirp);
 
 		closedir(dirp);
-		syslog(LOG_INFO, "%s: LST[%d] /%.200s \"%s\" \"%s\"",
+		syslog(LOG_INFO, "%.80s: LST[%d] /%.200s \"%s\" \"%s\"",
 		       httpd_client(hc), r, hc->expnfilename, hc->referer, hc->useragent);
 
 		hc->status = 200;
@@ -4215,7 +4218,7 @@ static int cgi(struct http_conn *hc)
 	}
 
 	/* Parent process spawned CGI process PID. */
-	syslog(LOG_INFO, "%s: CGI[%d] /%.200s%s \"%s\" \"%s\"",
+	syslog(LOG_INFO, "%.80s: CGI[%d] /%.200s%s \"%s\" \"%s\"",
 	       httpd_client(hc), pid, hc->expnfilename, hc->encodedurl, hc->referer, hc->useragent);
 
 	httpd_cgi_track(hc->hs, pid);
@@ -4364,7 +4367,8 @@ static int really_start_request(struct http_conn *hc, struct timeval *now)
 	** readable by the HTTP server and therefore the *whole* world.
 	*/
 	if (!(hc->sb.st_mode & (S_IROTH | S_IXOTH))) {
-		syslog(LOG_INFO, "%s URL \"%s\" resolves to a non world-readable file", httpd_client(hc), hc->encodedurl);
+		syslog(LOG_INFO, "%.80s URL \"%s\" resolves to a non world-readable file",
+		       httpd_client(hc), hc->encodedurl);
 		httpd_send_err(hc, 403, err403title, "",
 			       ERROR_FORM(err403form, "The requested URL '%s' resolves to a file that is not world-readable.\n"),
 			       hc->encodedurl);
@@ -4410,7 +4414,7 @@ static int really_start_request(struct http_conn *hc, struct timeval *now)
 #ifdef GENERATE_INDEXES
 		/* Directories must be readable for indexing. */
 		if (!(hc->sb.st_mode & S_IROTH)) {
-			syslog(LOG_INFO, "%s URL \"%s\" tried to index a directory with indexing disabled",
+			syslog(LOG_INFO, "%.80s URL \"%s\" tried to index a directory with indexing disabled",
 			       httpd_client(hc), hc->encodedurl);
 			httpd_send_err(hc, 403, err403title, "",
 				       ERROR_FORM(err403form,
@@ -4437,7 +4441,8 @@ static int really_start_request(struct http_conn *hc, struct timeval *now)
 		/* Ok, generate an index. */
 		return ls(hc);
 #else /* GENERATE_INDEXES */
-		syslog(LOG_INFO, "%s URL \"%s\" tried to index a directory", httpd_client(hc), hc->encodedurl);
+		syslog(LOG_INFO, "%.80s URL \"%s\" tried to index a directory",
+		       httpd_client(hc), hc->encodedurl);
 		httpd_send_err(hc, 403, err403title, "",
 			       ERROR_FORM(err403form,
 					  "The requested URL '%s' is a directory, and directory indexing is disabled on this server.\n"),
@@ -4461,7 +4466,7 @@ static int really_start_request(struct http_conn *hc, struct timeval *now)
 
 		/* Now, is the index version world-readable or world-executable? */
 		if (!(hc->sb.st_mode & (S_IROTH | S_IXOTH))) {
-			syslog(LOG_INFO, "%s URL \"%s\" resolves to a non-world-readable index file",
+			syslog(LOG_INFO, "%.80s URL \"%s\" resolves to a non-world-readable index file",
 			       httpd_client(hc), hc->encodedurl);
 			httpd_send_err(hc, 403, err403title, "",
 				       ERROR_FORM(err403form,
@@ -4536,7 +4541,7 @@ sneaky:
 		if (is_php(hc, NULL) || is_ssi(hc, NULL))
 			return cgi(hc);
 
-		syslog(LOG_DEBUG, "%s URL \"%s\" is a CGI but not executable, "
+		syslog(LOG_DEBUG, "%.80s URL \"%s\" is a CGI but not executable, "
 		       "or CGI is disabled, rejecting.",
 		       httpd_client(hc), hc->encodedurl);
 		httpd_send_err(hc, 403, err403title, "",
@@ -4546,7 +4551,7 @@ sneaky:
 	}
 
 	if (hc->pathinfo[0] != '\0') {
-		syslog(LOG_INFO, "%s URL \"%s\" has pathinfo but isn't CGI", httpd_client(hc), hc->encodedurl);
+		syslog(LOG_INFO, "%.80s URL \"%s\" has pathinfo but isn't CGI", httpd_client(hc), hc->encodedurl);
 		httpd_send_err(hc, 403, err403title, "",
 			       ERROR_FORM(err403form,
 					  "The requested URL '%s' is not a valid CGI.\n"), hc->encodedurl);
@@ -4637,7 +4642,7 @@ static void make_log_entry(struct http_conn *hc)
 	else
 		strcpy(bytes, "-");
 
-	syslog(LOG_INFO, "%s: %s \"%s %.200s %s\" %d %s \"%.200s\" \"%.200s\"",
+	syslog(LOG_INFO, "%.80s: %s \"%s %.200s %s\" %d %s \"%.200s\" \"%.200s\"",
 	       httpd_client(hc), ru, httpd_method_str(hc->method), url, hc->protocol,
 	       hc->status, bytes, hc->referer, hc->useragent);
 }
@@ -4654,7 +4659,7 @@ static int check_referer(struct http_conn *hc)
 
 	r = really_check_referer(hc);
 	if (!r) {
-		syslog(LOG_INFO, "%s non-local referer \"%s%s\" \"%s\"",
+		syslog(LOG_INFO, "%.80s non-local referer \"%s%s\" \"%s\"",
 		       httpd_client(hc), get_hostname(hc), hc->encodedurl, hc->referer);
 		httpd_send_err(hc, 403, err403title, "",
 			       ERROR_FORM(err403form, "You must supply a local referer to get URL '%s' from this server.\n"),
