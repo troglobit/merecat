@@ -4797,6 +4797,9 @@ int httpd_aton(char *address, sockaddr_t *sa)
 		return -1;
 
 	memcpy(&sa->sa, res->ai_addr, sizeof(sa->sa));
+	freeaddrinfo(res);
+
+	/* Fill in sa->address, which should be same as address */
 	httpd_ntoa(sa);
 
 	return 0;
