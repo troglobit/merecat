@@ -85,7 +85,7 @@ int     conf_srv(struct srv *arr, size_t len);
 static inline int conf_srv(struct srv *arr, size_t len)
 {
 	arr[0].port = port;
-	arr[0].ssl  = do_ssl;
+	arr[0].ssl  = 0;
 	arr[0].host = hostname;
 	arr[0].path = data_dir;
 
