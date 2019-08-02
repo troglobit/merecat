@@ -4759,6 +4759,32 @@ char *httpd_ntoa(sockaddr_t *sa)
 #endif
 }
 
+/* If sa is NULL this function can be used to validate the address */
+int httpd_aton(char *address, sockaddr_t *sa)
+{
+	struct addrinfo *res = NULL;
+	struct addrinfo hints;
+	sockaddr_t local;
+	int rc;
+
+	if (!sa)
+		sa = &local;
+
+	memset(&hints, 0, sizeof(hints));
+	hints.ai_family   = PF_UNSPEC;
+	hints.ai_socktype = SOCK_STREAM;
+	hints.ai_flags    = AI_NUMERICHOST | AI_NUMERICSERV;
+
+	rc = getaddrinfo(address, NULL, &hints, &res);
+	if (rc != 0 || !res)
+		return -1;
+
+	memcpy(&sa->sa, res->ai_addr, sizeof(sa->sa));
+	httpd_ntoa(sa);
+
+	return 0;
+}
+
 short httpd_port(sockaddr_t *sa)
 {
 #ifdef USE_IPV6

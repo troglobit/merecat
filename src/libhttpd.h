@@ -371,6 +371,9 @@ extern void httpd_realloc_str(char **str, size_t *curr_len, size_t new_len);
 /* Format a network socket to a string representation. */
 extern char *httpd_ntoa(sockaddr_t *sa);
 
+/* Convert string address to socket address */
+extern int httpd_aton(char *address, sockaddr_t *sa);
+
 /* Return port from sockaddr */
 extern short httpd_port(sockaddr_t *sa);
 
