@@ -448,19 +448,15 @@ static void panic(void)
 static void really_unmap(struct map **mm)
 {
 	struct map *m;
-	int rc = 0;
 
 	m = *mm;
 	if (m->size > 0) {
-		/* Only real files have an inote, free built-in icon data */
 		if (!m->ino)
+			/* Only real files have an inode, free built-in icon data */
 			free(m->addr);
-		else
-			rc = munmap(m->addr, m->size);
+		else if (-1 == munmap(m->addr, m->size))
+			syslog(LOG_ERR, "munmap(): %s", strerror(errno));
 	}
-
-	if (rc < 0)
-		syslog(LOG_ERR, "munmap(%p, %td): %s", m->addr, m->size, strerror(errno));
 
 	/* Update the total byte count. */
 	mapped_bytes -= m->size;
