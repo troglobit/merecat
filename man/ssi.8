@@ -25,7 +25,7 @@
 .\" CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 .\" ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
 .\" THE POSSIBILITY OF SUCH DAMAGE.
-.Dd July 13, 2019
+.Dd Aug 3, 2019
 .Dt SSI 8 SMM
 .Os "merecat (2.32)"
 .Sh NAME
@@ -83,7 +83,7 @@ then the compound URL would be:
     http://www.acme.com/cgi-bin/ssi/users/wecoyote/doc.html
 
 .Ed
-.Sh "INCLUDE FORMAT"
+.Sh INCLUDE FORMAT
 The format description below is adapted from
 .Aq http://hoohoo.ncsa.uiuc.edu/docs/tutorials/includes.html .
 .Pp
@@ -168,7 +168,22 @@ but in Greenwich mean time (GMT).
 The last modification date of the current document.  Subject to timefmt
 like the others.
 .El
-.Sh "BUGS"
+.Sh SEE ALSO
+.Xr merecat 8 ,
+.Xr merecat.conf 5 ,
+.Xr strftime 3
+.Sh AUTHORS
+.An -split
+.An Jef Poskanzer Aq jef@mail.acme.com
+wrote the original for use with
+.Nm thttpd .
+.An Joachim Nilsson Aq troglobit@gmail.com
+added minor features and a trigger in
+.Nm merecat
+for
+.Cm .shtml
+pages.
+.Sh BUGS
 Does not implement all "modern" SSI directives are supported. E.g.,
 .Cm exec cgi
 and
@@ -176,17 +191,3 @@ and
 or any control directives like
 .Cm if, elif, else, endif,
 etc.  Patches and pull-requests are welcome :)
-.Sh "SEE ALSO"
-.Xr merecat 8 ,
-.Xr merecat.conf 5 ,
-.Xr strftime 3
-.Sh AUTHOR
-Jef Poskanzer
-.Aq mailto:jef@mail.acme.com
-wrote the original, and
-Joachim Nilsson
-.Aq mailto:troglobit@gmail.com
-added some minor features and enabled support for
-.Cm .shtml
-pattern matching in
-.Nm merecat .

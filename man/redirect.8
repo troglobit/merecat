@@ -25,7 +25,7 @@
 .\" CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 .\" ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
 .\" THE POSSIBILITY OF SUCH DAMAGE.
-.Dd July 13, 2019
+.Dd Aug 3, 2019
 .Dt REDIRECT 8 SMM
 .Os "merecat (2.32)"
 .Sh NAME
@@ -88,7 +88,9 @@ the allowed CGI directory.
 .Xr thttpd 8 ,
 .Xr merecat 8 ,
 .Xr merecat.conf 5
-.Sh BUGS / DEFICIENCIES
+.Sh AUTHORS
+.An Jef Poskanzer Aq jef@mail.acme.com
+.Sh BUGS
 It would be really cool to have this program look for the .redirects
 file in the same directory as the file being redirected, instead of in
 the binaries directory.  Unfortunately, this appears to be impossible
@@ -98,6 +100,3 @@ lives.  Perhaps CGI 1.2 will address this.
 .Pp
 The wildcard mechanism is very primitive.  In particular, any characters
 that follow the asterisk are blithely ignored.
-.Sh AUTHOR
-Jef Poskanzer
-.Aq mailto:jef@mail.acme.com

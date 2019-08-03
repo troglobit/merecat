@@ -25,7 +25,7 @@
 .\" CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 .\" ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
 .\" THE POSSIBILITY OF SUCH DAMAGE.
-.Dd July 13, 2019
+.Dd Aug 3, 2019
 .Dt MERECAT 8 SMM
 .Os "merecat (2.32)"
 .Sh NAME
@@ -672,17 +672,30 @@ waiting for the regular hourly update.
 .Xr redirect 8 ,
 .Xr ssi 8 ,
 .Xr htpasswd 1
+.Sh AUTHORS
+.An -split
+.An Jef Poskanzer Aq jef@mail.acme.com
+wrote the famous
+.Nm thttpd
+which
+.Nm
+is based on.
+.An Joachim Nilsson Aq troglobit@gmail.com
+introduced all new shiny bugs.
 .Sh THANKS
 .Nm
 is a fork of
 .Nm sthttpd ,
 which in turn is a fork of
 .Nm thttpd .
-So first and foremost, a huge thanks to Jef Poskanzer for writing
+So first and foremost, a huge thanks to
+.An Jef Poskanzer
+for creating
 .Nm thttpd
 and making it open source under the simplified 2-clause BSD license!
-Anthony G. Basile deserves another thank you, for merging Gentoo patches
-and refactoring the build system in
+.An Anthony G. Basile
+deserves another thank you, for merging Gentoo patches and refactoring
+the build system in
 .Nm sthttpd .
 .Pp
 Also, many thanks to contributors, reviewers, testers: John LoVerso,
@@ -691,13 +704,3 @@ Dan Kegel, John Hascall, Bennett Todd, KIKUCHI Takahiro, Catalin
 Ionescu, Anders Bornäs, and Martin Olsson.  Special thanks to Craig
 Leres for substantial debugging and development during the early days of
 .Nm thttpd .
-.Sh AUTHOR
-Jef Poskanzer
-.Aq mailto:jef@mail.acme.com
-wrote the famous
-.Nm thttpd
-which
-.Nm
-is based on.  Joachim Nilsson
-.Aq mailto:troglobit@gmail.com
-introduced all new shiny bugs.
