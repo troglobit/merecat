@@ -256,6 +256,11 @@ user@example:~/merecat/> make
 user@example:~/merecat/> sudo make install
 ```
 
+Cross compiling Merecat for an another target is possible by setting the
+`--host` flag to the configure script.  This is well documented in the
+[GNU Documentation][configure].  Note: ususally the `--build` system is
+automatically detected.
+
 > Merecat builds silently by default.  To see the compiler output, disable
 > silent mode in `configure`, or build with `make V=1`.
 
@@ -306,6 +311,7 @@ the original [thttpd][] -- the tiny/turbo/throttling HTTP server.
 [Mongoose]:      https://github.com/cesanta/mongoose
 [Let's Encrypt]: https://letsencrypt.org/
 [libConfuse]:    https://github.com/martinh/libconfuse/
+[configure]:     https://www.gnu.org/software/automake/manual/html_node/Cross_002dCompilation.html
 [FAQ]:           http://halplant.com:2001/server/thttpd_FAQ.html
 [thttpd]:        http://www.acme.com/software/thttpd/
 [sthttpd]:       https://github.com/blueness/sthttpd/
