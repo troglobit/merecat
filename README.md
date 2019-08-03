@@ -77,7 +77,9 @@ Edit `/etc/merecat.conf`:
 
 ```conf
 virtual-host = true
-cgi-pattern = /cgi-bin/*|**.cgi
+cgi "/cgi-bin/*|**.cgi" {
+    enabled = true
+}
 ```
 
 Now the web server root, `/var/www/`, no longer serves files, only
@@ -139,11 +141,13 @@ To set up Merecat for HTTPS the following `/etc/merecat.conf` settings
 must be enabled:
 
 ```conf
-port     = 443
-ssl      = true
-dhfile   = certs/dhparm.pem
-certfile = certs/cert.pem
-keyfile  = private/key.pem
+server secure {
+    port = 443
+    ssl {
+        certfile = certs/cert.pem
+        keyfile  = private/key.pem
+        dhfile   = certs/dhparm.pem
+	}
 ```
 
 ### Let's Encrypt
@@ -189,15 +193,14 @@ on any access:
 ```conf
 server secure {
     port     = 4443
-    ssl      = true
-    certfile = certs/server.pem
-    dhfile   = certs/dhparm.pem
-    keyfile  = private/server.key
+    ssl {
+        certfile = certs/server.pem
+        keyfile  = private/server.key
+        dhfile   = certs/dhparm.pem
 }
 
 server default {
     port = 8080
-    ssl = false
     redirect "/**" {
              code = 303
              location = "https://$host:4443$request_uri$args"
