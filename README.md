@@ -148,6 +148,7 @@ server secure {
         keyfile  = private/key.pem
         dhfile   = certs/dhparm.pem
     }
+}
 ```
 
 ### Let's Encrypt
