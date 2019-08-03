@@ -1,6 +1,6 @@
 Merecat ∴ Embedded Web Server
 =============================
-[![License Badge][]][License] [![Travis Status][]][Travis]
+[![License Badge][]][License] [![Travis Status][]][Travis] [![Coverity Status]][Coverity Scan]
 
 <img align="right" width="500" src="www/img/merecat.jpg">
 
@@ -305,17 +305,19 @@ the original [thttpd][] -- the tiny/turbo/throttling HTTP server.
 * [sthttpd][] was spawned by Anthony G. Basile <mailto:blueness@gentoo.org>
 * [Merecat][] is maintained by Joachim Nilsson <mailto:troglobit@gmail.com>
 
-[Merecat]:       https://merecat.troglobit.com
-[Meerkat]:       https://en.wikipedia.org/wiki/Meerkat
-[license]:       https://github.com/troglobit/merecat/blob/master/LICENSE
-[Mongoose]:      https://github.com/cesanta/mongoose
-[Let's Encrypt]: https://letsencrypt.org/
-[libConfuse]:    https://github.com/martinh/libconfuse/
-[configure]:     https://www.gnu.org/software/automake/manual/html_node/Cross_002dCompilation.html
-[FAQ]:           http://halplant.com:2001/server/thttpd_FAQ.html
-[thttpd]:        http://www.acme.com/software/thttpd/
-[sthttpd]:       https://github.com/blueness/sthttpd/
-[License]:       https://en.wikipedia.org/wiki/BSD_licenses
-[License Badge]: https://img.shields.io/badge/License-BSD%202--Clause-orange.svg
-[Travis]:        https://travis-ci.org/troglobit/merecat
-[Travis Status]: https://travis-ci.org/troglobit/merecat.png?branch=master
+[Merecat]:          https://merecat.troglobit.com
+[Meerkat]:          https://en.wikipedia.org/wiki/Meerkat
+[license]:          https://github.com/troglobit/merecat/blob/master/LICENSE
+[Mongoose]:         https://github.com/cesanta/mongoose
+[Let's Encrypt]:    https://letsencrypt.org/
+[libConfuse]:       https://github.com/martinh/libconfuse/
+[configure]:        https://www.gnu.org/software/automake/manual/html_node/Cross_002dCompilation.html
+[FAQ]:              http://halplant.com:2001/server/thttpd_FAQ.html
+[thttpd]:           http://www.acme.com/software/thttpd/
+[sthttpd]:          https://github.com/blueness/sthttpd/
+[License]:          https://en.wikipedia.org/wiki/BSD_licenses
+[License Badge]:    https://img.shields.io/badge/License-BSD%202--Clause-orange.svg
+[Travis]:           https://travis-ci.org/troglobit/merecat
+[Travis Status]:    https://travis-ci.org/troglobit/merecat.png?branch=master
+[Coverity Scan]:    https://scan.coverity.com/projects/18686
+[Coverity Status]:  https://scan.coverity.com/projects/18686/badge.svg
