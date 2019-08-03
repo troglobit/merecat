@@ -620,13 +620,12 @@ Relevant <span class="Pa" title="Pa">merecat.h</span> define:
 <dl class="Bl-tag">
   <dt><a class="permalink" href="#INT,TERM"><code class="Cm" title="Cm" id="INT,TERM">INT,TERM</code></a></dt>
   <dd>These signals tell <code class="Nm" title="Nm">merecat</code> to shut down
-      immediately. Any requests in progress get aborted.</dd>
+      immediately.</dd>
   <dt><a class="permalink" href="#USR1"><code class="Cm" title="Cm" id="USR1">USR1</code></a></dt>
-  <dd>This signal tells <code class="Nm" title="Nm">merecat</code> to shut down
-      as soon as it is done servicing all current requests. In addition, the
-      network socket it uses to accept new connections gets closed immediately,
-      which means a fresh <code class="Nm" title="Nm">merecat</code> can be
-      started up immediately.</dd>
+  <dd>This signal tells <code class="Nm" title="Nm">merecat</code> to toggle log
+      level, between current log level and LOG_DEBUG. If
+      <code class="Nm" title="Nm">merecat</code> was started with LOG_DEBUG the
+      toggle will be to LOG_NOTICE, which is the default log level.</dd>
   <dt><a class="permalink" href="#USR2"><code class="Cm" title="Cm" id="USR2">USR2</code></a></dt>
   <dd>This signal tells <code class="Nm" title="Nm">merecat</code> to generate
       the statistics syslog messages immediately, instead of waiting for the
