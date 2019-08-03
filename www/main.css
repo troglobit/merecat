@@ -63,6 +63,7 @@ dl.config dd {
 
 /* Man pages */
 table.head, table.foot { width: 100%; }
+table.foot { margin: 2ex 0ex; }
 td.head-rtitle, td.foot-os { text-align: right; }
 td.head-vol { text-align: center; }
 .Nm > tbody > tr > td { vertical-align: text-top; }
