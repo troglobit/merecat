@@ -225,7 +225,7 @@ hostnames supported on the local machine.  See below for details.  The
 config file setting for this flag is
 .Cm hostname = Ar HOSTNAME .
 .El
-.Sh "CHROOT"
+.Sh CHROOT
 chroot() is a system call that restricts the program's view of the
 filesystem to the current directory and directories below it.  It
 becomes impossible for remote users to access any file outside of the
@@ -262,7 +262,7 @@ Substitute in your own chroot tree's pathname, of course.  Don't worry
 about creating the log socket, syslogd wants to do that itself.  (You
 may need to create the dev directory.)  In Linux the flag is -a instead
 of -l, and there may be other differences.
-.Sh "CGI"
+.Sh CGI
 .Pp
 Merecat httpd supports the CGI 1.1 spec.,
 .Lk https://tools.ietf.org/html/rfc3875 .
@@ -296,7 +296,7 @@ Relevant
 .Pa merecat.h
 defines:
 .Cm CGI_PATTERN, CGI_TIMELIMIT, CGI_NICE, CGI_PATH, CGI_LD_LIBRARY_PATH, CGIBINDIR .
-.Sh "BASIC AUTHENTICATION"
+.Sh BASIC AUTHENTICATION
 Basic authentication is available as an option at compile time.  See the
 included configure script for details.  When enabled, it uses a password
 file in the directory to be protected, called
@@ -321,7 +321,7 @@ Relevant
 .Pa merecat.h
 define:
 .Cm AUTH_FILE
-.Sh "ACCESS RESTRICTION"
+.Sh ACCESS RESTRICTION
 Access restriction is available as an option at compile time.  If
 enabled, it uses an access file in the directory to be protected,
 called
@@ -366,7 +366,7 @@ Relevant
 .Pa merecat.h
 define:
 .Cm ACCESS_FILE
-.Sh "THROTTLING"
+.Sh THROTTLING
 .Pp
 The throttle file lets you set maximum byte rates on URLs or URL groups.
 You can optionally set a minimum rate too.
@@ -420,7 +420,7 @@ of simultaneous connections on a per-URL basis.  However you can control
 the overall number of connections for the whole server very simply, by
 setting the operating system's per-process file descriptor limit before
 starting merecat.  Be sure to set the hard limit, not the soft limit.
-.Sh "MULTIHOMING"
+.Sh MULTIHOMING
 Multihoming means using one machine to serve multiple hostnames.  For
 instance, if you're an internet provider and you want to let all of your
 customers have customized web addresses, you might have
@@ -503,7 +503,7 @@ multihosting \(em for that, you must use a single merecat process with
 the
 .Fl v
 flag.
-.Sh "CUSTOM ERRORS"
+.Sh CUSTOM ERRORS
 merecat lets you define your own custom error pages for the various HTTP
 errors.  There is a separate file for each error number, all stored in
 one special directory.  The directory name is
@@ -525,7 +525,7 @@ directory in the top of that virtual host's web tree.
 will look first in the virtual host errors directory, and then in the
 server-wide errors directory, and if neither of those has an appropriate
 error file then it will generate the built-in error.
-.Sh "NON-LOCAL REFERERS"
+.Sh NON-LOCAL REFERERS
 Sometimes another site on the net will embed your image files in their
 HTML files, which basically means they're stealing your bandwidth.  You
 can prevent them from doing this by using non-local referer filtering.
@@ -656,7 +656,7 @@ This signal tells
 to generate the statistics syslog messages immediately, instead of
 waiting for the regular hourly update.
 .El
-.Sh "SEE ALSO"
+.Sh SEE ALSO
 .Xr merecat.conf 5 ,
 .Xr redirect 8 ,
 .Xr ssi 8 ,
