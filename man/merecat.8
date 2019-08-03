@@ -629,6 +629,17 @@ does not translate numeric IP addresses into domain names.  This is both
 to save time and as a minor security measure (the numeric address is
 harder to spoof).
 .Pp
+If started in the foreground,
+.Fl n ,
+and with debug log level,
+.Fl l Ar debug ,
+logs will also be printed on stderr, unless the user also requested
+.Fl s .
+However, not all systems support the
+.Ar LOG_PERROR
+option to
+.Fn openlog .
+.Pp
 Relevant
 .Pa merecat.h
 define:
