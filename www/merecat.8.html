@@ -611,6 +611,13 @@ Note that <code class="Nm" title="Nm">merecat</code> does not translate numeric
   IP addresses into domain names. This is both to save time and as a minor
   security measure (the numeric address is harder to spoof).
 <div class="Pp"></div>
+If started in the foreground, <code class="Fl" title="Fl">-n</code>, and with
+  debug log level, <code class="Fl" title="Fl">-l</code>
+  <var class="Ar" title="Ar">debug</var>, logs will also be printed on stderr,
+  unless the user also requested <code class="Fl" title="Fl">-s</code>. However,
+  not all systems support the <var class="Ar" title="Ar">LOG_PERROR</var> option
+  to <code class="Fn" title="Fn">openlog</code>().
+<div class="Pp"></div>
 Relevant <span class="Pa" title="Pa">merecat.h</span> define:
   <code class="Cm" title="Cm">LOG_FACILITY.</code>
 <h1 class="Sh" title="Sh" id="SIGNALS"><a class="permalink" href="#SIGNALS">SIGNALS</a></h1>
@@ -636,30 +643,38 @@ Relevant <span class="Pa" title="Pa">merecat.h</span> define:
 <a class="Xr" title="Xr">merecat.conf(5)</a>,
   <a class="Xr" title="Xr">redirect(8)</a>, <a class="Xr" title="Xr">ssi(8)</a>,
   <a class="Xr" title="Xr">htpasswd(1)</a>
+<h1 class="Sh" title="Sh" id="AUTHORS"><a class="permalink" href="#AUTHORS">AUTHORS</a></h1>
+<br/>
+<span class="An" title="An">Jef Poskanzer</span>
+  &#x27E8;jef@mail.acme.com&#x27E9; wrote the famous
+  <code class="Nm" title="Nm">thttpd</code> which
+  <code class="Nm" title="Nm">merecat</code> is based on.
+<br/>
+<span class="An" title="An">Joachim Nilsson</span>
+  &#x27E8;troglobit@gmail.com&#x27E9; introduced all new shiny bugs.
 <h1 class="Sh" title="Sh" id="THANKS"><a class="permalink" href="#THANKS">THANKS</a></h1>
 <code class="Nm" title="Nm">merecat</code> is a fork of
   <code class="Nm" title="Nm">sthttpd</code>, which in turn is a fork of
   <code class="Nm" title="Nm">thttpd</code>. So first and foremost, a huge
-  thanks to Jef Poskanzer for writing <code class="Nm" title="Nm">thttpd</code>
-  and making it open source under the simplified 2-clause BSD license! Anthony
-  G. Basile deserves another thank you, for merging Gentoo patches and
-  refactoring the build system in <code class="Nm" title="Nm">sthttpd</code>.
+  thanks to
+<br/>
+<span class="An" title="An">Jef Poskanzer</span> for creating
+  <code class="Nm" title="Nm">thttpd</code> and making it open source under the
+  simplified 2-clause BSD license!
+<br/>
+<span class="An" title="An">Anthony G. Basile</span> deserves another thank you,
+  for merging Gentoo patches and refactoring the build system in
+  <code class="Nm" title="Nm">sthttpd</code>.
 <div class="Pp"></div>
 Also, many thanks to contributors, reviewers, testers: John LoVerso, Jordan
   Hayes, Chris Torek, Jim Thompson, Barton Schaffer, Geoff Adams, Dan Kegel,
   John Hascall, Bennett Todd, KIKUCHI Takahiro, Catalin Ionescu, Anders
   Born&#x00E4;s, and Martin Olsson. Special thanks to Craig Leres for
   substantial debugging and development during the early days of
-  <code class="Nm" title="Nm">thttpd</code>.
-<h1 class="Sh" title="Sh" id="AUTHOR"><a class="permalink" href="#AUTHOR">AUTHOR</a></h1>
-Jef Poskanzer &#x27E8;mailto:jef@mail.acme.com&#x27E9; wrote the famous
-  <code class="Nm" title="Nm">thttpd</code> which
-  <code class="Nm" title="Nm">merecat</code> is based on. Joachim Nilsson
-  &#x27E8;mailto:troglobit@gmail.com&#x27E9; introduced all new shiny
-  bugs.</div>
+  <code class="Nm" title="Nm">thttpd</code>.</div>
 <table class="foot">
   <tr>
-    <td class="foot-date">July 13, 2019</td>
+    <td class="foot-date">August 3, 2019</td>
     <td class="foot-os">merecat (2.32)</td>
   </tr>
 </table>
