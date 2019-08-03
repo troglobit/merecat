@@ -147,7 +147,7 @@ server secure {
         certfile = certs/cert.pem
         keyfile  = private/key.pem
         dhfile   = certs/dhparm.pem
-	}
+    }
 ```
 
 ### Let's Encrypt
@@ -177,8 +177,8 @@ browsers today.
 root@example:/var/www/> mkdir private certs
 root@example:/var/www/> openssl req -x509 -newkey rsa:4096 -nodes    \
             -keyout private/server.key -new -out certs/server.pem    \
-			-subj /CN=www.acme.com -reqexts SAN -extensions SAN      \
-			-sha256 -days 3650 -config <(cat /etc/ssl/openssl.cnf    \
+            -subj /CN=www.acme.com -reqexts SAN -extensions SAN      \
+            -sha256 -days 3650 -config <(cat /etc/ssl/openssl.cnf    \
              <(printf '[SAN]\nsubjectAltName=DNS:www.acme.com'))
 root@example:/var/www/> openssl dhparam -out certs/dhparm.pem 4096
 ```
@@ -197,13 +197,14 @@ server secure {
         certfile = certs/server.pem
         keyfile  = private/server.key
         dhfile   = certs/dhparm.pem
+    }
 }
 
 server default {
     port = 8080
     redirect "/**" {
-             code = 303
-             location = "https://$host:4443$request_uri$args"
+        code = 303
+        location = "https://$host:4443$request_uri$args"
     }
 }
 ```
@@ -261,8 +262,9 @@ Cross compiling Merecat for an another target is possible by setting the
 [GNU Documentation][configure].  Note: ususally the `--build` system is
 automatically detected.
 
-> Merecat builds silently by default.  To see the compiler output, disable
-> silent mode in `configure`, or build with `make V=1`.
+> Merecat builds are silent by default.  For detailed compiler output,
+> disable silent mode with `configure --disable-silent-rules`, or build
+> with `make V=1`.
 
 
 Features
