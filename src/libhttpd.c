@@ -3491,7 +3491,6 @@ error:
 static int ls(struct http_conn *hc)
 {
 	DIR *dirp;
-	int r;
 
 	hc->compression_type = COMPRESSION_NONE;
 
@@ -3509,8 +3508,8 @@ static int ls(struct http_conn *hc)
 		child_ls(hc, dirp);
 
 		closedir(dirp);
-		syslog(LOG_INFO, "%.80s: LST[%d] /%.200s \"%s\" \"%s\"",
-		       httpd_client(hc), r, hc->expnfilename, hc->referer, hc->useragent);
+		syslog(LOG_INFO, "%.80s: LST /%.200s \"%s\" \"%s\"",
+		       httpd_client(hc), hc->expnfilename, hc->referer, hc->useragent);
 
 		hc->status = 200;
 		hc->bytes_sent = CGI_BYTECOUNT;
