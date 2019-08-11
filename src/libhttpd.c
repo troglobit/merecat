@@ -4167,9 +4167,7 @@ static void cgi_child(struct http_conn *hc)
 
 	/* Something went wrong, in a chroot() we may not get this syslog() msg. */
 	syslog(LOG_ERR, "execve %s(%s): %s", binary, hc->expnfilename, strerror(errno));
-	char buf[256];
-	snprintf(buf, sizeof(buf), "execve %s(%s): %s", binary, hc->expnfilename, strerror(errno));
-	httpd_send_err(hc, 500, err500title, "", err500form, buf);
+	httpd_send_err(hc, 500, err500title, "", err500form, hc->encodedurl);
 	httpd_send_response(hc);
 	exit(1);
 }
