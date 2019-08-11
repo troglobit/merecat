@@ -189,7 +189,6 @@ static void post_post_garbage_hack(struct http_conn *hc);
 static void cgi_interpose_output(struct http_conn *hc, int rfd);
 static void cgi_child(struct http_conn *hc);
 static int cgi(struct http_conn *hc);
-static int really_start_request(struct http_conn *hc, struct timeval *now);
 static void make_log_entry(struct http_conn *hc);
 static int check_referer(struct http_conn *hc);
 static int really_check_referer(struct http_conn *hc);
@@ -4360,7 +4359,7 @@ done:
 	return header;
 }
 
-static int really_start_request(struct http_conn *hc, struct timeval *now)
+int httpd_start_request(struct http_conn *hc, struct timeval *now)
 {
 	int is_icon;
 	char *cp, *pi;
@@ -4615,18 +4614,6 @@ sneaky:
 	}
 
 	return 0;
-}
-
-
-int httpd_start_request(struct http_conn *hc, struct timeval *now)
-{
-	int r;
-
-	/* Really start the request. */
-	r = really_start_request(hc, now);
-
-	/* And return the status. */
-	return r;
 }
 
 
