@@ -4375,7 +4375,6 @@ int httpd_start_request(struct http_conn *hc, struct timeval *now)
 
 	/* Stat the file. */
 	if (stat(hc->expnfilename, &hc->sb) < 0) {
-		syslog(LOG_ERR, "endodedurl: %s, stat(%s): %s", hc->encodedurl, hc->expnfilename, strerror(errno));
 		if (ENOENT == errno)
 			httpd_send_err(hc, 404, err404title, "", err404form, hc->encodedurl);
 		else
