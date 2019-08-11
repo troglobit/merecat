@@ -2881,6 +2881,7 @@ int httpd_parse_request(struct http_conn *hc)
 	/* Virtual host mapping. */
 	if (hc->hs->vhost) {
 		if (!vhost_map(hc)) {
+			/* If we get here vhost_map() has logged the error */
 			httpd_send_err(hc, 500, err500title, "", err500form, hc->encodedurl);
 			return -1;
 		}
@@ -2891,6 +2892,7 @@ int httpd_parse_request(struct http_conn *hc)
 	*/
 	cp = expand_symlinks(hc->expnfilename, &pi, hc->hs->no_symlink_check, hc->tildemapped);
 	if (!cp) {
+		/* If we get here expand_symlinks() has logged the error */
 		httpd_send_err(hc, 500, err500title, "", err500form, hc->encodedurl);
 		return -1;
 	}
@@ -3468,6 +3470,7 @@ error:
 
 	buf = malloc((size_t)len);
 	if (!buf) {
+		syslog(LOG_ERR, "Failed allocating %ld bytes in child_ls(): %s", len, strerror(errno));
 		(void)fclose(fp);
 		goto error;
 	}
@@ -4373,6 +4376,7 @@ static int really_start_request(struct http_conn *hc, struct timeval *now)
 
 	/* Stat the file. */
 	if (stat(hc->expnfilename, &hc->sb) < 0) {
+		syslog(LOG_ERR, "stat(%s): %s", hc->expnfilename, strerror(errno));
 		httpd_send_err(hc, 500, err500title, "", err500form, hc->encodedurl);
 		return -1;
 	}
@@ -4596,6 +4600,7 @@ sneaky:
 
 		hc->file_address = mmc_map(hc->expnfilename, &(hc->sb), now);
 		if (!hc->file_address) {
+			syslog(LOG_ERR, "mmc_map(%s): cannot find %s", hc->expnfilename, is_icon ? "icon" : "file");
 			if (is_icon)
 				httpd_send_err(hc, 404, err404title, "", err404form, hc->encodedurl);
 			else
