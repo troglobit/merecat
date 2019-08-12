@@ -4140,13 +4140,12 @@ static void cgi_child(struct http_conn *hc)
 		if (!binary) {
 			binary = hc->expnfilename;
 		} else {
-			if (binary > directory + 2) {
-				char *ptr;
+			char *ptr;
 
-				ptr = binary - 2;
-				if (!strncmp(ptr, "/./", 3))
-					binary = ptr;
-			}
+			ptr = strstr(directory, "/./");
+			if (ptr && (ptr + 2) == binary)
+				binary = ptr;
+
 			*binary++ = '\0';
 			chdir(directory);	/* ignore errors */
 		}
