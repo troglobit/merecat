@@ -22,7 +22,7 @@ avi	video/x-msvideo
 bcpio	application/x-bcpio
 bin	application/octet-stream
 bmp	image/bmp
-bz2	application/octet-stream
+bz2	application/x-bzip2
 cdf	application/x-netcdf
 class	application/x-java-vm
 cpio	application/x-cpio
@@ -57,6 +57,7 @@ fh7	image/x-freehand
 fhc	image/x-freehand
 gif	image/gif
 gtar	application/x-gtar
+gz	application/gzip
 hdf	application/x-hdf
 hqx	application/mac-binhex40
 htm	text/html; charset=%s
@@ -137,6 +138,7 @@ sgm	text/sgml; charset=%s
 sgml	text/sgml; charset=%s
 sh	application/x-sh
 shar	application/x-shar
+sig	application/pgp-signature
 silo	model/mesh
 sit	application/x-stuffit
 skd	application/x-koan
@@ -168,8 +170,9 @@ sxw	application/vnd.sun.xml.writer
 t	application/x-troff
 tar	application/x-tar
 taz	application/octet-stream
-tgz	application/octet-stream
-tbz2	application/octet-stream
+tgz	application/gzip
+tbz2	application/x-bzip2
+txz	application/x-xz
 tcl	application/x-tcl
 tex	application/x-tex
 texi	application/x-texinfo
@@ -181,6 +184,7 @@ tr	application/x-troff
 tsp	application/dsptype
 tsv	text/tab-separated-values; charset=%s
 txt	text/plain; charset=%s
+tz	application/octet-stream
 ustar	application/x-ustar
 vcd	application/x-cdlink
 vrml	model/vrml
@@ -214,6 +218,7 @@ xsl	text/xml; charset=%s
 xslt	text/xml; charset=%s
 xul	application/vnd.mozilla.xul+xml
 xwd	image/x-xwindowdump
+xz	application/x-xz
 xyz	chemical/x-xyz
 zip	application/zip
 zoo	application/octet-stream
