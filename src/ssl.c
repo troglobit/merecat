@@ -212,7 +212,7 @@ void *httpd_ssl_init(char *cert, char *key, char *dhparm, char *proto, char *cip
  	SSL_CTX_set_default_verify_paths(ctx);
  	SSL_CTX_set_verify(ctx, SSL_VERIFY_NONE, NULL);
 
-	if (SSL_CTX_use_certificate_file(ctx, cert, SSL_FILETYPE_PEM) != 1) {
+	if (SSL_CTX_use_certificate_chain_file(ctx, cert) != 1) {
 		syslog(LOG_ERR, "Invalid SSL cert '%s'", cert);
 		goto error;
 	}
