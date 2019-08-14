@@ -686,7 +686,21 @@ void httpd_send_response(struct http_conn *hc)
 
 static int content_encoding(struct http_conn *hc, char *encodings, char *buf, size_t len)
 {
-	int gz, ret = 0, addgz = 0, hasenc = 0;
+	char *skip[] = {	/* Sorted in order of most likely */
+		"x-tar",
+		"octet-stream",
+	};
+	size_t i;
+	int hasenc = 0;
+	int addgz = 0;
+	int ret = 0;
+	int gz;
+
+	/* Skip Content-Encoding for Content-Type intended for download */
+	for (i = 0; i < NELEMS(skip); i++) {
+		if (strstr(hc->type, skip[i]))
+			return 0;
+	}
 
 	gz = hc->compression_type == COMPRESSION_GZIP;
 	if (encodings && encodings[0]) {
@@ -3059,6 +3073,32 @@ struct mime_entry *b;
 	return strcmp(a->ext, b->ext);
 }
 
+static int mime_bsearch(struct http_conn *hc, char *ext, size_t ext_len)
+{
+	int top, bot, mid;
+	int r;
+
+	top = n_typ_tab - 1;
+	bot = 0;
+	while (top >= bot) {
+		mid = (top + bot) / 2;
+		r = strncasecmp(ext, typ_tab[mid].ext, ext_len);
+		if (r < 0)
+			top = mid - 1;
+		else if (r > 0)
+			bot = mid + 1;
+		else if (ext_len < typ_tab[mid].ext_len)
+			top = mid - 1;
+		else if (ext_len > typ_tab[mid].ext_len)
+			bot = mid + 1;
+		else {
+			hc->type = typ_tab[mid].val;
+			return 1; /* found */
+		}
+	}
+
+	return 0;
+}
 
 static void init_mime(void)
 {
@@ -3086,61 +3126,61 @@ static void init_mime(void)
 */
 static void figure_mime(struct http_conn *hc)
 {
+	const char *default_type = "text/plain; charset=%s";
+	size_t ext_len, n_me_indexes;
 	char *prev_dot;
 	char *dot;
 	char *ext;
 	int me_indexes[100];
-	size_t ext_len, n_me_indexes;
-	int i, top, bot, mid;
-	int r;
-	const char *default_type = "text/plain; charset=%s";
+	int i;
 
 	/* Peel off encoding extensions until there aren't any more. */
 	n_me_indexes = 0;
 	hc->type = default_type;
 	for (prev_dot = &hc->expnfilename[strlen(hc->expnfilename)];; prev_dot = dot) {
+		int candidate = 0;
+
 		for (dot = prev_dot - 1; dot >= hc->expnfilename && *dot != '.'; --dot)
 			;
-		if (dot < hc->expnfilename) {
-			/* No dot found.  No more extensions.  */
-			goto done;
-		}
+
+		/* No dot found.  No more extensions.  */
+		if (dot < hc->expnfilename)
+			break;
+
 		ext = dot + 1;
 		ext_len = prev_dot - ext;
-		/* Search the encodings table.  Linear search is fine here, there
-		** are only a few entries.
+
+		/* Search encodings table.  Linear search is fine here,
+		** there are only a few entries.
 		*/
 		for (i = 0; i < n_enc_tab; ++i) {
 			if (ext_len == enc_tab[i].ext_len && strncasecmp(ext, enc_tab[i].ext, ext_len) == 0) {
-				if (n_me_indexes < sizeof(me_indexes) / sizeof(*me_indexes)) {
-					me_indexes[n_me_indexes] = i;
-					++n_me_indexes;
+				if (n_me_indexes < NELEMS(me_indexes)) {
+					me_indexes[n_me_indexes++] = i;
 				}
+
+				if (mime_bsearch(hc, ext, ext_len))
+					candidate = 1;
 				break;
 			}
 		}
+
+		/* We have a candidate for Content-Type, no go see if we
+		** can do better.  I.e., if encodings mechanism found a
+		** .gz we have application/gzip, but the actual file may
+		** be a tar.gz that we want to have application/x-tar.
+		**
+		** If it turns out the file is something like .html.gz
+		** we fall back to the candidate Content-Type.
+		*/
+		if (candidate)
+			continue;
+
 		/* Binary search for a matching type extension. */
-		top = n_typ_tab - 1;
-		bot = 0;
-		while (top >= bot) {
-			mid = (top + bot) / 2;
-			r = strncasecmp(ext, typ_tab[mid].ext, ext_len);
-			if (r < 0)
-				top = mid - 1;
-			else if (r > 0)
-				bot = mid + 1;
-			else if (ext_len < typ_tab[mid].ext_len)
-				top = mid - 1;
-			else if (ext_len > typ_tab[mid].ext_len)
-				bot = mid + 1;
-			else {
-				hc->type = typ_tab[mid].val;
-				goto done;
-			}
-		}
+		if (mime_bsearch(hc, ext, ext_len))
+			break;
 	}
 
-done:
 	/* The last thing we do is actually generate the mime-encoding header. */
 	hc->encodings[0] = '\0';
 	for (i = n_me_indexes - 1; i >= 0; --i) {
