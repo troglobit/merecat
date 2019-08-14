@@ -2741,6 +2741,9 @@ int httpd_parse_request(struct http_conn *hc)
 					/* Skip first entry if localhost, likely Squid proxy */
 					if (!strcmp(client, "127.0.0.1"))
 						client = cp;
+					/* Skip first entry if 'unknown', likely masquerading proxy */
+					if (!strcmp(client, "unknown"))
+						client = cp;
 				}
 
 				if (-1 == httpd_aton(client, &sa)) {
