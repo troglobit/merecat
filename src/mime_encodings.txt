@@ -3,7 +3,9 @@
 # A list of file extensions followed by the corresponding MIME encoding.
 # Extensions not found in the table proceed to the mime_types table.
 
-Z	compress
 gz	gzip
+xz	xz
+bz2	bzip2
 svgz	gzip
+Z	compress
 uu	x-uuencode
