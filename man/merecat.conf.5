@@ -25,7 +25,7 @@
 .\" CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 .\" ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
 .\" THE POSSIBILITY OF SUCH DAMAGE.
-.Dd Aug 3, 2019
+.Dd Aug 15, 2019
 .Dt MERECAT.CONF 5
 .Os "merecat (2.32)"
 .Sh NAME
@@ -229,10 +229,18 @@ HIGH:!aNULL:!kRSA:!PSK:!SRP:!MD5:!RC4:!DHE-RSA-CAMELLIA256-SHA:             \\
 .Ed
 .Pp
 .It Cm certfile = Ar /path/to/cert.pem
-Public part of HTTPS certificate, required for HTTPS.
+Public part of HTTPS certificate, optionally with full certificate
+chain.  E.g.,
+.Cm fullchain.pem
+if you use Let's Encrypt.  Only PEM format is supported.
 .It Cm keyfile = Ar /path/to/key.pem
-Private key of HTTPS certificate, required for HTTPS.  This file must
-be kept private and should not be in the WEBROOT directory.
+Private key of HTTPS certificate, e.g.,
+.Cm privkey.pem
+if you use Let's Encrypt.  Only PEM format is supported.
+.Pp
+.Sy Note:
+This file must be kept private and should not be in the WEBROOT
+directory.
 .It Cm dhfile = Ar /path/th/dhparam.pem
 Optional Diffie-Hellman parameters.  Not secret, unlike the
 .Cm keyfile
@@ -249,7 +257,7 @@ openssl dhparam -out dhparam.pem 2048
 .It Cm port = Ar PORT
 Server port to listen to.
 .It Cm ssl Cm { Ar ... Cm }
-Same as the global settings, above, only this is for this server only.
+Same as the global settings, above, only for this server.
 .It Cm redirect Qo Ar PATTERN Qc {
 .Bl -tag -offset "" -compact
 .It Cm code = Ar CODE
