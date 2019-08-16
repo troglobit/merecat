@@ -1,12 +1,25 @@
 - - - - - - - - - - before release - - - - - - - - - -
 
-Add 'server' sections to config file,
+Add 'server' section to config file,
 
 server title {
      host = virual-host.name
      port = PORT
      ssl  = BOOL
      redirect = site.tla:port
+}
+
+Add 'location' section to config file, this to be able
+to set max-age per PATTERN rather than for all files,
+which may otherwise mess up reloading, e.g. a blog.
+
+location "PATTERN" {
+     max-age = 2d
+     add-header {
+         key   = "Cache-Control"
+	 value = "public, no-transform"
+     }
+     gzip = true
 }
 
 Let command line options override port/host etc. that
