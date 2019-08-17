@@ -59,9 +59,11 @@ does not reload the
 file.
 .Ss Configuration Directives
 .Bl -tag -width Ds
-.It Cm charset = Qq Ar UTF-8
-Character set to use with text MIME types.  If the default unicode
-charset causes trouble, try "iso-8859-1".
+.It Cm charset = Qq Ar STRING
+Character set to use with text MIME types, default
+.Qq UTF-8 .
+If the default unicode charset causes trouble, try
+.Qq iso-8859-1 .
 .It Cm check-referer = Ar <true | false>
 Enable check for external sites referencing material on your web server.
 For more information on referrers, see
@@ -158,7 +160,9 @@ instance
 .Qq **SemrushBot**
 or
 .Qq **SemrushBot**|**MJ12Bot**|**DotBot**
-to match multiple user-agents.  The default is to allow all user-agents.
+to match multiple user-agents.
+.Pp
+The default is disabled, i.e. all user-agents are allowed.
 .It Cm cgi Qo Ar PATTERN Qc Cm {
 Wildcard pattern for CGI programs, for instance
 .Qq **.cgi
