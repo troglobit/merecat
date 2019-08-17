@@ -94,8 +94,14 @@ compressed before sending to the client.
 .It Cm directory = Ar DIR
 If no WEBDIR is given on the command line this option can be used to
 change the web server document root.  Defaults to the current directory.
+When chrooting this is the root directory, see the
+.Cm data-directory
+directive for more help.
 .It Cm data-directory = Ar DIR
-When chrooting this can be used to adjust the web server document root.
+This setting is only relevant when chrooting, it adjusts the web server
+document root relative to the
+.Cm directory
+directive.
 .It Cm global-passwd = Ar <true | false>
 Set this to true to protect the entire directory tree with a
 single
