@@ -129,12 +129,11 @@ see
 .Xr merecat 8
 for more details.
 .It Cm max-age = Ar SEC
-Max number of seconds to be used in a
+Controls the global max-age setting, in seconds, set in the HTTP/1.1
 .Qq Ar Cache-Control: max-age
-header to be returned with all responses.  An equivalent
-.Qq Ar Expires
-header is also generated.  The default is no Cache-Control or Expires
-headers, which is just fine for most sites.
+header, returned with all responses.  The default setting is disabled
+since v2.32 and the user is recommended to use per-resource cache
+control.  See the server location directive for details.
 .It Cm port = Ar PORT
 The web server Internet port to listen to, defaults to 80, or 443 when
 HTTPS is enabled.  See the

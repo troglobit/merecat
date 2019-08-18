@@ -239,7 +239,7 @@ static int read_config(char *fn)
 		CFG_BOOL("list-dotfiles", cfg_false, CFGF_NONE),
 		CFG_STR ("local-pattern", NULL, CFGF_NONE),
 		CFG_STR ("url-pattern", NULL, CFGF_NONE),
-		CFG_INT ("max-age", DEFAULT_MAX_AGE, CFGF_NONE), /* 0: Disabled */
+		CFG_INT ("max-age", 0, CFGF_NONE),
 		CFG_STR ("username", user, CFGF_NONE),
 		CFG_STR ("hostname", hostname, CFGF_NONE),
 		CFG_BOOL("virtual-host", do_vhost, CFGF_NONE),

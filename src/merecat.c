@@ -79,7 +79,7 @@ char         path[MAXPATHLEN + 1];
 
 /* Global config settings */
 uint16_t     port              = 0;
-int          max_age           = DEFAULT_MAX_AGE;
+int          max_age           = 0;		      /* Disabled globally since v2.32 */
 int          compression_level = DEFAULT_COMPRESSION; /* For content-encoding: gzip */
 int          do_chroot         = 0;
 int          do_vhost          = 0;
