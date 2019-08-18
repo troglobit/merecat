@@ -827,10 +827,15 @@ send_mime(struct http_conn *hc, int status, char *title, char *encodings, const 
 			snprintf(buf, sizeof(buf), "Cache-Control: max-age=%d\r\n%s", hc->hs->max_age, etagbuf);
 			add_response(hc, buf);
 
+			/* Expires was superseded by Cache-Control in HTTP/1.1 */
 #ifdef USE_SUPERSEDED_EXPIRES
 			char expbuf[100];
 			time_t expires;
 
+			/* NOTE: This header requires that the web server's clock is
+			**       properly set, which is very unlikely for many small
+			**       or embedded systems.
+			*/
 			expires = now + hc->hs->max_age;
 			strftime(expbuf, sizeof(expbuf), rfc1123fmt, gmtime(&expires));
 			snprintf(buf, sizeof(buf), "Expires: %s\r\n", expbuf);
