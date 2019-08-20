@@ -769,9 +769,8 @@ send_mime(struct http_conn *hc, int status, char *title, char *encodings, const 
 		/* HTTP Strict Transport Security: https://www.chromium.org/hsts */
 		if (hc->ssl) {
 			snprintf(buf, sizeof(buf), "Strict-Transport-Security: "
-				 "max-age=%d; includeSubDomains\r\n",
-				 hc->hs->max_age < HSTS_MIN_AGE
-				 ? HSTS_MIN_AGE : hc->hs->max_age);
+				 "max-age=31536000; includeSubDomains; "
+				 "preload\r\n");
 			add_response(hc, buf);
 		}
 
