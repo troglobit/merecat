@@ -217,6 +217,7 @@ static int read_config(char *fn)
 		CFG_STR ("certfile", NULL, CFGF_NONE),
 		CFG_STR ("keyfile", NULL, CFGF_NONE),
 		CFG_STR ("dhfile", NULL, CFGF_NONE),
+		CFG_END ()
 	};
 	cfg_opt_t server_opts[] = {
 		CFG_STR ("hostname", hostname, CFGF_NONE),
