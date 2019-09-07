@@ -142,26 +142,55 @@ static void conf_ssl(struct srv *srv, cfg_t *cfg)
 #endif
 }
 
+int conf_srv(struct srv arr[], size_t len)
+{
+	size_t i;
+
+	if (!cfg) {
+		arr[0].title = "default";
+		arr[0].host  = hostname;
+		arr[0].port  = port;
+		arr[0].path  = path;
+		arr[0].ssl   = 0;
+
+		return 1;
+	}
+
+	if (cfg_size(cfg, "server") == 0) {
+		arr[0].title = "default";
+		arr[0].host  = cfg_getstr(cfg, "hostname");
+		arr[0].port  = cfg_getint(cfg, "port");
+		arr[0].path  = path;
+
+		conf_ssl(&arr[0], cfg);
+
+		return 1;
+	}
+
+	for (i = 0; i < cfg_size(cfg, "server") && i < len; i++) {
+		cfg_t *srv;
+
+		srv = cfg_getnsec(cfg, "server", i);
+		if (!srv)
+			return -1;
+
+		arr[i].title = (char *)cfg_title(srv);
+		arr[i].host  = cfg_getstr(srv, "hostname");
+		arr[i].port  = cfg_getint(srv, "port");
+		arr[i].path  = cfg_getstr(srv, "path");
+
+		conf_ssl(&arr[i], srv);
+		conf_redirect(&arr[i], srv);
+	}
+
+	return (int)i;
+}
+
 static int read_config(char *fn)
 {
 	cfg_opt_t redirect_opts[] = {
 		CFG_STR ("location", NULL, CFGF_NONE),
 		CFG_INT ("code", 301, CFGF_NONE),
-		CFG_END ()
-	};
-	cfg_opt_t ssl_opts[] = {
-		CFG_STR ("protocol", SSL_DEFAULT_PROTO, CFGF_NONE),
-		CFG_STR ("ciphers", SSL_DEFAULT_CIPHERS, CFGF_NONE),
-		CFG_STR ("certfile", NULL, CFGF_NONE),
-		CFG_STR ("keyfile", NULL, CFGF_NONE),
-		CFG_STR ("dhfile", NULL, CFGF_NONE),
-	};
-	cfg_opt_t server_opts[] = {
-		CFG_STR ("hostname", hostname, CFGF_NONE),
-		CFG_INT ("port",     port, CFGF_NONE),
-		CFG_STR ("path",     path, CFGF_NONE),
-		CFG_SEC ("ssl",      ssl_opts, CFGF_MULTI),
-		CFG_SEC ("redirect", redirect_opts, CFGF_MULTI | CFGF_TITLE),
 		CFG_END ()
 	};
 	cfg_opt_t cgi_opts[] = {
@@ -180,6 +209,21 @@ static int read_config(char *fn)
 		CFG_BOOL("silent", 0, CFGF_NONE),
 		CFG_STR ("pattern", "**.shtml", CFGF_NONE),
 		CFG_STR ("cgi-path", "cgi-bin/ssi", CFGF_NONE),
+		CFG_END ()
+	};
+	cfg_opt_t ssl_opts[] = {
+		CFG_STR ("protocol", SSL_DEFAULT_PROTO, CFGF_NONE),
+		CFG_STR ("ciphers", SSL_DEFAULT_CIPHERS, CFGF_NONE),
+		CFG_STR ("certfile", NULL, CFGF_NONE),
+		CFG_STR ("keyfile", NULL, CFGF_NONE),
+		CFG_STR ("dhfile", NULL, CFGF_NONE),
+	};
+	cfg_opt_t server_opts[] = {
+		CFG_STR ("hostname", hostname, CFGF_NONE),
+		CFG_INT ("port",     port, CFGF_NONE),
+		CFG_STR ("path",     path, CFGF_NONE),
+		CFG_SEC ("ssl",      ssl_opts, CFGF_MULTI),
+		CFG_SEC ("redirect", redirect_opts, CFGF_MULTI | CFGF_TITLE),
 		CFG_END ()
 	};
 	cfg_opt_t opts[] = {
@@ -301,48 +345,4 @@ int conf_init(char *file)
 void conf_exit(void)
 {
 	cfg_free(cfg);
-}
-
-int conf_srv(struct srv arr[], size_t len)
-{
-	size_t i;
-
-	if (!cfg) {
-		arr[0].title = "default";
-		arr[0].host  = hostname;
-		arr[0].port  = port;
-		arr[0].path  = path;
-		arr[0].ssl   = 0;
-
-		return 1;
-	}
-
-	if (cfg_size(cfg, "server") == 0) {
-		arr[0].title = "default";
-		arr[0].host  = cfg_getstr(cfg, "hostname");
-		arr[0].port  = cfg_getint(cfg, "port");
-		arr[0].path  = path;
-
-		conf_ssl(&arr[0], cfg);
-
-		return 1;
-	}
-
-	for (i = 0; i < cfg_size(cfg, "server") && i < len; i++) {
-		cfg_t *srv;
-
-		srv = cfg_getnsec(cfg, "server", i);
-		if (!srv)
-			return -1;
-
-		arr[i].title = (char *)cfg_title(srv);
-		arr[i].host  = cfg_getstr(srv, "hostname");
-		arr[i].port  = cfg_getint(srv, "port");
-		arr[i].path  = cfg_getstr(srv, "path");
-
-		conf_ssl(&arr[i], srv);
-		conf_redirect(&arr[i], srv);
-	}
-
-	return (int)i;
 }
