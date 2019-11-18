@@ -97,4 +97,7 @@ The "it works now" release.
 
 Initial release.  Based on [sthttpd][] master, 2015-07-22.
 
+[v2.32]: https://github.com/troglobit/merecat/compare/v2.31...v2.32
+[v2.31]: https://github.com/troglobit/merecat/compare/v2.30...v2.31
+[v2.30]: https://github.com/troglobit/merecat/compare/v2.29...v2.30
 [sthttpd]: https://github.com/blueness/sthttpd/
