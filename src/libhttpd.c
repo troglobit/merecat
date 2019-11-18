@@ -4175,34 +4175,35 @@ static void cgi_child(struct http_conn *hc)
 	nice(CGI_NICE);
 #endif
 
-	/* Split the program into directory and binary, so we can chdir()
-	** to the program's own directory.  This isn't in the CGI 1.1
-	** spec, but it's what other HTTP servers do.
-	*/
-	directory = strdup(hc->expnfilename);
-	if (!directory) {
-		binary = hc->expnfilename;	/* ignore errors */
-	} else {
-		binary = strrchr(directory, '/');
-		if (!binary) {
-			binary = hc->expnfilename;
-		} else {
-			char *ptr;
-
-			ptr = strstr(directory, "/./");
-			if (ptr && (ptr + 2) == binary)
-				binary = ptr;
-
-			*binary++ = '\0';
-			chdir(directory);	/* ignore errors */
-		}
-	}
-
 	/* argp[0] is already set up with the basename of php_cgi */
 	if (is_php(hc, NULL))
 		binary = hc->hs->php_cgi;
-	if (is_ssi(hc, NULL))
+	else if (is_ssi(hc, NULL))
 		binary = hc->hs->ssi_cgi;
+	else {
+		/* Split the program into directory and binary, so we can chdir()
+		** to the program's own directory.  This isn't in the CGI 1.1
+		** spec, but it's what other HTTP servers do.
+		*/
+		directory = strdup(hc->expnfilename);
+		if (!directory) {
+			binary = hc->expnfilename;	/* ignore errors */
+		} else {
+			binary = strrchr(directory, '/');
+			if (!binary) {
+				binary = hc->expnfilename;
+			} else {
+				char *ptr;
+
+				ptr = strstr(directory, "/./");
+				if (ptr && (ptr + 2) == binary)
+					binary = ptr;
+
+				*binary++ = '\0';
+				chdir(directory);	/* ignore errors */
+			}
+		}
+	}
 
 	/* Default behavior for SIGPIPE. */
 	signal(SIGPIPE, SIG_DFL);
