@@ -3288,7 +3288,7 @@ char **b;
 
 static int child_ls_read_names(struct http_conn *hc, DIR *dirp, FILE *fp, int onlydir)
 {
-	int i, namlen, nnames = 0;
+	int i, nnames = 0;
 	static int maxnames = 0;
 	struct dirent *de;
 	static char *names;
@@ -3362,10 +3362,8 @@ static int child_ls_read_names(struct http_conn *hc, DIR *dirp, FILE *fp, int on
 			for (i = 0; i < maxnames; ++i)
 				nameptrs[i] = &names[i * (MAXPATHLEN + 1)];
 		}
-		namlen = NAMLEN(de);
-		strncpy(nameptrs[nnames], de->d_name, namlen);
-		nameptrs[nnames][namlen] = '\0';
-		++nnames;
+
+		strlcpy(nameptrs[nnames++], de->d_name, MAXPATHLEN + 1);
 	}
 
 	/* Sort the names. */
