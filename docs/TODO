@@ -1,6 +1,7 @@
 - - - - - - - - - - before release - - - - - - - - - -
 
-Add 'server' section to config file,
+- Test download of large files (toolchains times out?)
+- Add 'server' section to config file,
 
 server title {
      host = virual-host.name
@@ -9,9 +10,9 @@ server title {
      redirect = site.tla:port
 }
 
-Add 'location' section to config file, this to be able
-to set max-age per PATTERN rather than for all files,
-which may otherwise mess up reloading, e.g. a blog.
+- Add 'location' section to config file, this to be able
+  to set max-age per PATTERN rather than for all files,
+  which may otherwise mess up reloading, e.g. a blog.
 
 location "PATTERN" {
      max-age = 2d
@@ -22,8 +23,8 @@ location "PATTERN" {
      gzip = true
 }
 
-Let command line options override port/host etc. that
-are in the global section of the config file.
+- Let command line options override port/host etc. that
+  are in the global section of the config file.
 
 
 - - - - - - - - - - high priority - - - - - - - - - -
