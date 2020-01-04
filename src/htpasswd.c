@@ -293,7 +293,7 @@ int main(int argc, char *argv[])
 	tfp = fdopen(tfd, "w");
 	if (!tfp) {
 		fprintf(stderr, "Could not open temp file.\n");
-		fclose(tfp);
+		close(tfd);
 		return 1;
 	}
 
