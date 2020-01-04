@@ -5,19 +5,21 @@ language: c
 # Ubuntu 18.04 LTS has OpenSSL 1.1, which is requried by Merecat httpd
 dist: bionic
 
+# Test build with both GCC and Clang (LLVM)
+#  - clang
 compiler:
   - gcc
 
+# The secure: declaration is the encrypted COVERITY_SCAN_TOKEN, created
+# using the "travis encrypt" command using the project repo's public key
 env:
   global:
-   # The next declaration is the encrypted COVERITY_SCAN_TOKEN, created
-   #   via the "travis encrypt" command using the project repo's public key
-   - secure: "Da/XEtFs028XGQc7da9sJ0LuSt6rM1iFSWGIEzSXjEUSYLguMKQoiz8MiHCDHpgFXnt4d6ZVWWfjIc8RkawjHfIy7TmNTdvt8nXHapG26U2yZSHRUpgPi8fSQ13UKvtja5h16lnx8mfw+dR2rxbxgkwXZ/7a5+vjdAXkt9eVW5i90+ddp/nk/M6StcGCa9gxTFky9ulJohXVIUyQu0R0PEoc6YCOzMDwaXpRi3uZklwQ3mqm2tEw8nDeqHUEAE+uQRSk1yQWk4HAQesvlcLcydgdD72B3xNaiezAPCpEQV53RBaVd0DgeaMFpnu+6zzhnBekpRLJqaH2BQDNNqIJ84/DNrt+HulJ349M7YXQcIBaDZkBW/KoinhhlEvvlghCoLr91Qp5yjyStdcD8+b8xDzDn76mtne9QHOOLr4cWtWBwHdeqqFyqVLCfiYtyrUfgpKb+hOYWsDj+qfxRHZFLdu7EybXpt73d+iViOXhA5rXSywB7hki5KZ/joK0efIcCtUZoph3KEYkV0+FBo/R759C73wBkuVOngOKRUG2JX18jlFfrZsqDe9UU0L5VUjdX05fBObowZKXSQbs48AlVGxgQ9eXwQbQbo7rn+GxU0TtOVvPmSZLgkGQthv/3YxlMyTqa5aAm3iTWoWv7X/3A3n4HNMCvy2GyKjQIY7K9uQ="
+   - secure: "WwIsFpLzjKA8yUf1Udq91judS0J2p1vELtqR69SgZdTkFRoJoaHeQyJKax9sSzrhl4OmLX3Piu6JZd8DK/OiH/MGqjSJDBk52ZN0FO2NvD/FkxiMurX0IEX2D7GDgo/4aTMcsuccDHS9uessJiyM37HIIqFnjJ/ZRra1T1mFVrc="
 
 #  - sudo apt-get update
 before_install:
   - sudo apt-get install -y tree libconfuse-dev libssl-dev zlib1g-dev
-  - echo -n | openssl s_client -connect scan.coverity.com:443 | sed -ne '/-BEGIN CERTIFICATE-/,/-END CERTIFICATE-/p' | sudo tee -a /etc/ssl/certs/ca-
+  - echo -n | openssl s_client -connect https://scan.coverity.com:443 | sed -ne '/-BEGIN CERTIFICATE-/,/-END CERTIFICATE-/p' | sudo tee -a /etc/ssl/certs/ca-
 
 addons:
   coverity_scan:
@@ -26,7 +28,7 @@ addons:
       description: "Simple HTTP/HTTPS server based on Jef Poskanzer's thttpd"
     notification_email: troglobit@gmail.com
     build_command_prepend: "./autogen.sh && ./configure"
-    build_command: "make"
+    build_command: "make clean all"
     branch_pattern: dev
 
 # We don't store generated files (configure and Makefile) in GIT,
