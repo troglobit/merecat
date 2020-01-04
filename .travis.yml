@@ -11,12 +11,12 @@ compiler:
   - gcc
 
 # The secure: declaration is the encrypted COVERITY_SCAN_TOKEN, created
-# using the "travis encrypt" command using the project repo's public key
+# using the project repo's public key:
+#   travis encrypt COVERITY_SCAN_TOKEN="foo"
 env:
   global:
-   - secure: "R/tA76hrmIOTEzcxIra7TqdLRGWHbEiVdKNcbISdHYodkPeeNvLuQLGFBfhJyatnepVO1xCQ8fOCSXmPJMIvrAL8BRIyI9cpYmEfJ4mRkg+WtY1SKsI1KPd3e3vlUErcbm1+J5Q2I7jJlnJ2hk/jOGjs+cAQIYAqv/UlklTZdy79oA2YvL03TFyVyBOLhdFDWOY+FrSBHHEwE4QxRPHOyDZCOxSJWMzvOozN+584PK+oY8Zqzj/JpCu1DUQsUL46m2feIRD4onHHBh4dUzX0bktm1OAhEU5GeX+wkfcVhF3HBDNpiORHklH8Ic0Wtm5CYqTXpTwkxV3GBKTlrlADmYaHA23qevAfV4Nh5jAAS1XLC8rJ4l+dmJ6BQqfJ6CXhcNqQLwLO7eC5ztWiUvIxARHv++R1R1dNoRtU73IsYt19TkwcDPTm9JgjyXrC9LOK1gpH6pzDoQU8zkYdEFKfvfQwnJkO1zfHzQMDnZ/nJgHqLPL6GWP/2JZ+tDIixuPZrKgMIwnUG7xW66fyxPw2S4kgsOAaVjchEINQoUN1q4xKm42u5VWvJNhdE7TMaOZF5BxxGy/xRecph0aV40PvtQTflfrtO92MQXZcROLBiYv/WtYYpasF0ZKTzVn0WrJZAfFoJWA+QFJR/6D7sU4P2hSVlnRir64sEv09DLlPzb8="
+   - secure: "YyoyUumrfQJ8TbTiuXaxtGmrBVmJg4jszOBl0ztG2LoucELVzufdceViWh+e1D02PAa6BGUz3K/kE6I+4CsuYYkTXYtIBy0VBd1X5x4GSueNGjllN0I+2/bjWswy7N/vEnXia5zwDlrkl/MX1z1wmmhkHCN9yc7Odx2MHgkio/HdFBfLSoi847DDi3k/RPa6rBS5gvYTTQs2tbkhdV1BnGL2KaRR8+mFGZzsB5pyYKcMguzY88S/eBaD1nOZSuzgRPGn7dBIKzB1tcyAagviEp3sxF1ijTlWtAhe5Ki3jyGmCG7lAme5nMeLXuYjqLCjltevUsg+e8VkCteiN6Q11RGRohoPbh0zBBTa6HRqEDodzvX52/G0T3qemjpVFQk60UNJP6DC0EWGK+hkHp1M9pNmnwbxwNsCluDhVCSw730GxFg9UD7q9014/IX08+E3/tDy1fkmgmK1oaVFUk+0LfpLZUDgn2pQWbbQi5SEEiRA97xWrECEJGw3jUOZBU2FaVlI52GW7YNApHJ80e9+zxitPJJ1S8NpANthqL+EL18UyFCWWdA1WQNITEl3Y0jsXJMlxL+mIPANf4PVedqNU6BCn2nZMF7Bzl7FYDw6P2xOr//0Y7QC/KKGQ7KO/Zxn+Tl53n+b3cdPDaIlTbr1UArfNiC9JW/uo9KhB/gEl3Q="
 
-#  - sudo apt-get update
 before_install:
   - sudo apt-get install -y tree libconfuse-dev libssl-dev zlib1g-dev
   - echo -n | openssl s_client -connect scan.coverity.com:443 | sed -ne '/-BEGIN CERTIFICATE-/,/-END CERTIFICATE-/p' | sudo tee -a /etc/ssl/certs/ca-
