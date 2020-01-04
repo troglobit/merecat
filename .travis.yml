@@ -14,7 +14,7 @@ compiler:
 # using the "travis encrypt" command using the project repo's public key
 env:
   global:
-   - secure: "WwIsFpLzjKA8yUf1Udq91judS0J2p1vELtqR69SgZdTkFRoJoaHeQyJKax9sSzrhl4OmLX3Piu6JZd8DK/OiH/MGqjSJDBk52ZN0FO2NvD/FkxiMurX0IEX2D7GDgo/4aTMcsuccDHS9uessJiyM37HIIqFnjJ/ZRra1T1mFVrc="
+   - secure: "Rrx1pw7KivtjVTSpIuoPjJAtkgZ88uzoPFBRGxOJvM3WK+VtDL8iAiABnwq06cKsKVAFdt/19Az3gDV/9UJrOWPot5VQKkt1BMLlElhve0aeHoAOOMxMDuf0xeVbgQS/epGeUj9CWVhrSacIx4nnCsVAV4nVXwaZImF1pR6kSVc="
 
 #  - sudo apt-get update
 before_install:
