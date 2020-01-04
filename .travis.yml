@@ -14,12 +14,12 @@ compiler:
 # using the "travis encrypt" command using the project repo's public key
 env:
   global:
-   - secure: "Rrx1pw7KivtjVTSpIuoPjJAtkgZ88uzoPFBRGxOJvM3WK+VtDL8iAiABnwq06cKsKVAFdt/19Az3gDV/9UJrOWPot5VQKkt1BMLlElhve0aeHoAOOMxMDuf0xeVbgQS/epGeUj9CWVhrSacIx4nnCsVAV4nVXwaZImF1pR6kSVc="
+   - secure: "R/tA76hrmIOTEzcxIra7TqdLRGWHbEiVdKNcbISdHYodkPeeNvLuQLGFBfhJyatnepVO1xCQ8fOCSXmPJMIvrAL8BRIyI9cpYmEfJ4mRkg+WtY1SKsI1KPd3e3vlUErcbm1+J5Q2I7jJlnJ2hk/jOGjs+cAQIYAqv/UlklTZdy79oA2YvL03TFyVyBOLhdFDWOY+FrSBHHEwE4QxRPHOyDZCOxSJWMzvOozN+584PK+oY8Zqzj/JpCu1DUQsUL46m2feIRD4onHHBh4dUzX0bktm1OAhEU5GeX+wkfcVhF3HBDNpiORHklH8Ic0Wtm5CYqTXpTwkxV3GBKTlrlADmYaHA23qevAfV4Nh5jAAS1XLC8rJ4l+dmJ6BQqfJ6CXhcNqQLwLO7eC5ztWiUvIxARHv++R1R1dNoRtU73IsYt19TkwcDPTm9JgjyXrC9LOK1gpH6pzDoQU8zkYdEFKfvfQwnJkO1zfHzQMDnZ/nJgHqLPL6GWP/2JZ+tDIixuPZrKgMIwnUG7xW66fyxPw2S4kgsOAaVjchEINQoUN1q4xKm42u5VWvJNhdE7TMaOZF5BxxGy/xRecph0aV40PvtQTflfrtO92MQXZcROLBiYv/WtYYpasF0ZKTzVn0WrJZAfFoJWA+QFJR/6D7sU4P2hSVlnRir64sEv09DLlPzb8="
 
 #  - sudo apt-get update
 before_install:
   - sudo apt-get install -y tree libconfuse-dev libssl-dev zlib1g-dev
-  - echo -n | openssl s_client -connect https://scan.coverity.com:443 | sed -ne '/-BEGIN CERTIFICATE-/,/-END CERTIFICATE-/p' | sudo tee -a /etc/ssl/certs/ca-
+  - echo -n | openssl s_client -connect scan.coverity.com:443 | sed -ne '/-BEGIN CERTIFICATE-/,/-END CERTIFICATE-/p' | sudo tee -a /etc/ssl/certs/ca-
 
 addons:
   coverity_scan:
