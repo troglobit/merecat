@@ -3374,11 +3374,13 @@ static int child_ls_read_names(struct http_conn *hc, DIR *dirp, FILE *fp, int on
 				nameptrs[i] = &names[i * (MAXPATHLEN + 1)];
 		}
 
-		strlcpy(nameptrs[nnames++], de->d_name, MAXPATHLEN + 1);
+		if (nameptrs && nnames < maxnames)
+			strlcpy(nameptrs[nnames++], de->d_name, MAXPATHLEN + 1);
 	}
 
 	/* Sort the names. */
-	qsort(nameptrs, nnames, sizeof(*nameptrs), name_compare);
+	if (nameptrs)
+		qsort(nameptrs, nnames, sizeof(*nameptrs), name_compare);
 
 	/* Generate output. */
 	for (i = 0; i < nnames; ++i) {
