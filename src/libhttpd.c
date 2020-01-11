@@ -717,7 +717,8 @@ static int content_encoding(struct http_conn *hc, char *encodings, char *buf, si
 }
 
 static void
-send_mime(struct http_conn *hc, int status, char *title, char *encodings, const char *extraheads, const char *type, off_t length, time_t mod)
+send_mime(struct http_conn *hc, int status, char *title, char *encodings,
+	  const char *extraheads, const char *type, off_t length, time_t mod)
 {
 	time_t now;
 	const char *rfc1123fmt = "%a, %d %b %Y %H:%M:%S GMT";
@@ -738,8 +739,8 @@ send_mime(struct http_conn *hc, int status, char *title, char *encodings, const 
 
 		if (status == 200 && hc->got_range &&
 		    (hc->last_byte_index >= hc->first_byte_index) &&
-		    ((hc->last_byte_index != length - 1) ||
-		     (hc->first_byte_index != 0)) && (hc->range_if == (time_t)-1 || hc->range_if == hc->sb.st_mtime)) {
+		    ((hc->last_byte_index != length - 1) || (hc->first_byte_index != 0)) &&
+		    (hc->range_if == (time_t)-1 || hc->range_if == hc->sb.st_mtime)) {
 			partial_content = 1;
 			hc->status = status = 206;
 			title = ok206title;
@@ -798,6 +799,16 @@ send_mime(struct http_conn *hc, int status, char *title, char *encodings, const 
 
 		snprintf(buf, sizeof(buf), "Content-Type: %s\r\n", fixed_type);
 		add_response(hc, buf);
+		if (strstr(fixed_type, "application/pdf")) {
+			char *ptr = strrchr(hc->expnfilename, '/');
+
+			if (ptr)
+				ptr++;
+			else
+				ptr = hc->expnfilename;
+			snprintf(buf, sizeof(buf), "Content-Disposition: inline; filename=%s\r\n", ptr);
+			add_response(hc, buf);
+		}
 
 		if (content_encoding(hc, encodings, buf, sizeof(buf)))
 			add_response(hc, buf);
