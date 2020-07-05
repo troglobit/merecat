@@ -25,7 +25,7 @@ HTTP/1.1 keep-alive, and built-in gzip deflate compression using zlib.
 - CGI: Change default `CGI_PATTERN` from disabled to `**.cgi|/cgi-bin/*`
 - CGI: Add support for looking for an `index.cgi` index file
 - CGI: Add several missing standard CGI/1.1 environment variables, see
-  the file docs/cgi.txt for details
+  the file doc/cgi.txt for details
 - PHP:
   - Add support for `php-cgi` and `index.php` index file
   - Add support for PHP pattern matching, run php-cgi if `**.php`
