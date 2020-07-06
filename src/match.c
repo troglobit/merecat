@@ -35,18 +35,20 @@ static int match_one(const char *pattern, int patternlen, const char *string);
 
 int match(const char *pattern, const char *string)
 {
-	const char *or;
-
 	if (!pattern)
 		return 0;
 
 	for (;;) {
+		const char *or;
+		int rc;
+
 		or = strchr(pattern, '|');
 		if (!or)
 			return match_one(pattern, strlen(pattern), string);
 
-		if (match_one(pattern, or - pattern, string))
-			return 1;
+		rc = match_one(pattern, or - pattern, string);
+		if (rc)
+			return rc;
 
 		pattern = or + 1;
 	}
@@ -55,10 +57,10 @@ int match(const char *pattern, const char *string)
 
 static int match_one(const char *pattern, int patternlen, const char *string)
 {
-	const char *p;
+	const char *p, *s;
 
-	for (p = pattern; p - pattern < patternlen; ++p, ++string) {
-		if (*p == '?' && *string != '\0')
+	for (p = pattern, s = string; p - pattern < patternlen; ++p, ++s) {
+		if (*p == '?' && *s != '\0')
 			continue;
 
 		if (*p == '*') {
@@ -68,26 +70,26 @@ static int match_one(const char *pattern, int patternlen, const char *string)
 			if (*p == '*') {
 				/* Double-wildcard matches anything. */
 				++p;
-				i = strlen(string);
+				i = strlen(s);
 			} else {
 				/* Single-wildcard matches anything but slash. */
-				i = strcspn(string, "/");
+				i = strcspn(s, "/");
 			}
 
 			pl = patternlen - (p - pattern);
 			for (; i >= 0; --i) {
-				if (match_one(p, pl, &(string[i])))
-					return 1;
+				if (match_one(p, pl, &(s[i])))
+					return s - string;
 			}
 
 			return 0;
 		}
 
-		if (*p != *string)
+		if (*p != *s)
 			return 0;
 	}
 
-	if (*string == '\0')
+	if (*s == '\0')
 		return 1;
 
 	return 0;
