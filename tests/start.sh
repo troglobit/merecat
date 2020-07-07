@@ -1,22 +1,15 @@
 #!/bin/sh -e
+srvfiles="main.css index.html img/merecat.jpg"
 
-if [ x"${srcdir}" = x ]; then
-    srcdir=.
-fi
+mkdir -p srv/img
 
-cd ../www
+for file in $srvfiles; do
+    cp ${srcdir}/../www/$file srv/$file
+    gzip -c srv/$file   > srv/$file.gz
+done
 
-../src/merecat -f ../tests/merecat.conf -s -n -l none . &
-echo $! >/tmp/merecat.test
+echo "Starting merecat httpd, config file ${srcdir}/merecat.conf"
+../src/merecat -f ${srcdir}/merecat.conf -n -l debug srv &
+echo $! >merecat.pid
 
-if [ ! -e main.css ]; then
-    cp ${srcdir}/../www/main.css .
-    cp ${srcdir}/../www/index.html .
-
-    echo "main.css index.html" >/tmp/merecat.files
-fi
-
-gzip -c main.css   > main.css.gz
-gzip -c index.html > index.html.gz
-
-sleep 1
+sleep 2
