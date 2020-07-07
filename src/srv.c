@@ -202,6 +202,9 @@ struct httpd *srv_init(struct srv *srv)
 				   srv->redirect[i].pattern,
 				   srv->redirect[i].location);
 
+	for (i = 0; i < NELEMS(srv->location); i++)
+		httpd_location_add(hs, srv->location[i].pattern, srv->location[i].path);
+
 	if (httpd_listen(hs, gotv4 ? &sa4 : NULL, gotv6 ? &sa6 : NULL))
 		goto err;
 

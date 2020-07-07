@@ -114,6 +114,14 @@ struct http_redir {
 	char  *location;
 };
 
+/* A location. */
+struct http_location {
+	struct http_location *prev, *next;
+
+	char  *pattern;
+	char  *path;
+};
+
 /* A server. */
 struct httpd {
 	struct httpd *prev, *next;
@@ -152,6 +160,7 @@ struct httpd {
 	char *local_pattern;
 
 	struct http_redir *redirect;
+	struct http_location *location;
 
 	void *ctx;		/* Opaque SSL_CTX* */
 };
@@ -228,6 +237,7 @@ struct http_conn {
 	char *file_address;
 
 	void *ssl;		/* Opaque SSL* */
+	int skip_redirect;	/* On location match, skip redirect */
 };
 
 /* Methods. */
@@ -271,6 +281,9 @@ extern int httpd_cgi_init(struct httpd *hs, int enabled, char *cgi_pattern, int 
 
 /* Enable HTTP redirect -- Note: O(n) lookup per HTTP request */
 extern int httpd_redirect_add(struct httpd *hs, int code, char *pattern, char *location);
+
+/* Server location matching, overrides httpd cwd on match  */
+extern int httpd_location_add(struct httpd *hs, char *pattern, char *path);
 
 /* Start httpd */
 extern int httpd_listen(struct httpd *hs, sockaddr_t *sav4, sockaddr_t *sav6);

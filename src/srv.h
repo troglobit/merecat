@@ -30,6 +30,7 @@
 #define SRV_H_
 
 #define MAX_REDIRECTS 2
+#define MAX_LOCATIONS 2
 
 struct srv {
 	char      *title;
@@ -49,6 +50,11 @@ struct srv {
 		char *location;	/* Location: to redirect to, supports format specifiers */
 		char *pattern;	/* Pattern to match() against */
 	} redirect[MAX_REDIRECTS];
+
+	struct {
+		char *path;	/* Path to use for matching requests */
+		char *pattern;	/* Pattern to match() against */
+	} location[MAX_LOCATIONS];
 };
 
 struct httpd *srv_init   (struct srv *srv);

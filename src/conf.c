@@ -118,6 +118,22 @@ static void conf_redirect(struct srv *srv, cfg_t *cfg)
 	}
 }
 
+static void conf_srv_location(struct srv *srv, cfg_t *cfg)
+{
+	size_t i;
+
+	for (i = 0; i < cfg_size(cfg, "location") && i < NELEMS(srv->location); i++) {
+		cfg_t *loc;
+
+		loc = cfg_getnsec(cfg, "location", i);
+		if (!loc)
+			return;
+
+		srv->location[i].pattern = (char *)cfg_title(loc);
+		srv->location[i].path    = cfg_getstr(loc, "path");
+	}
+}
+
 static void conf_ssl(struct srv *srv, cfg_t *cfg)
 {
 	cfg_t *ssl;
@@ -181,6 +197,7 @@ int conf_srv(struct srv arr[], size_t len)
 
 		conf_ssl(&arr[i], srv);
 		conf_redirect(&arr[i], srv);
+		conf_srv_location(&arr[i], srv);
 	}
 
 	return (int)i;
@@ -188,6 +205,10 @@ int conf_srv(struct srv arr[], size_t len)
 
 static int read_config(char *fn)
 {
+	cfg_opt_t location_opts[] = {
+		CFG_STR ("path", path, CFGF_NONE),
+		CFG_END ()
+	};
 	cfg_opt_t redirect_opts[] = {
 		CFG_STR ("location", NULL, CFGF_NONE),
 		CFG_INT ("code", 301, CFGF_NONE),
@@ -223,6 +244,7 @@ static int read_config(char *fn)
 		CFG_STR ("hostname", hostname, CFGF_NONE),
 		CFG_INT ("port",     port, CFGF_NONE),
 		CFG_STR ("path",     path, CFGF_NONE),
+		CFG_SEC ("location", location_opts, CFGF_MULTI | CFGF_TITLE),
 		CFG_SEC ("ssl",      ssl_opts, CFGF_MULTI),
 		CFG_SEC ("redirect", redirect_opts, CFGF_MULTI | CFGF_TITLE),
 		CFG_END ()

@@ -381,6 +381,38 @@ void httpd_redirect_free(struct httpd *hs)
 		free(redirect);
 }
 
+/*
+** Initialize HTTP locations
+**/
+int httpd_location_add(struct httpd *hs, char *pattern, char *path)
+{
+	struct http_location *loc;
+
+	if (!hs || !pattern || !path) {
+		errno = EINVAL;
+		return -1;
+	}
+
+	loc = NEW(struct http_location, 1);
+	if (!loc)
+		return -1;
+
+	loc->pattern  = pattern;
+	loc->path     = path;
+
+	LIST_INSERT(loc, hs->location);
+
+	return 0;
+}
+
+void httpd_location_free(struct httpd *hs)
+{
+	struct http_location *loc;
+
+	LIST_FOREACH(loc, hs->location)
+		free(loc);
+}
+
 /* Initialize listen sockets.  Try v6 first because of a Linux peculiarity;
 ** like some other systems, it has magical v6 sockets that also listen for
 ** v4, but in Linux if you bind a v4 socket first then the v6 bind fails.
@@ -582,6 +614,7 @@ void httpd_exit(struct httpd *hs)
 	httpd_ssl_exit(hs);
 	httpd_unlisten(hs);
 	httpd_redirect_free(hs);
+	httpd_location_free(hs);
 	free_httpd_server(hs);
 }
 
@@ -1601,6 +1634,40 @@ int httpd_redirect(struct http_conn *hc)
 	return 0;
 }
 
+/*
+** For each location match, rewrite the request to replace the leading
+** match with the location path.  Similar to nginx.
+*/
+int httpd_location(struct http_conn *hc)
+{
+	struct http_location *loc;
+
+	LIST_FOREACH(loc, hc->hs->location) {
+		int rc;
+
+		if (!loc->path)
+			continue;
+
+		rc = match(loc->pattern, hc->encodedurl);
+		if (rc) {
+			char url[strlen(&hc->encodedurl[rc]) + 1];
+			size_t len = strlen(loc->path);
+
+			strlcpy(url, &hc->encodedurl[rc], sizeof(url));
+			snprintf(hc->read_buf, hc->read_size, "%s%s%s%s",
+				 loc->path[0] != '/' ? "/" : "", loc->path,
+				 url[0] != '/' && loc->path[len - 1] != '/' ? "/" : "", url);
+			hc->encodedurl = hc->read_buf;
+			syslog(LOG_DEBUG, "location '%s' match => new URL %s",
+			       loc->pattern, hc->encodedurl);
+
+			return 1;
+		}
+	}
+
+	return 0;
+}
+
 static void send_dirredirect(struct http_conn *hc)
 {
 	static char *location;
@@ -2211,6 +2278,7 @@ void httpd_init_conn_mem(struct http_conn *hc)
 
 void httpd_init_conn_content(struct http_conn *hc)
 {
+	hc->skip_redirect = 0;
 	hc->read_idx = 0;
 	hc->checked_idx = 0;
 	hc->checked_state = CHST_FIRSTWORD;
@@ -2614,6 +2682,9 @@ int httpd_parse_request(struct http_conn *hc)
 	}
 
 	hc->encodedurl = url;
+	if (httpd_location(hc))
+		hc->skip_redirect = 1;
+
 	httpd_realloc_str(&hc->decodedurl, &hc->maxdecodedurl, strlen(hc->encodedurl) + 1);
 	strdecode(hc->decodedurl, hc->encodedurl);
 
@@ -2837,7 +2908,7 @@ int httpd_parse_request(struct http_conn *hc)
 		return -1;
 	}
 
-	if (httpd_redirect(hc))
+	if (!hc->skip_redirect && httpd_redirect(hc))
 		return -1;
 
 	if (hc->one_one) {
