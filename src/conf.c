@@ -276,8 +276,10 @@ static int read_config(char *fn)
 	};
 	int rc = 0;
 
-	if (access(fn, F_OK))
-		return 0;
+	if (access(fn, F_OK)) {
+		syslog(LOG_ERR, "Cannot find %s", fn);
+		return 1;
+	}
 
 	cfg = cfg_init(opts, CFGF_NONE);
 	if (!cfg) {
