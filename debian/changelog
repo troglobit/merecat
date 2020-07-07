@@ -8,6 +8,7 @@ merecat (2.32) unstable; urgency=medium
     - Support for PHP, using php-cgi
     - Support for HTTP/1.1 Keep-alive
     - Support for HTTP redirect, to redirect from HTTP to HTTPS
+    - Support for server location directive, similar to nginx
     - Added support for HTTP gzip compression, serves .gz files
     - Skip .htpasswd (and .htaccess) in dir listings
     - Allow SO_REUSEPORT, useful for load balancing
@@ -19,7 +20,7 @@ merecat (2.32) unstable; urgency=medium
     - Cute cat faviocon added
     - Portability fixes
 
- -- Joachim Nilsson <troglobit@gmail.com>  Sun, 14 Jul 2019 09:52:56 +0200
+ -- Joachim Nilsson <troglobit@gmail.com>  Tue, 07 Jul 2020 09:32:33 +0200
 
 merecat (2.31-3) unstable; urgency=low
 

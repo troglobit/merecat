@@ -4,8 +4,8 @@ Change Log
 All relevant changes are documented in this file.
 
 
-[v2.32][] - 2019-07-XX
-----------------------
+[v2.32][UNRELEASED]
+-------------------
 
 Notable new features: multiple server support from one process, HTTPS,
 HTTP/1.1 keep-alive, and built-in gzip deflate compression using zlib.
@@ -14,6 +14,8 @@ HTTP/1.1 keep-alive, and built-in gzip deflate compression using zlib.
 - Add support for HTTPS, works with certificates from Let's Encrypt
 - Add support for multiple servers, listen to different ports
 - Add support for built-in HTTP redirect, e.g. from HTTP to HTTPS
+- Add support for server location directive, similar to nginx but with
+  security limitations and native vhost support native to thttpd
 - Add gzip deflate compression when built with zlib, also compress
   HEAD as well as GET requests
 - Add true `Connection: keep-alive` support
@@ -97,7 +99,8 @@ The "it works now" release.
 
 Initial release.  Based on [sthttpd][] master, 2015-07-22.
 
-[v2.32]: https://github.com/troglobit/merecat/compare/v2.31...v2.32
-[v2.31]: https://github.com/troglobit/merecat/compare/v2.30...v2.31
-[v2.30]: https://github.com/troglobit/merecat/compare/v2.29...v2.30
-[sthttpd]: https://github.com/blueness/sthttpd/
+[UNRELEASED]: https://github.com/troglobit/merecat/compare/v2.31...HEAD
+[v2.32]:      https://github.com/troglobit/merecat/compare/v2.31...v2.32
+[v2.31]:      https://github.com/troglobit/merecat/compare/v2.30...v2.31
+[v2.30]:      https://github.com/troglobit/merecat/compare/v2.29...v2.30
+[sthttpd]:    https://github.com/blueness/sthttpd/
