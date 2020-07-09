@@ -2984,7 +2984,7 @@ int httpd_parse_request(struct http_conn *hc)
 	}
 
 	/* Virtual host mapping. */
-	if (hc->hs->vhost) {
+	if (!hc->skip_redirect && hc->hs->vhost) {
 		if (!vhost_map(hc)) {
 			/* If we get here vhost_map() has logged the error */
 			httpd_send_err(hc, 500, err500title, "", err500form, hc->encodedurl);
@@ -3003,7 +3003,7 @@ int httpd_parse_request(struct http_conn *hc)
 	}
 
 	/* Fall back to shared (restricted) top-level directory for missing files */
-	if (hc->hs->vhost && is_vhost_shared(pi)) {
+	if (!hc->skip_redirect && hc->hs->vhost && is_vhost_shared(pi)) {
 		httpd_realloc_str(&hc->expnfilename, &hc->maxexpnfilename, strlen(pi) + 1);
 		strlcpy(hc->expnfilename, pi, hc->maxexpnfilename);
 		httpd_realloc_str(&hc->pathinfo, &hc->maxpathinfo, 1);
