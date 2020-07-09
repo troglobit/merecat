@@ -144,21 +144,41 @@ must be enabled:
 server secure {
     port = 443
     ssl {
-        certfile = certs/cert.pem
-        keyfile  = private/key.pem
-        dhfile   = certs/dhparm.pem
+        certfile = /etc/letsencrypt/live/example.com/fullchain.pem
+        keyfile  = /etc/letsencrypt/live/example.com/privkey.pem
+        dhfile   = /etc/letsencrypt/live/example.com/dhparam.pem
     }
 }
 ```
 
 ### Let's Encrypt
 
-Merecat fully supports [Let's Encrypt][] certificates.  Run `certbot`
-with the following arguments and then add all virtual hosts you want to
-support from Merecat:
+Merecat fully supports [Let's Encrypt][] certificates, including HTTP-01
+renewals.  Use the server location directive:
+
+```conf
+server default {
+        port = 80
+        location "/.well-known/acme-challenge/**" {
+                 path = "letsencrypt/.well-known/acme-challenge/"
+        }
+        redirect "/**" {
+                 code = 301
+                 location = "https://$host$request_uri$args"
+        }
+}
+```
+
+The `path` must be relative to the server root directory.  Use bind
+mounts to get `/var/lib/letsencrypt` into your server root.  This way
+we can ensure `certbot` only writes to its own directory and cannot
+write to any file in the server root.
+
+Then run `certbot` with the following arguments and then add all virtual
+hosts you want to support from Merecat:
 
 ```shell
-root@example:/var/www/> certbot certonly --standalone
+root@example:/var/www/> certbot certonly --webroot --webroot-path /var/lib/letsencrypt
 ```
 
 For a HowTo see:
