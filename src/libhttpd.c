@@ -1638,7 +1638,7 @@ int httpd_redirect(struct http_conn *hc)
 ** For each location match, rewrite the request to replace the leading
 ** match with the location path.  Similar to nginx.
 */
-int httpd_location(struct http_conn *hc)
+int httpd_location(struct http_conn *hc, char **url)
 {
 	struct http_location *loc;
 
@@ -1650,16 +1650,20 @@ int httpd_location(struct http_conn *hc)
 
 		rc = match(loc->pattern, hc->encodedurl);
 		if (rc) {
-			char url[strlen(&hc->encodedurl[rc]) + 1];
-			size_t len = strlen(loc->path);
+			char *ptr = &hc->encodedurl[rc];
+			size_t plen, len;
 
-			strlcpy(url, &hc->encodedurl[rc], sizeof(url));
-			snprintf(hc->read_buf, hc->read_size, "%s%s%s%s",
-				 loc->path[0] != '/' ? "/" : "", loc->path,
-				 url[0] != '/' && loc->path[len - 1] != '/' ? "/" : "", url);
-			hc->encodedurl = hc->read_buf;
-			syslog(LOG_DEBUG, "location '%s' match => new URL %s",
-			       loc->pattern, hc->encodedurl);
+			plen = strlen(loc->path);
+			len = strlen(ptr) + plen + 3;
+
+			*url = malloc(len);
+			if (!*url) {
+				syslog(LOG_ERR, "Failed allocating temporary URL rewrite buffer: %s", strerror(errno));
+				exit(1);
+			}
+
+			snprintf(*url, len, "%s%s%s%s", loc->path[0] != '/' ? "/" : "", loc->path,
+				 *ptr != '/' && loc->path[plen - 1] != '/' ? "/" : "", ptr);
 
 			return 1;
 		}
@@ -2682,11 +2686,17 @@ int httpd_parse_request(struct http_conn *hc)
 	}
 
 	hc->encodedurl = url;
-	if (httpd_location(hc))
+	if (httpd_location(hc, &cp)) {
 		hc->skip_redirect = 1;
 
-	httpd_realloc_str(&hc->decodedurl, &hc->maxdecodedurl, strlen(hc->encodedurl) + 1);
-	strdecode(hc->decodedurl, hc->encodedurl);
+		httpd_realloc_str(&hc->decodedurl, &hc->maxdecodedurl, strlen(cp) + 1);
+		strdecode(hc->decodedurl, cp);
+
+		free(cp);
+	} else {
+		httpd_realloc_str(&hc->decodedurl, &hc->maxdecodedurl, strlen(hc->encodedurl) + 1);
+		strdecode(hc->decodedurl, hc->encodedurl);
+	}
 
 	httpd_realloc_str(&hc->origfilename, &hc->maxorigfilename, strlen(hc->decodedurl));
 	strlcpy(hc->origfilename, &hc->decodedurl[1], hc->maxorigfilename);
