@@ -1664,6 +1664,7 @@ int httpd_location(struct http_conn *hc, char **url)
 
 			snprintf(*url, len, "%s%s%s%s", loc->path[0] != '/' ? "/" : "", loc->path,
 				 *ptr != '/' && loc->path[plen - 1] != '/' ? "/" : "", ptr);
+			syslog(LOG_DEBUG, "Location match %s -> URL rewrite %s", loc->pattern, *url);
 
 			return 1;
 		}
