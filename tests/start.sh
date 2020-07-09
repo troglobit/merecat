@@ -1,5 +1,8 @@
 #!/bin/sh -e
 srvfiles="main.css index.html img/merecat.jpg"
+if [ -z "$srcdir" ]; then
+    srcdir=.
+fi
 
 mkdir -p srv/img
 
