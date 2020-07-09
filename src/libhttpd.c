@@ -1638,7 +1638,7 @@ int httpd_redirect(struct http_conn *hc)
 ** For each location match, rewrite the request to replace the leading
 ** match with the location path.  Similar to nginx.
 */
-int httpd_location(struct http_conn *hc, char *url)
+int httpd_location(struct http_conn *hc)
 {
 	struct http_location *loc;
 
@@ -1648,24 +1648,22 @@ int httpd_location(struct http_conn *hc, char *url)
 		if (!loc->path)
 			continue;
 
-		rc = match(loc->pattern, url);
+		rc = match(loc->pattern, hc->encodedurl);
 		if (rc) {
-			char *ptr = &url[rc];
-			size_t plen, len;
+			char url[strlen(&hc->encodedurl[rc]) + 1];
+			size_t len = strlen(loc->path);
 
-			plen = strlen(loc->path);
-			len = strlen(ptr) + plen + 3;
-
-			httpd_realloc_str(&hc->encodedurl, &hc->maxencodedurl, len);
-			snprintf(hc->encodedurl, len, "%s%s%s%s", loc->path[0] != '/' ? "/" : "", loc->path,
-				 *ptr != '/' && loc->path[plen - 1] != '/' ? "/" : "", ptr);
+			strlcpy(url, &hc->encodedurl[rc], sizeof(url));
+			snprintf(hc->read_buf, hc->read_size, "%s%s%s%s",
+				 loc->path[0] != '/' ? "/" : "", loc->path,
+				 url[0] != '/' && loc->path[len - 1] != '/' ? "/" : "", url);
+			hc->encodedurl = hc->read_buf;
+			syslog(LOG_DEBUG, "location '%s' match => new URL %s",
+			       loc->pattern, hc->encodedurl);
 
 			return 1;
 		}
 	}
-
-	httpd_realloc_str(&hc->encodedurl, &hc->maxencodedurl, strlen(url) + 1);
-	strlcpy(hc->encodedurl, url, hc->maxencodedurl);
 
 	return 0;
 }
@@ -2199,7 +2197,6 @@ void httpd_destroy_conn(struct http_conn *hc)
 {
 	if (hc->initialized) {
 		free(hc->read_buf);
-		free(hc->encodedurl);
 		free(hc->decodedurl);
 		free(hc->origfilename);
 		free(hc->indexname);
@@ -2241,7 +2238,6 @@ void httpd_init_conn_mem(struct http_conn *hc)
 		hc->maxexpnfilename = hc->maxencodings = hc->maxpathinfo = hc->maxquery = hc->maxaccept =
 		hc->maxaccepte = hc->maxreqhost = hc->maxhostdir = hc->maxremoteuser = hc->maxresponse = 0;
 
-	httpd_realloc_str(&hc->encodedurl, &hc->maxencodedurl, 1);
 	httpd_realloc_str(&hc->decodedurl, &hc->maxdecodedurl, 1);
 	httpd_realloc_str(&hc->origfilename, &hc->maxorigfilename, 1);
 	httpd_realloc_str(&hc->indexname,  &hc->maxindexname, 1);
@@ -2290,7 +2286,7 @@ void httpd_init_conn_content(struct http_conn *hc)
 	hc->status = 0;
 	hc->bytes_to_send = 0;
 	hc->bytes_sent = 0;
-	hc->encodedurl[0] = '\0';
+	hc->encodedurl = "";
 	hc->decodedurl[0] = '\0';
 	hc->protocol = "UNKNOWN";
 	hc->origfilename[0] = '\0';
@@ -2685,7 +2681,8 @@ int httpd_parse_request(struct http_conn *hc)
 		return -1;
 	}
 
-	if (httpd_location(hc, url))
+	hc->encodedurl = url;
+	if (httpd_location(hc))
 		hc->skip_redirect = 1;
 
 	httpd_realloc_str(&hc->decodedurl, &hc->maxdecodedurl, strlen(hc->encodedurl) + 1);

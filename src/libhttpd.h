@@ -200,10 +200,8 @@ struct http_conn {
 	char *authorization;
 	char *remoteuser;
 	char *response;
-	size_t maxencodedurl,
-		maxdecodedurl, maxindexname, maxorigfilename, maxexpnfilename,
-		maxencodings, maxpathinfo, maxquery, maxaccept, maxaccepte,
-		maxreqhost, maxhostdir, maxremoteuser, maxresponse;
+	size_t maxdecodedurl, maxindexname, maxorigfilename, maxexpnfilename, maxencodings,
+	    maxpathinfo, maxquery, maxaccept, maxaccepte, maxreqhost, maxhostdir, maxremoteuser, maxresponse;
 #ifdef TILDE_MAP_2
 	char *altdir;
 	size_t maxaltdir;
