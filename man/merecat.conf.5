@@ -267,6 +267,28 @@ openssl dhparam -out dhparam.pem 2048
 Server port to listen to.
 .It Cm ssl Cm { Ar ... Cm }
 Same as the global settings, above, only for this server.
+.It Cm location Qo Ar PATTERN Qc {
+.Bl -tag -offset "" -compact
+.It Cm path = Ar path/to/rewrite
+If a server location directive is found it has precedence over
+any
+.Cm redirect
+or virtual host.  It is primarily used to rewrite, or redirect,
+requests insde the current server context.
+.Pp
+E.g., for handling
+.Nm certbot
+HTTP-01 renewal, use this in the port 80 server context.  Any
+other path will be redirected to HTTPS, using the below
+.Cm redirect
+directive:
+.Pp
+.Bd -unfilled -offset "" -compact
+location "/.well-known/acme-challenge/**" {
+    path = "letsencrypt/.well-known/acme-challenge/"
+}
+.Ed
+.El
 .It Cm redirect Qo Ar PATTERN Qc {
 .Bl -tag -offset "" -compact
 .It Cm code = Ar CODE
