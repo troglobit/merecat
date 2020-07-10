@@ -276,11 +276,6 @@ static int read_config(char *fn)
 	};
 	int rc = 0;
 
-	if (access(fn, F_OK)) {
-		syslog(LOG_ERR, "Cannot find %s", fn);
-		return 1;
-	}
-
 	cfg = cfg_init(opts, CFGF_NONE);
 	if (!cfg) {
 		syslog(LOG_ERR, "Failed initializing configuration file parser: %s", strerror(errno));
@@ -357,6 +352,29 @@ int conf_init(char *file)
 	if (!file) {
 		snprintf(path, sizeof(path), "%s/%s.conf", CONFDIR, ident);
 		file = path;
+
+		/*
+		 * If default .conf doesn't exist, fail silent.
+		 * We must support running stand-alone as well.
+		 */
+		if (access(file, F_OK))
+			return 0;
+	} else {
+		/*
+		 * Support stand-alone also if `-f none`
+		 */
+		if (!strcmp(file, "none"))
+			return 0;
+
+		/*
+		 * If `-f foo.conf` doesn't exist, we must bail, the
+		 * user expects their settings from the .conf not any
+		 * built-in defaults.
+		 */
+		if (access(file, F_OK)) {
+			syslog(LOG_ERR, "%s: %s: %s", prognm, file, strerror(errno));
+			return 1;
+		}
 	}
 
 	if (read_config(file)) {

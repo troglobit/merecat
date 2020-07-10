@@ -115,6 +115,14 @@ The config file to read.  By default
 looks for
 .Pa /etc/merecat.conf ,
 unless the software has been configured to use a different prefix.
+.Pp
+If the default system coonfiguration file is missing, or if
+.Nm
+is started with
+.Fl f Ar none ,
+.Nm
+will run in stand-alone mode using only command line options like
+listening port and server root directory.
 .It Fl g
 Use global
 .Pa .htpasswd
