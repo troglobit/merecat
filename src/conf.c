@@ -206,7 +206,7 @@ int conf_srv(struct srv arr[], size_t len)
 static int read_config(char *fn)
 {
 	cfg_opt_t location_opts[] = {
-		CFG_STR ("path", path, CFGF_NONE),
+		CFG_STR ("path", NULL, CFGF_NONE),
 		CFG_END ()
 	};
 	cfg_opt_t redirect_opts[] = {
