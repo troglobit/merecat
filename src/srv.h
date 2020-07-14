@@ -46,14 +46,16 @@ struct srv {
 	char      *dhfile;
 
 	struct {
+		char *pattern;	/* Pattern to match() against */
+
 		int   code;	/* HTTP status code, default: 301 */
 		char *location;	/* Location: to redirect to, supports format specifiers */
-		char *pattern;	/* Pattern to match() against */
 	} redirect[MAX_REDIRECTS];
 
 	struct {
-		char *path;	/* Path to use for matching requests */
 		char *pattern;	/* Pattern to match() against */
+
+		char *path;	/* Path to use for matching requests */
 	} location[MAX_LOCATIONS];
 };
 
