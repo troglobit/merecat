@@ -1577,10 +1577,18 @@ int main(int argc, char **argv)
 
 	/* Switch directories again if requested. */
 	if (data_dir) {
-		if (chdir(data_dir) < 0) {
+		if (data_dir[0] == '/')
+			strlcat(path, &data_dir[1], sizeof(path));
+		else
+			strlcat(path, data_dir, sizeof(path));
+
+		if (chdir(path) < 0) {
 			syslog(LOG_CRIT, "data-directory chdir: %s", strerror(errno));
 			exit(1);
 		}
+
+		if (path[strlen(path) - 1] != '/')
+			strlcat(path, "/", sizeof(path));
 	}
 
 	/* Set up to catch signals. */
