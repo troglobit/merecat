@@ -10,8 +10,26 @@ dist: bionic
 compiler:
   - gcc
 
+# The secure: declaration is the encrypted COVERITY_SCAN_TOKEN, created
+# using the project repo's public key:
+#   travis encrypt COVERITY_SCAN_TOKEN="foo"
+env:
+  global:
+   - secure: "YyoyUumrfQJ8TbTiuXaxtGmrBVmJg4jszOBl0ztG2LoucELVzufdceViWh+e1D02PAa6BGUz3K/kE6I+4CsuYYkTXYtIBy0VBd1X5x4GSueNGjllN0I+2/bjWswy7N/vEnXia5zwDlrkl/MX1z1wmmhkHCN9yc7Odx2MHgkio/HdFBfLSoi847DDi3k/RPa6rBS5gvYTTQs2tbkhdV1BnGL2KaRR8+mFGZzsB5pyYKcMguzY88S/eBaD1nOZSuzgRPGn7dBIKzB1tcyAagviEp3sxF1ijTlWtAhe5Ki3jyGmCG7lAme5nMeLXuYjqLCjltevUsg+e8VkCteiN6Q11RGRohoPbh0zBBTa6HRqEDodzvX52/G0T3qemjpVFQk60UNJP6DC0EWGK+hkHp1M9pNmnwbxwNsCluDhVCSw730GxFg9UD7q9014/IX08+E3/tDy1fkmgmK1oaVFUk+0LfpLZUDgn2pQWbbQi5SEEiRA97xWrECEJGw3jUOZBU2FaVlI52GW7YNApHJ80e9+zxitPJJ1S8NpANthqL+EL18UyFCWWdA1WQNITEl3Y0jsXJMlxL+mIPANf4PVedqNU6BCn2nZMF7Bzl7FYDw6P2xOr//0Y7QC/KKGQ7KO/Zxn+Tl53n+b3cdPDaIlTbr1UArfNiC9JW/uo9KhB/gEl3Q="
+
 before_install:
   - sudo apt-get install -y tree libconfuse-dev libssl-dev zlib1g-dev
+  - echo -n | openssl s_client -connect scan.coverity.com:443 | sed -ne '/-BEGIN CERTIFICATE-/,/-END CERTIFICATE-/p' | sudo tee -a /etc/ssl/certs/ca-
+
+addons:
+  coverity_scan:
+    project:
+      name: "troglobit/merecat"
+      description: "Simple HTTP/HTTPS server based on Jef Poskanzer's thttpd"
+    notification_email: troglobit@gmail.com
+    build_command_prepend: "./autogen.sh && ./configure"
+    build_command: "make clean all"
+    branch_pattern: dev
 
 # We don't store generated files (configure and Makefile) in GIT,
 # so we must customize the default build script to run ./autogen.sh
