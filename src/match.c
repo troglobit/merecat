@@ -78,8 +78,11 @@ static int match_one(const char *pattern, int patternlen, const char *string)
 
 			pl = patternlen - (p - pattern);
 			for (; i >= 0; --i) {
-				if (match_one(p, pl, &(s[i])))
-					return s - string;
+				if (match_one(p, pl, &(s[i]))) {
+					int len = s - string;
+
+					return len > 1 ? len : 1;
+				}
 			}
 
 			return 0;
