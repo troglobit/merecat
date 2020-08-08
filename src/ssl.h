@@ -55,7 +55,7 @@ void httpd_ssl_log_errors(void);
 /* Wrappers for read()/write() and writev() */
 ssize_t httpd_ssl_read   (struct http_conn *hc, void *buf, size_t len);
 ssize_t httpd_ssl_write  (struct http_conn *hc, void *buf, size_t len);
-ssize_t httpd_ssl_writev (struct http_conn *hc, struct iovec *iov, size_t num);
+ssize_t httpd_ssl_writev (struct http_conn *hc, struct iovec *iov, int num);
 
 #else
 #define httpd_ssl_init(cert, key, dhparm, proto, ciphers) NULL

@@ -402,7 +402,7 @@ extern ssize_t httpd_read(struct http_conn *hc, void *buf, size_t len);
 
 /* Write the requested buffer completely, accounting for interruptions. */
 extern ssize_t httpd_write(struct http_conn *hc, void *buf, size_t len);
-extern ssize_t httpd_writev(struct http_conn *hc, struct iovec *iov, size_t num);
+extern ssize_t httpd_writev(struct http_conn *hc, struct iovec *iov, int num);
 
 /* Generate debugging statistics syslog message. */
 extern void httpd_logstats(long secs);
