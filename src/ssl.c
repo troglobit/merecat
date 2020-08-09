@@ -276,6 +276,7 @@ static int status(struct http_conn *hc, int rc)
 	rc = SSL_get_error(hc->ssl, rc);
 	switch (rc) {
 	case SSL_ERROR_SSL:	          /* rc = 1 */
+		// log ERR_get_error()?
 		errno = EPROTO;
 		goto leave;
 
@@ -421,37 +422,33 @@ ssize_t httpd_ssl_read(struct http_conn *hc, void *buf, size_t len)
 
 ssize_t httpd_ssl_write(struct http_conn *hc, void *buf, size_t len)
 {
-	if (status(hc, SSL_write(hc->ssl, buf, len)))
-		return -1;
-
-	return len;
-}
-
-ssize_t httpd_ssl_writev(struct http_conn *hc, struct iovec *iov, size_t num)
-{
-	size_t i, pos = 0, len = 0;
-	char *buf;
-	int rc;
-
-	for (i = 0; i < num; i++)
-		len += iov[i].iov_len;
-
-	buf = malloc(len);
-	for (i = 0; i < num; i++) {
-		memcpy(&buf[pos], iov[i].iov_base, iov[i].iov_len);
-		pos += iov[i].iov_len;
-	}
-
-	rc = SSL_write(hc->ssl, buf, len);
-	if (rc < 0 && BIO_should_retry(SSL_get_wbio(hc->ssl))) {
-		usleep(100000);
-		rc = SSL_write(hc->ssl, buf, len);
-	}
-
-	free(buf);
-
+	int rc = SSL_write(hc->ssl, buf, len);
 	if (status(hc, rc))
 		return -1;
 
-	return len;
+	return rc;
+}
+
+ssize_t httpd_ssl_writev(struct http_conn *hc, struct iovec *iov, int num)
+{
+	ssize_t sum = 0;
+	int i;
+	/*
+	 * on retry, SSL_write arguments must be EXACTLY the same, or
+	 * will get 0x1409f07f "bad write retry"
+	 * so try separate SSL_writes for each writev element
+	 * to avoid malloc'ing and holding buffer
+	 */
+	for (i = 0; i < num; i++) {
+		int rc = SSL_write(hc->ssl, iov[i].iov_base, iov[i].iov_len);
+		if (status(hc, rc)) {
+			if (sum == 0)
+				return -1;
+			else
+				return sum;
+		}
+		// rc *SHOULD* be == iov[i].iov_len
+		sum += rc;
+	}
+	return sum;
 }

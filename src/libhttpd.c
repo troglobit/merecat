@@ -5066,7 +5066,7 @@ ssize_t httpd_write(struct http_conn *hc, void *buf, size_t len)
 	return rc;
 }
 
-ssize_t httpd_writev(struct http_conn *hc, struct iovec *iov, size_t num)
+ssize_t httpd_writev(struct http_conn *hc, struct iovec *iov, int num)
 {
 	ssize_t rc;
 
