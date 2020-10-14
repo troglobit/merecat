@@ -40,6 +40,8 @@
 - Let command line options override port/host etc. that
   are in the global section of the config file.
 
+- Verify cert at startup, abort if cert is too old or new
+  add command line option to override (embedded systems)
 
 - - - - - - - - - - high priority - - - - - - - - - -
 
