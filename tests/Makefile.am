@@ -5,6 +5,7 @@ TEST_EXTENSIONS  = .sh
 
 TESTS            = start.sh
 TESTS           += cgi.sh
+TESTS           += php.sh
 TESTS           += gzip.sh
 TESTS           += redirect.sh
 TESTS           += location.sh
