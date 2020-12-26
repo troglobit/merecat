@@ -4508,10 +4508,10 @@ done:
 
 int httpd_start_request(struct http_conn *hc, struct timeval *now)
 {
-	int is_icon;
-	char *cp, *pi;
 	static const char *index_names[] = { INDEX_NAMES };
 	size_t expnlen, indxlen, i;
+	char *cp, *pi;
+	int is_icon;
 
 	is_icon = mmc_icon_check(hc->decodedurl, &hc->sb);
 	if (is_icon) {
