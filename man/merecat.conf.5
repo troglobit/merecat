@@ -180,9 +180,13 @@ Maximum number of allowed simultaneous CGI programs.  Default 1.
 .It Cm }
 .It Cm php Qo Ar PATTERN Qc Cm {
 Wildcard pattern for PHP scripts, for instance
-.Qq **.php
+.Qq **.php*
 or
-.Qq **.php5|**.php4|**.php .
+.Qq **.php5*|**.php4*|**.php* .
+Notice the trailing
+.Cm * ,
+it is very important otherwise any HTTP GET request with arguments will
+fail.
 .Pp
 .Bl -tag -offset "" -compact
 .It Cm enabled = Ar <true | false>
