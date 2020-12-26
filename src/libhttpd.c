@@ -3673,7 +3673,7 @@ static int is_php(struct http_conn *hc, char *fn)
 	assert(hc->hs);
 
 	if (!fn)
-		fn = hc->encodedurl;
+		fn = hc->expnfilename;
 
 	if (hc->hs->php_pattern && match(hc->hs->php_pattern, fn))
 		return 1;
