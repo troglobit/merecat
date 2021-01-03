@@ -193,6 +193,8 @@ wav	audio/x-wav
 wax	audio/x-ms-wax
 wbmp	image/vnd.wap.wbmp
 wbxml	application/vnd.wap.wbxml
+webm	video/webm
+webp	image/webp
 wm	video/x-ms-wm
 wma	audio/x-ms-wma
 wmd	application/x-ms-wmd

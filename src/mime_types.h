@@ -188,6 +188,8 @@
 { "wax", 0, "audio/x-ms-wax", 0 },
 { "wbmp", 0, "image/vnd.wap.wbmp", 0 },
 { "wbxml", 0, "application/vnd.wap.wbxml", 0 },
+{ "webm", 0, "video/webm", 0 },
+{ "webp", 0, "image/webp", 0 },
 { "wm", 0, "video/x-ms-wm", 0 },
 { "wma", 0, "audio/x-ms-wma", 0 },
 { "wmd", 0, "application/x-ms-wmd", 0 },
