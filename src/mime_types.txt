@@ -19,6 +19,7 @@ asf	video/x-ms-asf
 asx	video/x-ms-asf
 au	audio/basic
 avi	video/x-msvideo
+avif	image/avif
 bcpio	application/x-bcpio
 bin	application/octet-stream
 bmp	image/bmp

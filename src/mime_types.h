@@ -14,6 +14,7 @@
 { "asx", 0, "video/x-ms-asf", 0 },
 { "au", 0, "audio/basic", 0 },
 { "avi", 0, "video/x-msvideo", 0 },
+{ "avif", 0, "image/avif", 0 },
 { "bcpio", 0, "application/x-bcpio", 0 },
 { "bin", 0, "application/octet-stream", 0 },
 { "bmp", 0, "image/bmp", 0 },
