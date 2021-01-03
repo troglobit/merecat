@@ -1455,15 +1455,15 @@ int main(int argc, char **argv)
 	if (optind < argc)
 		hostname = argv[optind++];
 
-	/* Read merecat.conf, if available */
-	conf_init(config);
-
 #ifdef LOG_PERROR
 	if (!background && !do_syslog)
 		log_opts |= LOG_PERROR;
 #endif
 	openlog(ident, log_opts, LOG_FACILITY);
 	setlogmask(LOG_UPTO(loglevel));
+
+	/* Read merecat.conf, if available */
+	conf_init(config);
 
 	/* Read zone info now, in case we chroot(). */
 	tzset();
