@@ -1114,19 +1114,20 @@ static char *find_htfile(char *topdir, char *dir, char *htfile)
 {
 	int found = 0;
 	char *path;
-	size_t len = strlen(dir) + strlen(htfile) + 2;
+	size_t dirlen = strlen(dir);
+	size_t len = dirlen + strlen(htfile) + 2;
 
 	path = malloc(len);
 	if (!path)
 		return NULL;
 
-	snprintf(path, len, "%s/%s", (dir[0] ? dir : "."), htfile);
+	snprintf(path, len, "%s%s%s", (dir[0] ? dir : "."), dir[dirlen - 1] == '/' ? "" : "/", htfile);
 	while (1) {
 		int rc;
 		char *ptr, *slash;
 		struct stat st;
 
-		rc = stat(path, &st);
+		rc = lstat(path, &st);
 
 		ptr = strstr(path, htfile);
 		if (!ptr)
@@ -1437,6 +1438,10 @@ static int auth_check2(struct http_conn *hc, char *dir)
 		/* Nope, let the request go through. */
 		return 0;
 
+	/* If it was a symlink, check that the target exists */
+	if (stat(hc->authpath, &sb) < 0)
+		goto enoent;
+
 	/* Does this request contain basic authorization info? */
 	if (hc->authorization[0] == '\0' || strncmp(hc->authorization, "Basic ", 6) != 0) {
 		/* Nope, return a 401 Unauthorized. */
@@ -1484,12 +1489,12 @@ static int auth_check2(struct http_conn *hc, char *dir)
 	/* Open the password file. */
 	fp = fopen(hc->authpath, "r");
 	if (!fp) {
+	enoent:
 		/* The file exists but we can't open it?  Disallow access. */
 		syslog(LOG_ERR, "%.80s auth file %s could not be opened: %s",
 		       httpd_client(hc), hc->authpath, strerror(errno));
 		httpd_send_err(hc, 403, err403title, "",
-			       ERROR_FORM(err403form,
-					  "The requested URL '%s' is protected by an authentication file, but the authentication file cannot be opened.\n"),
+			       ERROR_FORM(err403form, "The requested URL '%s' is protected.\n"),
 			       hc->encodedurl);
 		return -1;
 	}
