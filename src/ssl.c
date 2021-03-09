@@ -257,7 +257,10 @@ void httpd_ssl_exit(struct httpd *hs)
 	CRYPTO_cleanup_all_ex_data();
 	CONF_modules_free();
 	CONF_modules_unload(1);
+// This function is deprecated since OpenSSL 1.1.0, removed in recent versions.
+#if OPENSSL_VERSION_NUMBER < 0x10100000L
 	COMP_zlib_cleanup();
+#endif
 }
 
 /*
