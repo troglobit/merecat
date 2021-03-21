@@ -867,7 +867,10 @@ send_mime(struct http_conn *hc, int status, char *title, char *encodings,
 		}
 
 		if (hc->hs->max_age >= 0) {
-			snprintf(buf, sizeof(buf), "Cache-Control: max-age=%d\r\n%s", hc->hs->max_age, etagbuf);
+			if (hc->hs->max_age == 0)
+				snprintf(buf, sizeof(buf), "Cache-Control: no-cache,no-stored\r\n");
+			else
+				snprintf(buf, sizeof(buf), "Cache-Control: max-age=%d\r\n%s", hc->hs->max_age, etagbuf);
 			add_response(hc, buf);
 
 			/* Expires was superseded by Cache-Control in HTTP/1.1 */
@@ -4683,15 +4686,27 @@ sneaky:
 			 "%.20s %d %s\r\n"
 			 "Date: %s\r\n"
 			 "Server: %s\r\n"
-			 "Allow: %sOPTIONS,GET,HEAD\r\n"
-			 "Cache-control: max-age=%d\r\n"
-			 "Content-Length: 0\r\n"
-			 "Content-Type: text/html\r\n"
-			 "\r\n",
+			 "Allow: %sOPTIONS,GET,HEAD\r\n",
 			 hc->protocol, 200, "OK", nowbuf,
 			 EXPOSED_SERVER_SOFTWARE,
-			 is_cgi(hc) ? "POST," : "",
-			 hc->hs->max_age);
+			 is_cgi(hc) ? "POST," : "");
+		add_response(hc, buf);
+
+		if (hc->hs->max_age >= 0) {
+			if (hc->hs->max_age == 0)
+				snprintf(buf, sizeof(buf),
+					 "Cache-control: no-cache,no-store\r\n");
+			else
+				snprintf(buf, sizeof(buf),
+					 "Cache-control: max-age=%d\r\n",
+					 hc->hs->max_age);
+			add_response(hc, buf);
+		}
+
+		snprintf(buf, sizeof(buf),
+			 "Content-Length: 0\r\n"
+			 "Content-Type: text/html\r\n"
+			 "\r\n");
 		add_response(hc, buf);
 
 		/* HTTP Strict Transport Security: https://www.chromium.org/hsts */
