@@ -29,6 +29,7 @@
 
 #include <config.h>
 
+#include <stddef.h>
 #include <sys/types.h>
 #include <sys/param.h>
 #include <sys/stat.h>
@@ -4011,6 +4012,74 @@ static void post_post_garbage_hack(struct http_conn *hc)
 	httpd_read(hc, buf, sizeof(buf));
 }
 
+/* Prepend all '\n' without preceding '\r' with '\r'. */
+static void cgi_normalize_line_ends(char **headers, size_t *buffer_len, size_t *buffer_size, size_t headers_len) {
+    int lf_count;
+    int was_cr;
+    size_t i;
+    size_t j;
+    char *processed_headers;
+    size_t processed_buffer_size;
+
+	/* If newline separating headers and body is "\n\n" correct it to. */
+    if (strncmp(&((*headers)[headers_len]), "\n\n", 2) == 0)
+        headers_len += 2;
+
+	/* Count \n without preceding \r in headers section */
+    was_cr = 0;
+    lf_count = 0;
+	for (i = 0; i < headers_len; i++) {
+        switch ((*headers)[i]) {
+        case '\r':
+            was_cr = 1;
+            break;
+        case '\n':
+            if (!was_cr) {
+                lf_count ++;
+            }
+            // fallthrough
+        default:
+            was_cr = 0;
+            break;
+        }
+    }
+
+    if (lf_count == 0)
+        return;
+
+	/* Allocate memory accounting for newly inserted '\r'. */
+    processed_buffer_size = 0;
+	httpd_realloc_str(&processed_headers, &processed_buffer_size, *buffer_len + lf_count);
+
+	/* Copy headers and normalize all line endings as \r\n */
+    was_cr = 0;
+	for (i = 0, j = 0; i < headers_len; i++, j++) {
+        switch ((*headers)[i]) {
+        case '\r':
+            processed_headers[j] = (*headers)[i];
+            was_cr = 1;
+            break;
+        case '\n':
+            if (!was_cr) {
+                processed_headers[j] = '\r';
+                j++;
+            }
+            // fallthrough
+        default:
+            processed_headers[j] = (*headers)[i];
+            was_cr = 0;
+            break;
+        }
+    }
+
+	/* Copy rest of buffer after http headers. */
+    memcpy(&(processed_headers[j]), &((*headers)[i]), *buffer_len - headers_len);
+
+	/* Replace old buffer with processed one and update sizes. */
+    *buffer_len += lf_count;
+    *buffer_size = processed_buffer_size;
+    *headers = processed_headers;
+}
 
 /* This routine is used for parsed-header CGIs.  The idea here is that the
 ** CGI can return special headers such as "Status:" and "Location:" which
@@ -4075,6 +4144,8 @@ static void cgi_interpose_output(struct http_conn *hc, int rfd)
 	} else if ((cp = strstr(headers, "Location:")) && cp < br && (cp == headers || *(cp - 1) == '\n')) {
 		status = 302;
 	}
+
+    cgi_normalize_line_ends(&headers, &headers_len, &headers_size, br - headers);
 
 	/* Write the status line. */
 	switch (status) {
