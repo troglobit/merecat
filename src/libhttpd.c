@@ -4076,6 +4076,7 @@ static void cgi_normalize_line_ends(char **headers, size_t *buffer_len, size_t *
     memcpy(&(processed_headers[j]), &((*headers)[i]), *buffer_len - headers_len);
 
 	/* Replace old buffer with processed one and update sizes. */
+    free(*headers);
     *buffer_len += lf_count;
     *buffer_size = processed_buffer_size;
     *headers = processed_headers;
@@ -4124,8 +4125,10 @@ static void cgi_interpose_output(struct http_conn *hc, int rfd)
 	}
 
 	/* If there were no headers, bail. */
-	if (headers[0] == '\0')
+	if (headers[0] == '\0') {
+		free(headers);
 		return;
+	}
 
 	/* Figure out the status.  Look for a Status: or Location: header;
 	** else if there's an HTTP header line, get it from there; else
@@ -4205,6 +4208,7 @@ static void cgi_interpose_output(struct http_conn *hc, int rfd)
 			break;
 	}
 
+	free(headers);
 	shutdown(hc->conn_fd, SHUT_WR);
 }
 
