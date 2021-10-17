@@ -54,4 +54,4 @@ jobs:
           ~/tmp/sbin/merecat -h
       - name: Run tests
         run: |
-          make check
+          make check || (cat tests/test-suite.log; false)
