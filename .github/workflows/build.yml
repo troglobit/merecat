@@ -54,4 +54,5 @@ jobs:
           ~/tmp/sbin/merecat -h
       - name: Run tests
         run: |
-          make check || (cat tests/test-suite.log; false)
+          # Tests must currently not run in parallel
+          make -j1 check || (cat tests/test-suite.log; false)
