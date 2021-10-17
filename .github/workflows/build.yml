@@ -26,12 +26,8 @@ jobs:
     steps:
       - name: Install dependencies
         run: |
-          curl -sS https://deb.troglobit.com/pubkey.gpg | sudo apt-key add -
-          echo "deb [arch=amd64] https://deb.troglobit.com/debian stable main" \
-               | sudo tee /etc/apt/sources.list.d/troglobit.list
           sudo apt-get -y update
-          sudo apt-get -y install tree libuev-dev libite-dev libconfuse-dev \
-                          libssl-dev zlib1g-dev php-cgi
+          sudo apt-get -y install tree libconfuse-dev libssl-dev zlib1g-dev php-cgi
       - uses: actions/checkout@v2
       - name: Create configure script
         run: |
