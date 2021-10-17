@@ -15,7 +15,7 @@ jobs:
       contents: read
     env:
       MAKEFLAGS: -j3
-      IMAGE_NAME: mg
+      IMAGE_NAME: merecat
     steps:
       - uses: actions/checkout@v2
       - name: Build image
