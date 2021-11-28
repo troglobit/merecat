@@ -29,6 +29,7 @@
 
 #include <config.h>
 
+#include <stddef.h>
 #include <sys/types.h>
 #include <sys/param.h>
 #include <sys/stat.h>
@@ -4011,6 +4012,72 @@ static void post_post_garbage_hack(struct http_conn *hc)
 	httpd_read(hc, buf, sizeof(buf));
 }
 
+/* Normalize newlines from CGI to RFC3875 \r\n format, for details see
+** https://datatracker.ietf.org/doc/html/rfc3875#section-6.3.4
+*/
+static void cgi_normalize_newline(char **headers, size_t *headers_len, size_t *headers_size, size_t len)
+{
+	size_t i, j, buf_size;
+	int lf_count, was_cr;
+	char *buf;
+
+	/* If newline separating headers and body is "\n\n" correct it to. */
+	if (strncmp(&((*headers)[len]), "\n\n", 2) == 0)
+		len += 2;
+
+	/* Count \n without preceding \r in headers section */
+	was_cr = 0;
+	lf_count = 0;
+	for (i = 0; i < len; i++) {
+		switch ((*headers)[i]) {
+		case '\r':
+			was_cr = 1;
+			break;
+		case '\n':
+			if (!was_cr)
+				lf_count++;
+			/* fallthrough */
+		default:
+			was_cr = 0;
+			break;
+		}
+	}
+
+	if (lf_count == 0)
+		return;
+
+	/* Allocate memory accounting for newly inserted '\r'. */
+	buf_size = 0;
+	httpd_realloc_str(&buf, &buf_size, *headers_len + lf_count);
+
+	/* Copy headers and normalize all line endings as \r\n */
+	was_cr = 0;
+	for (i = 0, j = 0; i < len; i++, j++) {
+		switch ((*headers)[i]) {
+		case '\r':
+			buf[j] = (*headers)[i];
+			was_cr = 1;
+			break;
+		case '\n':
+			if (!was_cr)
+				buf[j++] = '\r';
+			/* fallthrough */
+		default:
+			buf[j] = (*headers)[i];
+			was_cr = 0;
+			break;
+		}
+	}
+
+	/* Copy rest of buffer after http headers. */
+	memcpy(&(buf[j]), &((*headers)[i]), *headers_len - len);
+
+	/* Replace old buffer with processed one and update sizes. */
+	free(*headers);
+	*headers_len += lf_count;
+	*headers_size = buf_size;
+	*headers = buf;
+}
 
 /* This routine is used for parsed-header CGIs.  The idea here is that the
 ** CGI can return special headers such as "Status:" and "Location:" which
@@ -4055,8 +4122,10 @@ static void cgi_interpose_output(struct http_conn *hc, int rfd)
 	}
 
 	/* If there were no headers, bail. */
-	if (headers[0] == '\0')
+	if (headers[0] == '\0') {
+		free(headers);
 		return;
+	}
 
 	/* Figure out the status.  Look for a Status: or Location: header;
 	** else if there's an HTTP header line, get it from there; else
@@ -4075,6 +4144,9 @@ static void cgi_interpose_output(struct http_conn *hc, int rfd)
 	} else if ((cp = strstr(headers, "Location:")) && cp < br && (cp == headers || *(cp - 1) == '\n')) {
 		status = 302;
 	}
+
+	/* Ensure newlines are RFC style \r\n, not just UNIX \n */
+	cgi_normalize_newline(&headers, &headers_len, &headers_size, br - headers);
 
 	/* Write the status line. */
 	switch (status) {
@@ -4134,6 +4206,7 @@ static void cgi_interpose_output(struct http_conn *hc, int rfd)
 			break;
 	}
 
+	free(headers);
 	shutdown(hc->conn_fd, SHUT_WR);
 }
 
