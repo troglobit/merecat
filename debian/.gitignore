@@ -1,8 +1,0 @@
-autoreconf.*
-debhelper-build-stamp
-files
-merecat.debhelper.log
-merecat.post*
-merecat.pre*
-merecat.substvars
-merecat/

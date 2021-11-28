@@ -21,10 +21,6 @@ doc:
 		cat www/footer.html >> $$out;				\
 	done
 
-## Generate .deb package
-package:
-	@dpkg-buildpackage -uc -us -B
-
 ## Generate MD5 checksum file
 MD5 = md5sum
 md5-dist:
