@@ -2,7 +2,7 @@ Merecat ∴ Embedded Web Server
 =============================
 [![License Badge][]][License] [![GitHub Status][]][GitHub] [![Coverity Status]][Coverity Scan]
 
-<img align="right" width="500" src="www/img/merecat.jpg">
+<img align="right" width="500" src="www/img/merecat.jpg" alt="http://imgur.com/user/SunShot">
 
 [Merecat][] started out as a pun at [Mongoose][], but is now useful for
 actual web serving purposes.  It is however not a real [Meerkat][],
