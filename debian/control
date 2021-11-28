@@ -1,7 +1,7 @@
 Source: merecat
 Section: web
 Priority: optional
-Maintainer: Joachim Nilsson <troglobit@gmail.com>
+Maintainer: Joachim Wiberg <troglobit@gmail.com>
 Build-Depends: debhelper (>= 10), systemd, pkg-config, libconfuse-dev, libssl-dev, zlib1g-dev
 Standards-Version: 4.3.0
 Homepage: https://merecat.troglobit.com

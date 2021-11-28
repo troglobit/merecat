@@ -1,6 +1,6 @@
 /* libConfuse based merecat.conf parser
 **
-** Copyright (C) 2016-2018  Joachim Nilsson <troglobit@gmail.com>
+** Copyright (C) 2016-2021  Joachim Wiberg <troglobit@gmail.com>
 ** All rights reserved.
 **
 ** Redistribution and use in source and binary forms, with or without

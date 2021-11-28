@@ -1,6 +1,6 @@
 /* lstat.c - lstat(2) replacement, requires POSIX fstatat(2)
 **
-** Copyright (C) 2019  Joachim Nilsson <troglobit@gmail.com>
+** Copyright (C) 2019-2021  Joachim Wiberg <troglobit@gmail.com>
 ** All rights reserved.
 **
 ** Redistribution and use in source and binary forms, with or without

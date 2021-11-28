@@ -1,7 +1,7 @@
 /* libhttpd.c - HTTP protocol library
 **
 ** Copyright (C) 1995-2015  Jef Poskanzer <jef@mail.acme.com>
-** Copyright (C) 2016-2018  Joachim Nilsson <troglobit@gmail.com>
+** Copyright (C) 2016-2021  Joachim Wiberg <troglobit@gmail.com>
 ** All rights reserved.
 **
 ** Redistribution and use in source and binary forms, with or without

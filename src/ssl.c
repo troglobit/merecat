@@ -1,6 +1,6 @@
 /* ssl.c - HTTPS support functions
 **
-** Copyright (C) 2017-2018  Joachim Nilsson <troglobit@gmail.com>
+** Copyright (C) 2017-2021  Joachim Wiberg <troglobit@gmail.com>
 ** All rights reserved.
 **
 ** Redistribution and use in source and binary forms, with or without

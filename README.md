@@ -326,7 +326,7 @@ the original [thttpd][] -- the tiny/turbo/throttling HTTP server.
 
 * [thttpd][] was created by Jef Poskanzer <mailto:jef@mail.acme.com>
 * [sthttpd][] was spawned by Anthony G. Basile <mailto:blueness@gentoo.org>
-* [Merecat][] is maintained by Joachim Nilsson <mailto:troglobit@gmail.com>
+* [Merecat][] is maintained by Joachim Wiberg <mailto:troglobit@gmail.com>
 
 [Merecat]:          https://merecat.troglobit.com
 [Meerkat]:          https://en.wikipedia.org/wiki/Meerkat
