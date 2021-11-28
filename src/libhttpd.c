@@ -26,7 +26,6 @@
 ** THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-
 #include <config.h>
 
 #include <stddef.h>
@@ -77,6 +76,7 @@
 #endif
 
 extern char *crypt(const char *key, const char *setting);
+extern FILE *tempfile(void);
 
 #include "base64.h"
 #include "file.h"
@@ -3562,7 +3562,7 @@ static int child_ls(struct http_conn *hc, DIR *dirp)
 	char *proto;
 	char *buf;
 
-	fp = tmpfile();
+	fp = tempfile();
 	if (!fp) {
 		syslog(LOG_ERR, "tmpfile: %s", strerror(errno));
 error:
