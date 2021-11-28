@@ -21,18 +21,49 @@ PKG_PROG_PKG_CONFIG
 
 # Checks for programs.
 AC_PROG_CC
-AC_PROG_LN_S
 AC_PROG_INSTALL
-AN_MAKEVAR([AR], [AC_PROG_AR])
-AN_PROGRAM([ar], [AC_PROG_AR])
-AC_DEFUN([AC_PROG_AR], [AC_CHECK_TOOL(AR, ar, :)])
-AC_PROG_AR
+AC_PROG_MAKE_SET
+AC_PROG_RANLIB
 
 # Checks for libraries.
 AC_CHECK_LIB(crypt, crypt)
 AC_CHECK_LIB(rt, clock_gettime)
 AC_CHECK_LIB(resolv, hstrerror)
 
+# Checks for header files.
+AC_CHECK_HEADERS([arpa/inet.h fcntl.h grp.h memory.h netdb.h netinet/in.h osreldate.h paths.h poll.h stddef.h stdlib.h string.h termios.h sys/devpoll.h sys/event.h sys/param.h sys/poll.h sys/socket.h sys/time.h syslog.h unistd.h])
+AC_CHECK_HEADER_STDBOOL
+AC_HEADER_TIME
+AC_HEADER_DIRENT
+
+AC_C_INLINE
+
+# Checks for typedefs, structures, and compiler characteristics.
+AC_TYPE_UID_T
+AC_TYPE_UINT8_T
+AC_TYPE_UINT16_T
+AC_TYPE_INT64_T
+AC_TYPE_MODE_T
+AC_TYPE_OFF_T
+AC_TYPE_PID_T
+AC_TYPE_SIZE_T
+AC_TYPE_SSIZE_T
+
+# Check for missing/broken API's, which we can replace, e.g. lib/lstat.c
+AC_REPLACE_FUNCS([strlcpy strlcat])
+AC_CONFIG_LIBOBJ_DIR([lib])
+
+# Checks for library functions.
+AC_FUNC_CHOWN
+AC_FUNC_FORK
+AC_FUNC_MMAP
+AC_FUNC_MALLOC
+AC_FUNC_REALLOC
+AC_FUNC_LSTAT_FOLLOWS_SLASHED_SYMLINK
+AC_FUNC_WAIT3
+AC_CHECK_FUNCS([alarm atexit atoll backtrace clock_gettime daemon dup2 gai_strerror getcwd getaddrinfo gethostbyname gethostname getnameinfo getpass gettimeofday hstrerror inet_ntoa isascii kqueue malloc memmove memset mkdir mmap munmap poll realpath select setenv setlogin setsid sigaction socket strcasecmp strchr strcspn strdup strerror strncasecmp strpbrk strrchr strspn strstr strtoul snprintf tzset waitpid])
+
+# Check for command line options
 AC_ARG_ENABLE(builtin-icons,
         AS_HELP_STRING([--enable-builtin-icons], [Enable built-in icons for dir listings]))
 
@@ -71,31 +102,6 @@ AC_ARG_WITH([symlinks],
 AC_ARG_WITH([zlib],
         AS_HELP_STRING([--without-zlib], [Disable mod_deflate (gzip) using zlib]),,
 	[with_zlib=auto])
-
-# Checks for header files.
-AC_CHECK_HEADERS([arpa/inet.h fcntl.h grp.h memory.h netdb.h netinet/in.h osreldate.h paths.h poll.h stdlib.h string.h sys/devpoll.h sys/event.h sys/param.h sys/poll.h sys/socket.h sys/time.h syslog.h unistd.h])
-AC_HEADER_TIME
-AC_HEADER_DIRENT
-AC_PROG_RANLIB
-
-# Checks for typedefs, structures, and compiler characteristics.
-AC_TYPE_UID_T
-AC_TYPE_INT64_T
-AC_TYPE_OFF_T
-AC_TYPE_PID_T
-AC_TYPE_SIZE_T
-AC_TYPE_SSIZE_T
-
-# Check for missing/broken API's, which we can replace, e.g. lib/lstat.c
-AC_REPLACE_FUNCS([strlcpy strlcat])
-AC_CONFIG_LIBOBJ_DIR([lib])
-
-# Checks for library functions.
-AC_FUNC_CHOWN
-AC_FUNC_FORK
-AC_FUNC_LSTAT_FOLLOWS_SLASHED_SYMLINK
-AC_FUNC_WAIT3
-AC_CHECK_FUNCS([alarm atoll backtrace clock_gettime daemon dup2 gai_strerror getcwd getaddrinfo gethostbyname gethostname getnameinfo getpass gettimeofday hstrerror inet_ntoa kqueue malloc memmove memset mkdir mmap munmap poll select setlogin setsid sigaction socket strcasecmp strchr strcspn strdup strerror strncasecmp strpbrk strrchr strspn strstr tzset snprintf waitpid])
 
 AS_IF([test "x$enable_builtin_icons" = "xyes"], [
         AC_DEFINE(BUILTIN_ICONS, [1], [Enables built-in icons for dir listings])])
