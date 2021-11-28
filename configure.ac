@@ -25,6 +25,7 @@ AC_PROG_LN_S
 AC_PROG_INSTALL
 AC_PROG_MAKE_SET
 AC_PROG_RANLIB
+m4_ifdef([AM_PROG_AR], [AM_PROG_AR])
 
 # Checks for libraries.
 AC_CHECK_LIB(crypt, crypt)
