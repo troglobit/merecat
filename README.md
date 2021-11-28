@@ -1,6 +1,6 @@
 Merecat ∴ Embedded Web Server
 =============================
-[![License Badge][]][License] [![Travis Status][]][Travis] [![Coverity Status]][Coverity Scan]
+[![License Badge][]][License] [![GitHub Status][]][GitHub] [![Coverity Status]][Coverity Scan]
 
 <img align="right" width="500" src="www/img/merecat.jpg">
 
@@ -340,7 +340,7 @@ the original [thttpd][] -- the tiny/turbo/throttling HTTP server.
 [sthttpd]:          https://github.com/blueness/sthttpd/
 [License]:          https://en.wikipedia.org/wiki/BSD_licenses
 [License Badge]:    https://img.shields.io/badge/License-BSD%202--Clause-orange.svg
-[Travis]:           https://travis-ci.org/troglobit/merecat
-[Travis Status]:    https://travis-ci.org/troglobit/merecat.png?branch=master
+[GitHub]:           https://github.com/troglobit/merecat/actions/workflows/build.yml/
+[GitHub Status]:    https://github.com/troglobit/merecat/actions/workflows/build.yml/badge.svg
 [Coverity Scan]:    https://scan.coverity.com/projects/18686
 [Coverity Status]:  https://scan.coverity.com/projects/18686/badge.svg
