@@ -1,10 +1,20 @@
 AC_PREREQ([2.68])
 AC_INIT([Merecat httpd], [2.32-rc4], [https://github.com/troglobit/merecat/issues], [merecat])
+AC_CONFIG_AUX_DIR(aux)
+AM_INIT_AUTOMAKE([1.11 foreign dist-xz])
+AM_SILENT_RULES([yes])
+
 AC_CONFIG_SRCDIR([src/libhttpd.c])
 AC_CONFIG_HEADERS([config.h])
-# Add this to automake init if parallel harness rules fails: serial-tests
-AM_INIT_AUTOMAKE([1.11 foreign no-dist-gzip dist-xz])
-AM_SILENT_RULES([yes])
+AC_CONFIG_FILES([Makefile
+                 merecat.service
+                 src/Makefile
+                 man/Makefile
+                 tests/Makefile
+                 www/Makefile
+                 www/cgi-bin/Makefile
+                 www/icons/Makefile]
+                 www/img/Makefile)
 
 # Use pkg-config to check for some deps; libConfuse, libssl
 PKG_PROG_PKG_CONFIG
@@ -185,15 +195,5 @@ SBINDIR=`eval echo $SBINDIR`
 AC_SUBST(SBINDIR)
 WWWDIR=`eval echo $WEBDIR`
 AC_SUBST(WWWDIR)
-
-AC_CONFIG_FILES([Makefile
-                 merecat.service
-                 src/Makefile
-                 man/Makefile
-                 tests/Makefile
-                 www/Makefile
-                 www/cgi-bin/Makefile
-                 www/icons/Makefile]
-                 www/img/Makefile)
 
 AC_OUTPUT
