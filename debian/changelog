@@ -1,0 +1,49 @@
+merecat (2.32) unstable; urgency=medium
+
+  * New upstream release:
+    - Support for HTTPS, self-signed certs and Let's Encrypt.  Works with
+      all features, including virtual hosts
+    - Support for running HTTP and HTTPS servers from one Merecat daemon
+    - Support for SSI, pattern matching to .shtml files
+    - Support for PHP, using php-cgi
+    - Support for HTTP/1.1 Keep-alive
+    - Support for HTTP redirect, to redirect from HTTP to HTTPS
+    - Support for server location directive, similar to nginx
+    - Added support for HTTP gzip compression, serves .gz files
+    - Skip .htpasswd (and .htaccess) in dir listings
+    - Allow SO_REUSEPORT, useful for load balancing
+    - Fix issue with leading double slash in URL, reported by Steve Kemp
+    - Fix issue with receiving a 403 page instead of 404 (no-symlink-check)
+    - Fix issue with HTML entities in directory listings
+    - Fix merecat.conf: commented out settings should be daemon defaults
+    - Built-in icons for FTP dir listings; folder, file, etc.
+    - Cute cat faviocon added
+    - Portability fixes
+
+ -- Joachim Nilsson <troglobit@gmail.com>  Tue, 07 Jul 2020 09:32:33 +0200
+
+merecat (2.31-3) unstable; urgency=low
+
+  * Fixes to landing page: layout, spelling, grammar, and helpful pointers
+    by Martin Olsson.
+
+ -- Joachim Nilsson <troglobit@gmail.com>  Mon,  6 Nov 2016 03:49:42 +0100
+
+merecat (2.31-2) unstable; urgency=low
+
+  * Fix spelling: Meerekat --> Meerkat, reported by Anders Bornäs.
+
+ -- Joachim Nilsson <troglobit@gmail.com>  Mon,  6 Nov 2016 01:03:42 +0100
+
+merecat (2.31-1) unstable; urgency=low
+
+  * New upstream release, for details see the ChangeLog at GitHub
+    https://github.com/troglobit/merecat/releases/tag/v2.31
+
+ -- Joachim Nilsson <troglobit@gmail.com>  Mon,  6 Nov 2016 00:56:42 +0100
+
+merecat (2.30-1) unstable; urgency=low
+
+  * Initial release.
+
+ -- Joachim Nilsson <troglobit@gmail.com>  Mon,  3 Nov 2016 06:59:42 +0100
