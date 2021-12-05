@@ -1,4 +1,4 @@
-merecat (2.32) unstable; urgency=medium
+merecat (2.32) stable; urgency=medium
 
   * New upstream release:
     - Support for HTTPS, self-signed certs and Let's Encrypt.  Works with
@@ -20,7 +20,7 @@ merecat (2.32) unstable; urgency=medium
     - Cute cat faviocon added
     - Portability fixes
 
- -- Joachim Nilsson <troglobit@gmail.com>  Tue, 07 Jul 2020 09:32:33 +0200
+ -- Joachim Wiberg <troglobit@gmail.com>  Sun, 05 Dec 2021 15:18:12 +0100
 
 merecat (2.31-3) unstable; urgency=low
 
