@@ -4,7 +4,7 @@ endif
 if HAVE_CONFUSE
 dist_man5_MANS = merecat.conf.5
 endif
-dist_man8_MANS = redirect.8 ssi.8 merecat.8
+dist_man8_MANS = merecat.8 ssi.8
 # in.httpd.8 
 SYMLINK        = httpd.8
 
