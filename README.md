@@ -1,5 +1,5 @@
-Merecat ∴ Embedded Web Server
-=============================
+Merecat httpd ∴ Embedded Web Server
+===================================
 [![License Badge][]][License] [![GitHub Status][]][GitHub] [![Coverity Status]][Coverity Scan]
 
 <img align="right" width="500" src="www/img/merecat.jpg" alt="http://imgur.com/user/SunShot">
@@ -9,8 +9,8 @@ actual web serving purposes.  It is however not a real [Meerkat][],
 merely yet another copycat, forked from the great [thttpd][] created by
 Jef&nbsp;Poskanzer.
 
-Merecat expands on the features originally offered by thttpd, but still
-has a limited feature set:
+Merecat httpd expands on the features originally offered by thttpd, but
+still has a limited feature set:
 
 - Virtual hosts
 - Basic `.htpassd` and `.htaccess` support
@@ -183,7 +183,7 @@ root@example:/var/www/> certbot certonly --webroot --webroot-path /var/lib/letse
 
 For a HowTo see:
 
-- https://troglobit.com/2019/06/HowTo-Set-up-Merecat-with-Lets-Encrypt-certificate/
+- https://troglobit.com/howtos/merecat-and-lets-encrypt/
 
 ### Self-signed Certificate
 
