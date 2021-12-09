@@ -12,16 +12,16 @@ Jef&nbsp;Poskanzer.
 Merecat httpd expands on the features originally offered by thttpd, but
 still has a limited feature set:
 
-- Virtual hosts
-- Basic `.htpassd` and `.htaccess` support
-- URL-traffic-based throttling
-- CGI/1.1
-- HTTP/1.1 Keep-alive
-- Built-in gzip deflate using zlib
-- HTTPS support using OpenSSL/LibreSSL, works with [Let's Encrypt][]!
-- Dual server support, both HTTP/HTTPS from one process
-- HTTP redirect, to gently redirect from HTTP server to HTTPS
-- Native PHP support, using `php-cgi` if enabled in `merecat.conf`
+ - Virtual hosts
+ - Basic `.htpassd` and `.htaccess` support
+ - URL-traffic-based throttling
+ - CGI/1.1
+ - HTTP/1.1 Keep-alive
+ - Built-in gzip deflate using zlib
+ - HTTPS support using OpenSSL/LibreSSL, works with [Let's Encrypt][]!
+ - Dual server support, both HTTP/HTTPS from one process
+ - HTTP redirect, to gently redirect from HTTP server to HTTPS
+ - Native PHP support, using `php-cgi` if enabled in `merecat.conf`
 
 The resulting footprint (~140 kiB) makes it quick and suitable for small
 and embedded systems!
@@ -29,6 +29,14 @@ and embedded systems!
 Merecat is available as free/open source software under the simplified
 2-clause [BSD license][license].  For more information, see the manual
 page `merecat(8)`, or the [FAQ][].
+
+The rest of this README covers some basic functions and recommendations.
+For more in-depth use-case examples, see the following HowTos:
+
+ - https://troglobit.com/howtos/merecat-basic-cig-in-c/
+ - https://troglobit.com/howtos/merecat-and-lets-encrypt/
+ - https://troglobit.com/howtos/merecat-and-ikiwiki/
+ - https://troglobit.com/howtos/merecat-and-cgit/
 
 
 Docker
