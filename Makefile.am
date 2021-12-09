@@ -13,7 +13,7 @@ endif
 
 ## Update html versions of man pages
 doc:
-	@for file in htpasswd.1 merecat.8 redirect.8 ssi.8; do		\
+	@for file in htpasswd.1 merecat.8 merecat.conf.5 ssi.8; do	\
 		out=www/$$file.html; 					\
 		sed "s/%TITLE%/$$file/"	< www/header.html > $$out;	\
 		mandoc -T html -O fragment -O man=%N.%S.html		\
