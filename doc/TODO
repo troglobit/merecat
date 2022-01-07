@@ -1,11 +1,5 @@
 - - - - - - - - - - before release - - - - - - - - - -
 
-- Test download of large files (toolchains times out?)
-
-  Not just large files.  Rather tiny files like 35MiB time out.
-  Tested with a few PDFs from my home directory ... and it even
-  lost the .pdf extension?
-
 - Add 'server' section to config file,
 
   server title {
