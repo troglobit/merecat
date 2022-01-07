@@ -417,10 +417,11 @@ void httpd_ssl_log_errors(void)
 
 ssize_t httpd_ssl_read(struct http_conn *hc, void *buf, size_t len)
 {
-	if (status(hc, SSL_read(hc->ssl, buf, len)))
+	int rc = SSL_read(hc->ssl, buf, len);
+	if (status(hc, rc))
 		return -1;
 
-	return len;
+	return rc;
 }
 
 ssize_t httpd_ssl_write(struct http_conn *hc, void *buf, size_t len)
