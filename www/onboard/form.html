@@ -1,0 +1,28 @@
+<html>
+<head/>
+<body>
+<h3>Welcome</h3>
+<p>
+Please provide information for SSH access.
+</p>
+
+<form action = "/cgi-bin/onboard_ask.py" method = "post">
+	Your preferred user name: <br/>
+	(Example: <i>rms</i>)<br/>
+	<input type = "text" name = "username"/>  <br/>
+	<br/>
+	Gecos, the fifth field in a <tt>/etc/passwd</tt> record: <br/>
+	(Example: <i>Richard M Stallman</i>)<br/>
+	(Example: <i>Richard M Stallman,room,phone,home phone,other</i>)<br/>
+	<input type = "text" name = "gecos"/> <br/>
+	<br/>
+	Public part of SSH key you gonna use: <br/>
+	<textarea name = "sshkey" cols = "72" rows = "6">
+something like
+cat ~/.ssh/id_algoritm.pub
+	</textarea> <br/>
+
+<input type = "submit" value = "Submit" />
+</form>
+<body>
+</html>

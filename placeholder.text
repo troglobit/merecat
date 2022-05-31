@@ -1,0 +1,7 @@
+# k:v, k:v, separator, line(s)
+username: ph
+gecos: Place Holder
+# SSH public key(s)
+No, not a SSH public key.
+Just a file to get the directory 'file' into git.
+Formatted as what the CGI-bin script does.
