@@ -1,0 +1,7 @@
+For Your Information
+
+This text file helps
+* to tell that CGI-bin/onboard_ask.py writes files in this directory
+* showing that created files are visible
+
+(And this file ensures that git is aware of the onboard/file/ directory.)
