@@ -1,6 +1,8 @@
 SUBDIRS                   = src www man tests
 doc_DATA                  = README.md LICENSE ChangeLog.md
 EXTRA_DIST                = README.md LICENSE ChangeLog.md throttle.conf merecat.conf
+EXTRA_DIST               += www/onboard/form.html www/onboard/file/FYI.text
+EXTRA_DIST               += www/cgi-bin/onboard_ask.py
 DISTCHECK_CONFIGURE_FLAGS = --with-systemd=$$dc_install_base/$(systemd)
 
 if HAVE_CONFUSE
