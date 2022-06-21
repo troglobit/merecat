@@ -16,6 +16,14 @@ echo
 echo 'Id:'
 id
 echo
+
+exit 0
+# That exit is to prevent that scanners
+#   report a **possible** vulnerablity
+# Comment out that exit to show
+# what is in the environment
+# and content of "post", if any.
+
 echo 'Env:'
 printenv
 echo
