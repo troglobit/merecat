@@ -63,7 +63,7 @@ static struct stat sb;
 static void read_file(char *vfilename, char *filename, FILE *fp);
 
 
-static void send_response(char *title, char *fmt, ...)
+static __attribute__ ((format (printf, 2, 3))) void send_response(char *title, char *fmt, ...)
 {
 	va_list ap;
 	char *srv, *host, *port;
