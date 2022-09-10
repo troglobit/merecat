@@ -13,8 +13,9 @@ AC_CONFIG_FILES([Makefile
                  tests/Makefile
                  www/Makefile
                  www/cgi-bin/Makefile
-                 www/icons/Makefile]
-                 www/img/Makefile)
+                 www/icons/Makefile
+                 www/img/Makefile
+                 www/onboard/Makefile])
 
 # Use pkg-config to check for some deps; libConfuse, libssl
 PKG_PROG_PKG_CONFIG
