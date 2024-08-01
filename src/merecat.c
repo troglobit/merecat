@@ -1361,7 +1361,7 @@ int main(int argc, char **argv)
 	int c;
 
 	ident = prognm = progname(argv[0]);
-	while ((c = getopt(argc, argv, "c:d:f:ghI:l:np:P:rsSu:vV")) != EOF) {
+	while ((c = getopt(argc, argv, "c:d:f:ghI:l:np:P:rsSt:u:vV")) != EOF) {
 		switch (c) {
 #ifndef HAVE_LIBCONFUSE
 		case 'c':
