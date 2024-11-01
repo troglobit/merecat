@@ -288,7 +288,7 @@ user@example:~/merecat/> sudo make install
 
 Cross compiling Merecat for an another target is possible by setting the
 `--host` flag to the configure script.  This is well documented in the
-[GNU Documentation][configure].  Note: ususally the `--build` system is
+[GNU Documentation][configure].  Note: usually the `--build` system is
 automatically detected.
 
 > Merecat builds are silent by default.  For detailed compiler output,
