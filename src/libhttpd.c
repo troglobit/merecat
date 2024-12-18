@@ -2659,7 +2659,7 @@ int httpd_parse_request(struct http_conn *hc)
 		}
 		*url = '\0';
 
-		if (strchr(reqhost, '/') || reqhost[0] == '.') {
+		if (reqhost[0] == '.') {
 			httpd_send_err(hc, 400, httpd_err400title, "", httpd_err400form, "4");
 			return -1;
 		}
