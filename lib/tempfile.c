@@ -19,7 +19,8 @@
 #include <paths.h>
 #include <fcntl.h>		/* O_TMPFILE requires -D_GNU_SOURCE */
 #include <stdio.h>		/* fdopen() */
-#include <stdlib.h>		/* mkostemp() */
+#include <stdlib.h>		/* mkstemp() */
+#include <unistd.h>   /* mkstemp() */
 #include <sys/stat.h>		/* umask() */
 
 static FILE *fallback(void)
@@ -27,10 +28,14 @@ static FILE *fallback(void)
 	char nm[15] = _PATH_TMP "XXXXXXXX";
 	int fd;
 
-	fd = mkostemp(nm, O_CLOEXEC);
+	fd = mkstemp(nm);
 	if (-1 == fd)
 		return NULL;
 
+	if (-1 == fcntl(fd, F_SETFD, FD_CLOEXEC)) {
+		close(fd);
+		return NULL;
+	}
 	return fdopen(fd, "w+");
 }
 

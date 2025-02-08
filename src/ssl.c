@@ -33,6 +33,9 @@
 #include <sys/uio.h>
 #include <unistd.h>
 
+#include <openssl/bio.h>
+#include <openssl/decoder.h>
+#include <openssl/dh.h>
 #include <openssl/ssl.h>
 #include <openssl/err.h>
 #include <openssl/x509.h>
@@ -155,6 +158,34 @@ error:
 	free(buf);
 }
 
+const DH *load_dh_params(FILE *fp)
+{
+    EVP_PKEY *pkey = NULL;
+    BIO *bio = BIO_new_fp(fp, BIO_NOCLOSE);
+    if (bio == NULL) {
+        syslog(LOG_ERR, "BIO_new_fp failed");
+        return NULL;
+    }
+
+    pkey = PEM_read_bio_Parameters(bio, NULL);
+    if (pkey == NULL) {
+        syslog(LOG_ERR, "PEM_read_bio_Parameters failed");
+        BIO_free(bio);
+        return NULL;
+    }
+    BIO_free(bio);
+
+    /* Extract the DH parameters from the EVP_PKEY.
+     * (Note: EVP_PKEY_get0_DH is deprecated in OpenSSL 3 but still available for now.)
+     */
+    const DH *dh = EVP_PKEY_get0_DH(pkey);
+    if (dh == NULL) {
+        syslog(LOG_ERR, "EVP_PKEY_get0_DH failed");
+    }
+    EVP_PKEY_free(pkey);
+    return dh;
+}
+
 void *httpd_ssl_init(char *cert, char *key, char *dhparm, char *proto, char *ciphers)
 {
 	SSL_CTX *ctx;
@@ -224,7 +255,6 @@ void *httpd_ssl_init(char *cert, char *key, char *dhparm, char *proto, char *cip
 
 	if (dhparm) {
 		FILE *fp;
-		DH *dh = NULL;
 
 		fp = fopen(dhparm, "r");
 		if (!fp) {
@@ -233,7 +263,7 @@ void *httpd_ssl_init(char *cert, char *key, char *dhparm, char *proto, char *cip
 			return ctx;
 		}
 
-		dh = PEM_read_DHparams(fp, NULL, NULL, NULL);
+		const DH *dh = load_dh_params(fp);
 		fclose(fp);
 		if (!dh || SSL_CTX_set_tmp_dh(ctx, dh) != 1)
 			httpd_ssl_log_errors();

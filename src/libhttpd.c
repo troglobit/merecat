@@ -3170,13 +3170,10 @@ static struct mime_entry typ_tab[] = {
 
 static const int n_typ_tab = sizeof(typ_tab) / sizeof(*typ_tab);
 
-
-/* qsort comparison routine - declared old-style on purpose, for portability. */
-static int ext_compare(a, b)
-struct mime_entry *a;
-struct mime_entry *b;
+/* qsort comparison routine */
+static int ext_compare(const void *a, const void *b)
 {
-	return strcmp(a->ext, b->ext);
+	return strcmp(((struct mime_entry *)a)->ext, ((struct mime_entry *)b)->ext);
 }
 
 static int mime_bsearch(struct http_conn *hc, char *ext, size_t ext_len)
@@ -3380,12 +3377,10 @@ static int is_reserved_htfile(const char *fn)
 	return 0;
 }
 
-/* qsort comparison routine - declared old-style on purpose, for portability. */
-static int name_compare(a, b)
-char **a;
-char **b;
+/* qsort comparison routine */
+static int name_compare(const void *a, const void *b)
 {
-	return strcmp(*a, *b);
+	return strcmp(*(char **)a, *(char **)b);
 }
 
 static int child_ls_read_names(struct http_conn *hc, DIR *dirp, FILE *fp, int onlydir)
