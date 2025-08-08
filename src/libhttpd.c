@@ -1011,12 +1011,6 @@ send_mime(struct http_conn *hc, int status, char *title, char *encodings,
 		if (content_encoding(hc, encodings, buf, sizeof(buf)))
 			add_response(hc, buf);
 
-		s100 = status / 100;
-		if (s100 != 2 && s100 != 3) {
-			snprintf(buf, sizeof(buf), "Cache-Control: no-cache,no-store\r\n");
-			add_response(hc, buf);
-		}
-
 		/* EntityTag -- https://en.wikipedia.org/wiki/HTTP_ETag */
 		if (hc->file_address) {
 			uint8_t dig[MD5_DIGEST_LENGTH];
@@ -1031,9 +1025,15 @@ send_mime(struct http_conn *hc, int status, char *title, char *encodings,
 				 dig[8], dig[9], dig[10], dig[11], dig[12], dig[13], dig[14], dig[15]);
 		}
 
+		s100 = status / 100;
+		if (s100 != 2 && s100 != 3) {
+			/* add "Cache-Control: no-cache,no-store" below */
+			hc->hs->max_age = 0;
+		}
+
 		if (hc->hs->max_age >= 0) {
 			if (hc->hs->max_age == 0)
-				snprintf(buf, sizeof(buf), "Cache-Control: no-cache,no-stored\r\n");
+				snprintf(buf, sizeof(buf), "Cache-Control: no-cache,no-store\r\n");
 			else
 				snprintf(buf, sizeof(buf), "Cache-Control: max-age=%d\r\n%s", hc->hs->max_age, etagbuf);
 			add_response(hc, buf);
