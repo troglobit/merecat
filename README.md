@@ -21,6 +21,7 @@ still has a limited feature set:
  - HTTPS support using OpenSSL/LibreSSL, works with [Let's Encrypt][]!
  - Dual server support, both HTTP/HTTPS from one process
  - HTTP redirect, to gently redirect from HTTP server to HTTPS
+ - Reverse proxy (`proxy-pass`), to front local app servers like nginx does
  - Native PHP support, using `php-cgi` if enabled in `merecat.conf`
 
 The resulting footprint (~140 kiB) makes it quick and suitable for small

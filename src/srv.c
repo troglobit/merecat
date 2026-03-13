@@ -205,6 +205,9 @@ struct httpd *srv_init(struct srv *srv)
 	for (i = 0; i < NELEMS(srv->location); i++)
 		httpd_location_add(hs, srv->location[i].pattern, srv->location[i].path);
 
+	for (i = 0; i < NELEMS(srv->proxy); i++)
+		httpd_proxy_add(hs, srv->proxy[i].pattern, srv->proxy[i].backend);
+
 	if (httpd_listen(hs, gotv4 ? &sa4 : NULL, gotv6 ? &sa6 : NULL))
 		goto err;
 

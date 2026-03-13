@@ -31,6 +31,7 @@
 
 #define MAX_REDIRECTS 2
 #define MAX_LOCATIONS 2
+#define MAX_PROXIES   8
 
 struct srv {
 	char      *title;
@@ -57,6 +58,12 @@ struct srv {
 
 		char *path;	/* Path to use for matching requests */
 	} location[MAX_LOCATIONS];
+
+	struct {
+		char *pattern;	/* Pattern to match() against */
+
+		char *backend;	/* Backend URL, e.g. "http://localhost:3000" */
+	} proxy[MAX_PROXIES];
 };
 
 struct httpd *srv_init   (struct srv *srv);

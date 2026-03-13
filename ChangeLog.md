@@ -4,6 +4,27 @@ Change Log
 All relevant changes are documented in this file.
 
 
+[v2.33][UNRELEASED]
+-------------------
+
+### Changes
+- Add reverse proxy support (`proxy-pass`), similar to nginx `proxy_pass`.
+  Front local application servers (Node.js, Python, Go, etc.) with Merecat
+  acting as the TLS-terminating entry point.  Configure in `merecat.conf`:
+
+      server default {
+          proxy-pass "/api/**" {
+              backend = "http://localhost:3000"
+          }
+      }
+
+  The backend hostname is resolved at startup.  Forwarded requests include
+  `X-Forwarded-For`, `X-Real-IP`, and `X-Forwarded-Proto` headers.  When
+  the backend URL carries a path component, the matched URL prefix is
+  stripped before forwarding (nginx-style path rewriting).  Up to 8 rules
+  are supported per server block.  Closes #20
+
+
 [v2.32][UNRELEASED]
 -------------------
 

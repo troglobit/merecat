@@ -122,6 +122,19 @@ struct http_location {
 	char  *path;
 };
 
+/* A proxy-pass rule. */
+struct http_proxy {
+	struct http_proxy *prev, *next;
+
+	char          *pattern;  /* URL pattern to match against request URL */
+	char          *backend;  /* Full backend URL (original config string) */
+	char          *host;     /* Backend hostname (parsed, owned) */
+	uint16_t       port;     /* Backend port */
+	char          *path;     /* Backend URL path prefix (parsed, owned) */
+	struct in_addr addr;     /* Pre-resolved backend IPv4 address */
+	int            resolved; /* Whether addr is valid */
+};
+
 /* A server. */
 struct httpd {
 	struct httpd *prev, *next;
@@ -161,6 +174,7 @@ struct httpd {
 
 	struct http_redir *redirect;
 	struct http_location *location;
+	struct http_proxy *proxy;
 
 	void *ctx;		/* Opaque SSL_CTX* */
 };
@@ -285,6 +299,12 @@ extern int httpd_redirect_add(struct httpd *hs, int code, char *pattern, char *l
 /* Server location matching, overrides httpd cwd on match  */
 extern int httpd_location_add(struct httpd *hs, char *pattern, char *path);
 
+/* Enable HTTP reverse proxy -- Note: O(n) lookup per HTTP request */
+extern int httpd_proxy_add(struct httpd *hs, char *pattern, char *backend);
+
+/* Match request URL against proxy rules.  Returns matching rule, or NULL. */
+extern struct http_proxy *httpd_proxy_match(struct http_conn *hc);
+
 /* Start httpd */
 extern int httpd_listen(struct httpd *hs, sockaddr_t *sav4, sockaddr_t *sav6);
 
@@ -373,6 +393,8 @@ extern char *httpd_err400title;
 extern char *httpd_err400form;
 extern char *httpd_err408title;
 extern char *httpd_err408form;
+extern char *httpd_err502title;
+extern char *httpd_err502form;
 extern char *httpd_err503title;
 extern char *httpd_err503form;
 

@@ -414,6 +414,116 @@ void httpd_location_free(struct httpd *hs)
 		free(loc);
 }
 
+/*
+** Initialize HTTP reverse proxy rules.  The backend URL is resolved at
+** startup to avoid blocking DNS lookups during request handling.
+**/
+int httpd_proxy_add(struct httpd *hs, char *pattern, char *backend)
+{
+	struct http_proxy *pr;
+	struct addrinfo hints, *res;
+	const char *ptr;
+	char hostbuf[256];
+	char portstr[8];
+	int n;
+
+	if (!hs || !pattern || !backend) {
+		errno = EINVAL;
+		return -1;
+	}
+
+	pr = NEW(struct http_proxy, 1);
+	if (!pr)
+		return -1;
+
+	pr->pattern  = pattern;
+	pr->backend  = backend;
+	pr->port     = 80;
+	pr->resolved = 0;
+
+	/* Parse backend URL: http://host[:port][/path] */
+	ptr = backend;
+	if (strncasecmp(ptr, "http://", 7) == 0)
+		ptr += 7;
+
+	/* Extract hostname (up to ':' or '/' or end) */
+	n = (int)strcspn(ptr, ":/");
+	if (n >= (int)sizeof(hostbuf))
+		n = (int)sizeof(hostbuf) - 1;
+	strncpy(hostbuf, ptr, n);
+	hostbuf[n] = '\0';
+	pr->host = strdup(hostbuf);
+	if (!pr->host)
+		goto err;
+	ptr += n;
+
+	/* Extract port if present */
+	if (*ptr == ':') {
+		ptr++;
+		pr->port = (uint16_t)atoi(ptr);
+		ptr += strspn(ptr, "0123456789");
+		if (!pr->port)
+			pr->port = 80;
+	}
+
+	/* Extract path prefix (everything remaining) */
+	if (*ptr == '/')
+		pr->path = strdup(ptr);
+	else
+		pr->path = strdup("/");
+	if (!pr->path)
+		goto err;
+
+	/* Pre-resolve the backend hostname to avoid blocking at request time */
+	memset(&hints, 0, sizeof(hints));
+	hints.ai_family   = AF_INET;
+	hints.ai_socktype = SOCK_STREAM;
+	snprintf(portstr, sizeof(portstr), "%u", pr->port);
+	if (getaddrinfo(pr->host, portstr, &hints, &res) == 0) {
+		pr->addr     = ((struct sockaddr_in *)res->ai_addr)->sin_addr;
+		pr->resolved = 1;
+		freeaddrinfo(res);
+	} else {
+		syslog(LOG_ERR, "proxy-pass: cannot resolve backend host '%s'", pr->host);
+	}
+
+	LIST_INSERT(pr, hs->proxy);
+	return 0;
+err:
+	free(pr->host);
+	free(pr);
+	return -1;
+}
+
+void httpd_proxy_free(struct httpd *hs)
+{
+	struct http_proxy *pr;
+
+	LIST_FOREACH(pr, hs->proxy) {
+		free(pr->host);
+		free(pr->path);
+		free(pr);
+	}
+}
+
+/*
+** Match the request URL against configured proxy rules.
+** Returns the first matching rule, or NULL if no match.
+*/
+struct http_proxy *httpd_proxy_match(struct http_conn *hc)
+{
+	struct http_proxy *pr;
+
+	LIST_FOREACH(pr, hc->hs->proxy) {
+		if (!pr->backend)
+			continue;
+		if (match(pr->pattern, hc->encodedurl))
+			return pr;
+	}
+
+	return NULL;
+}
+
 /* Initialize listen sockets.  Try v6 first because of a Linux peculiarity;
 ** like some other systems, it has magical v6 sockets that also listen for
 ** v4, but in Linux if you bind a v4 socket first then the v6 bind fails.
@@ -616,6 +726,7 @@ void httpd_exit(struct httpd *hs)
 	httpd_unlisten(hs);
 	httpd_redirect_free(hs);
 	httpd_location_free(hs);
+	httpd_proxy_free(hs);
 	free_httpd_server(hs);
 }
 
@@ -687,6 +798,9 @@ static char *err500form = "There was an unusual problem serving the requested UR
 
 static char *err501title = "Not Implemented";
 static char *err501form = "The requested method '%s' is not implemented by this server.\n";
+
+char *httpd_err502title = "Bad Gateway";
+char *httpd_err502form = "The proxy failed to connect to the upstream server for the URL '%s'.\n";
 
 char *httpd_err503title = "Service Temporarily Overloaded";
 char *httpd_err503form = "The requested URL '%s' is temporarily overloaded.  Please try again later.\n";
