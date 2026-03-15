@@ -10,21 +10,15 @@ on:
 
 jobs:
   build-deb:
-    name: ubuntu-24.04
+    name: Build .deb package
     runs-on: ubuntu-latest
-    container:
-      image: ubuntu:24.04
-    env:
-      DEBIAN_FRONTEND: noninteractive
     steps:
+      - uses: actions/checkout@v6
       - name: Install build dependencies
         run: |
-          apt-get -y update
-          apt-get -y install git devscripts equivs
-      - uses: actions/checkout@v6
-      - name: Install package build dependencies
-        run: |
-          mk-build-deps --install --remove --tool "apt-get -y --no-install-recommends" debian/control
+          sudo apt-get -y update
+          sudo apt-get -y install devscripts equivs
+          sudo mk-build-deps --install --remove --tool "apt-get -y --no-install-recommends" debian/control
       - name: Build .deb package
         run: |
           dpkg-buildpackage -us -uc -b
@@ -35,5 +29,5 @@ jobs:
       - name: Upload artifact
         uses: actions/upload-artifact@v6
         with:
-          name: merecat-deb-ubuntu-24.04
+          name: merecat-deb-ubuntu-latest
           path: ../merecat_*.deb
