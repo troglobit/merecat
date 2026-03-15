@@ -1,0 +1,41 @@
+name: Deb Package Builder
+
+on:
+  push:
+    branches:
+      - debian
+  pull_request:
+    branches:
+      - debian
+
+jobs:
+  build-deb:
+    name: ubuntu-${{ matrix.distro }}
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        distro: ['22.04', '24.04']
+      fail-fast: false
+    container:
+      image: ubuntu:${{ matrix.distro }}
+    steps:
+      - name: Install build dependencies
+        run: |
+          apt-get -y update
+          apt-get -y install git devscripts equivs
+      - uses: actions/checkout@v4
+      - name: Install package build dependencies
+        run: |
+          mk-build-deps --install --remove --tool "apt-get -y --no-install-recommends" debian/control
+      - name: Build .deb package
+        run: |
+          dpkg-buildpackage -us -uc -b
+      - name: Inspect package
+        run: |
+          dpkg-deb --info ../merecat_*.deb
+          dpkg-deb --contents ../merecat_*.deb
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: merecat-deb-ubuntu-${{ matrix.distro }}
+          path: ../merecat_*.deb
