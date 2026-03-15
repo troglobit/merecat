@@ -21,13 +21,15 @@ jobs:
           sudo mk-build-deps --install --remove --tool "apt-get -y --no-install-recommends" debian/control
       - name: Build .deb package
         run: |
+          mkdir debs
           dpkg-buildpackage -us -uc -b
+          mv ../merecat_*.deb debs/
       - name: Inspect package
         run: |
-          dpkg-deb --info ../merecat_*.deb
-          dpkg-deb --contents ../merecat_*.deb
+          dpkg-deb --info debs/merecat_*.deb
+          dpkg-deb --contents debs/merecat_*.deb
       - name: Upload artifact
         uses: actions/upload-artifact@v6
         with:
           name: merecat-deb-ubuntu-latest
-          path: ../merecat_*.deb
+          path: debs/merecat_*.deb
