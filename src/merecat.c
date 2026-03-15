@@ -906,7 +906,13 @@ static int proxy_start(connecttab *c, struct timeval *tv)
 		free(c->proxy_resp); c->proxy_resp = NULL;
 		return -1;
 	}
-	httpd_set_ndelay(fd);
+	if (httpd_set_ndelay(fd) < 0) {
+		syslog(LOG_ERR, "proxy-pass: failed setting non-blocking on socket: %s", strerror(errno));
+		close(fd);
+		free(c->proxy_req);  c->proxy_req  = NULL;
+		free(c->proxy_resp); c->proxy_resp = NULL;
+		return -1;
+	}
 
 	memset(&sa, 0, sizeof(sa));
 	sa.sin_family = AF_INET;

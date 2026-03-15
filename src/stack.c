@@ -65,9 +65,10 @@ void stack_trace(void)
 	char exec[256] = { 0 };
 	int i, rc, len;
 
-	rc = readlink("/proc/self/exe", exec, sizeof(exec));
+	rc = readlink("/proc/self/exe", exec, sizeof(exec) - 1);
 	if (-1 == rc)
 		return;
+	exec[rc] = '\0';
 
 	len = backtrace(trace, NELEMS(trace));
 	messages = backtrace_symbols(trace, len);

@@ -771,7 +771,8 @@ static int initialize_listen_socket(sockaddr_t *sa)
 #ifdef TCP_DEFER_ACCEPT
 	{
 		int timeout = 1;
-		setsockopt(listen_fd, IPPROTO_TCP, TCP_DEFER_ACCEPT, &timeout, sizeof(timeout));
+		if (setsockopt(listen_fd, IPPROTO_TCP, TCP_DEFER_ACCEPT, &timeout, sizeof(timeout)) < 0)
+			syslog(LOG_WARNING, "Failed setting TCP_DEFER_ACCEPT: %s", strerror(errno));
 	}
 #endif
 
