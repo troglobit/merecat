@@ -1,6 +1,6 @@
 SUBDIRS                   = src www man tests
 doc_DATA                  = README.md LICENSE ChangeLog.md
-EXTRA_DIST                = README.md LICENSE ChangeLog.md throttle.conf merecat.conf
+EXTRA_DIST                = README.md LICENSE ChangeLog.md throttle.conf merecat.conf preview.sh
 DISTCHECK_CONFIGURE_FLAGS = --with-systemd=$$dc_install_base/$(systemd)
 
 if HAVE_CONFUSE
@@ -10,6 +10,10 @@ endif
 if HAVE_SYSTEMD
 systemd_DATA              = merecat.service
 endif
+
+## Preview default landing page using the local build
+preview:
+	@-sh preview.sh $(PORT)
 
 ## Update html versions of man pages
 doc:
