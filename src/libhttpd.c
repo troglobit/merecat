@@ -883,9 +883,17 @@ void httpd_send_response(struct http_conn *hc)
 	if (sub_process)
 		(void)httpd_clear_ndelay(hc->conn_fd);
 
-	/* Send the response, if necessary. */
-	if (hc->responselen > 0) {
+	/* Log the completed request.  We do this unconditionally here rather
+	 * than inside the responselen block below because for 200 file responses
+	 * the headers are sent inline with the file body via writev() in
+	 * handle_send(), which zeros responselen before finish_connection() calls
+	 * us.  Guarding on status != 0 prevents logging for idle keep-alive
+	 * connections that have not yet received a request. */
+	if (hc->status != 0)
 		make_log_entry(hc);
+
+	/* Send any buffered response (error pages, redirects, etc.). */
+	if (hc->responselen > 0) {
 		httpd_write(hc, hc->response, hc->responselen);
 		hc->responselen = 0;
 	}
