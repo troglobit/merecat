@@ -97,6 +97,9 @@ compression using zlib.
 - Enable `SO_REUSEPORT` if available, useful for load balancing
 
 ### Fixes
+- Fix `.htaccess` allow/deny rules not working on dual-stack IPv6 systems.
+  `allow from <ip>` never matched any client, effectively making access
+  control files always deny all traffic
 - Fix `Cache-Control` header being emitted twice for error responses
   (4xx/5xx) when `max-age` is set.  Also correct a typo: `no-stored`
   → `no-store`.  Thanks to Ángel (Keisial)

@@ -1458,6 +1458,8 @@ static int access_check2(struct http_conn *hc, char *dir)
 
 	/* Read it. */
 	while (fgets(line, sizeof(line), fp)) {
+		struct in_addr client_addr;
+
 		/* Nuke newline. */
 		l = strlen(line);
 		if (line[l - 1] == '\n') line[l - 1] = '\0';
@@ -1506,10 +1508,17 @@ static int access_check2(struct http_conn *hc, char *dir)
 			goto err;
 
 		/*
-		 * Does client addr match this rule?
-		 * TODO: Generalize and add IPv6 support
+		 * Use the pre-resolved address string rather than the raw
+		 * sockaddr union: on dual-stack IPv6 sockets sin.sin_addr
+		 * overlaps sin6_flowinfo (offset 4), not the actual address
+		 * (offset 8).  httpd_ntoa() already strips the ::ffff: prefix
+		 * from IPv4-mapped addresses, so inet_aton() gives the right
+		 * IPv4 value.  Pure IPv6 clients won't match IPv4 rules.
 		 */
-		if ((hc->client.sin.sin_addr.s_addr & ipv4_mask.s_addr) ==
+		if (!inet_aton(hc->client.address, &client_addr))
+			continue; /* IPv6 client, skip IPv4 rule */
+
+		if ((client_addr.s_addr & ipv4_mask.s_addr) ==
 		    (ipv4_addr.s_addr & ipv4_mask.s_addr)) {
 			/* Yes. */
 			switch (line[0]) {
