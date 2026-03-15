@@ -1,6 +1,6 @@
-merecat (2.32) stable; urgency=medium
+merecat (3.00-rc1) unstable; urgency=medium
 
-  * New upstream release:
+  * New upstream release candidate:
     - Support for HTTPS, self-signed certs and Let's Encrypt.  Works with
       all features, including virtual hosts
     - Support for running HTTP and HTTPS servers from one Merecat daemon
@@ -19,8 +19,15 @@ merecat (2.32) stable; urgency=medium
     - Built-in icons for FTP dir listings; folder, file, etc.
     - Cute cat faviocon added
     - Portability fixes
+    - Reverse proxy support with path prefix rewriting and proxy-redirect
+    - Cache-Control header fixes, no longer caches error responses
+    - CGI setenv: inject custom environment variables into CGI programs
+    - Fix missing access log entries for successful (200) file responses
+    - Fix empty POST body in CGI when running as daemon (fd 0-2 reuse)
+    - IPv6 fallback: continue with IPv4 when IPv6 socket is unavailable
+    - OpenSSL 3 support, fix DH params loading (use SSL_CTX_set0_tmp_dh_pkey)
 
- -- Joachim Wiberg <troglobit@gmail.com>  Sun, 05 Dec 2021 15:18:12 +0100
+ -- Joachim Wiberg <troglobit@gmail.com>  Sat, 15 Mar 2026 00:00:00 +0100
 
 merecat (2.31-3) unstable; urgency=low
 
