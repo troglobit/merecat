@@ -122,6 +122,23 @@ struct http_location {
 	char  *path;
 };
 
+/* A proxy-pass rule. */
+struct http_proxy {
+	struct http_proxy *prev, *next;
+
+	char          *pattern;      /* URL pattern to match against request URL */
+	char          *vhost;        /* Optional Host: filter for multihoming (owned) */
+	char          *backend;      /* Full backend URL (original config string) */
+	char          *host;         /* Backend hostname (parsed, owned) */
+	uint16_t       port;         /* Backend port */
+	char          *path;         /* Backend URL path prefix (parsed, owned) */
+	int            strip_prefix; /* Strip matched URL prefix before forwarding */
+	char          *redirect_from;/* Rewrite Location/Refresh: replace this prefix ... */
+	char          *redirect_to;  /* ... with this prefix (both NULL = disabled) */
+	struct in_addr addr;         /* Pre-resolved backend IPv4 address */
+	int            resolved;     /* Whether addr is valid */
+};
+
 /* A server. */
 struct httpd {
 	struct httpd *prev, *next;
@@ -135,6 +152,8 @@ struct httpd {
 	char  *cgi_pattern;
 	int    cgi_limit;
 	int    cgi_count;
+	char **cgi_setenv;	/* Extra environment variables for CGI children */
+	int    cgi_setenv_len;
 
 	char *php_cgi;
 	char *php_pattern;
@@ -161,6 +180,7 @@ struct httpd {
 
 	struct http_redir *redirect;
 	struct http_location *location;
+	struct http_proxy *proxy;
 
 	void *ctx;		/* Opaque SSL_CTX* */
 };
@@ -277,13 +297,19 @@ extern struct httpd *httpd_init(char *hostname, unsigned short port, void *ssl_c
 				int no_empty_referers, int list_dotfiles);
 
 /* Enable CGI/1.1 support */
-extern int httpd_cgi_init(struct httpd *hs, int enabled, char *cgi_pattern, int cgi_limit);
+extern int httpd_cgi_init(struct httpd *hs, int enabled, char *cgi_pattern, int cgi_limit, char **setenv, int setenv_len);
 
 /* Enable HTTP redirect -- Note: O(n) lookup per HTTP request */
 extern int httpd_redirect_add(struct httpd *hs, int code, char *pattern, char *location);
 
 /* Server location matching, overrides httpd cwd on match  */
 extern int httpd_location_add(struct httpd *hs, char *pattern, char *path);
+
+/* Enable HTTP reverse proxy -- Note: O(n) lookup per HTTP request */
+extern int httpd_proxy_add(struct httpd *hs, char *pattern, char *vhost, char *backend, char *redirect);
+
+/* Match request URL against proxy rules.  Returns matching rule, or NULL. */
+extern struct http_proxy *httpd_proxy_match(struct http_conn *hc);
 
 /* Start httpd */
 extern int httpd_listen(struct httpd *hs, sockaddr_t *sav4, sockaddr_t *sav6);
@@ -373,6 +399,8 @@ extern char *httpd_err400title;
 extern char *httpd_err400form;
 extern char *httpd_err408title;
 extern char *httpd_err408form;
+extern char *httpd_err502title;
+extern char *httpd_err502form;
 extern char *httpd_err503title;
 extern char *httpd_err503form;
 

@@ -194,7 +194,7 @@ struct httpd *srv_init(struct srv *srv)
 	if (!hs)
 		goto err;
 
-	if (httpd_cgi_init(hs, cgi_enabled, cgi_pattern, cgi_limit))
+	if (httpd_cgi_init(hs, cgi_enabled, cgi_pattern, cgi_limit, cgi_setenv, cgi_setenv_len))
 		goto release;
 
 	for (i = 0; i < NELEMS(srv->redirect); i++)
@@ -204,6 +204,10 @@ struct httpd *srv_init(struct srv *srv)
 
 	for (i = 0; i < NELEMS(srv->location); i++)
 		httpd_location_add(hs, srv->location[i].pattern, srv->location[i].path);
+
+	for (i = 0; i < NELEMS(srv->proxy); i++)
+		httpd_proxy_add(hs, srv->proxy[i].pattern, srv->proxy[i].vhost,
+				srv->proxy[i].backend, srv->proxy[i].redirect);
 
 	if (httpd_listen(hs, gotv4 ? &sa4 : NULL, gotv6 ? &sa6 : NULL))
 		goto err;

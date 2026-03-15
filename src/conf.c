@@ -58,12 +58,24 @@ static void conf_errfunc(cfg_t *cfg, const char *format, va_list args)
 
 static void conf_cgi(cfg_t *cfg)
 {
+	size_t i, n;
+
 	if (!cfg)
 		return;
 
 	cgi_pattern = (char *)cfg_title(cfg);
 	cgi_enabled = cfg_getbool(cfg, "enabled");
 	cgi_limit   = cfg_getint(cfg, "limit");
+
+	n = cfg_size(cfg, "setenv");
+	if (n > 0) {
+		cgi_setenv = malloc(n * sizeof(char *));
+		if (!cgi_setenv)
+			return;
+		for (i = 0; i < n; i++)
+			cgi_setenv[i] = cfg_getnstr(cfg, "setenv", i);
+		cgi_setenv_len = (int)n;
+	}
 }
 
 static void conf_php(cfg_t *cfg)
@@ -134,6 +146,24 @@ static void conf_srv_location(struct srv *srv, cfg_t *cfg)
 	}
 }
 
+static void conf_srv_proxy(struct srv *srv, cfg_t *cfg)
+{
+	size_t i;
+
+	for (i = 0; i < cfg_size(cfg, "proxy-pass") && i < NELEMS(srv->proxy); i++) {
+		cfg_t *proxy;
+
+		proxy = cfg_getnsec(cfg, "proxy-pass", i);
+		if (!proxy)
+			return;
+
+		srv->proxy[i].pattern  = (char *)cfg_title(proxy);
+		srv->proxy[i].vhost    = cfg_getstr(proxy, "host");
+		srv->proxy[i].backend  = cfg_getstr(proxy, "backend");
+		srv->proxy[i].redirect = cfg_getstr(proxy, "proxy-redirect");
+	}
+}
+
 static void conf_ssl(struct srv *srv, cfg_t *cfg)
 {
 	cfg_t *ssl;
@@ -198,6 +228,7 @@ int conf_srv(struct srv arr[], size_t len)
 		conf_ssl(&arr[i], srv);
 		conf_redirect(&arr[i], srv);
 		conf_srv_location(&arr[i], srv);
+		conf_srv_proxy(&arr[i], srv);
 	}
 
 	return (int)i;
@@ -209,14 +240,21 @@ static int read_config(char *fn)
 		CFG_STR ("path", NULL, CFGF_NONE),
 		CFG_END ()
 	};
+	cfg_opt_t proxy_opts[] = {
+		CFG_STR ("host",           NULL, CFGF_NONE),
+		CFG_STR ("backend",        NULL, CFGF_NONE),
+		CFG_STR ("proxy-redirect", NULL, CFGF_NONE),
+		CFG_END ()
+	};
 	cfg_opt_t redirect_opts[] = {
 		CFG_STR ("location", NULL, CFGF_NONE),
 		CFG_INT ("code", 301, CFGF_NONE),
 		CFG_END ()
 	};
 	cfg_opt_t cgi_opts[] = {
-		CFG_BOOL("enabled", 0, CFGF_NONE),
-		CFG_INT ("limit", cgi_limit, CFGF_NONE),
+		CFG_BOOL    ("enabled", 0, CFGF_NONE),
+		CFG_INT     ("limit", cgi_limit, CFGF_NONE),
+		CFG_STR_LIST("setenv", NULL, CFGF_NONE),
 		CFG_END ()
 	};
 	cfg_opt_t php_opts[] = {
@@ -241,12 +279,13 @@ static int read_config(char *fn)
 		CFG_END ()
 	};
 	cfg_opt_t server_opts[] = {
-		CFG_STR ("hostname", hostname, CFGF_NONE),
-		CFG_INT ("port",     port, CFGF_NONE),
-		CFG_STR ("path",     path, CFGF_NONE),
-		CFG_SEC ("location", location_opts, CFGF_MULTI | CFGF_TITLE),
-		CFG_SEC ("ssl",      ssl_opts, CFGF_MULTI),
-		CFG_SEC ("redirect", redirect_opts, CFGF_MULTI | CFGF_TITLE),
+		CFG_STR ("hostname",   hostname, CFGF_NONE),
+		CFG_INT ("port",       port, CFGF_NONE),
+		CFG_STR ("path",       path, CFGF_NONE),
+		CFG_SEC ("location",   location_opts, CFGF_MULTI | CFGF_TITLE),
+		CFG_SEC ("ssl",        ssl_opts, CFGF_MULTI),
+		CFG_SEC ("redirect",   redirect_opts, CFGF_MULTI | CFGF_TITLE),
+		CFG_SEC ("proxy-pass", proxy_opts, CFGF_MULTI | CFGF_TITLE),
 		CFG_END ()
 	};
 	cfg_opt_t opts[] = {

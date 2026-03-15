@@ -12,16 +12,17 @@ Jef&nbsp;Poskanzer.
 Merecat httpd expands on the features originally offered by thttpd, but
 still has a limited feature set:
 
-- Virtual hosts
-- Basic `.htpassd` and `.htaccess` support
-- URL-traffic-based throttling
-- CGI/1.1
-- HTTP/1.1 Keep-alive
-- Built-in gzip deflate using zlib
-- HTTPS support using OpenSSL/LibreSSL, works with [Let's Encrypt][]!
-- Dual server support, both HTTP/HTTPS from one process
-- HTTP redirect, to gently redirect from HTTP server to HTTPS
-- Native PHP support, using `php-cgi` if enabled in `merecat.conf`
+ - Virtual hosts
+ - Basic `.htpassd` and `.htaccess` support
+ - URL-traffic-based throttling
+ - CGI/1.1
+ - HTTP/1.1 Keep-alive
+ - Built-in gzip deflate using zlib
+ - HTTPS support using OpenSSL/LibreSSL, works with [Let's Encrypt][]!
+ - Dual server support, both HTTP/HTTPS from one process
+ - HTTP redirect, to gently redirect from HTTP server to HTTPS
+ - Reverse proxy (`proxy-pass`), to front local app servers like nginx does
+ - Native PHP support, using `php-cgi` if enabled in `merecat.conf`
 
 The resulting footprint (~140 kiB) makes it quick and suitable for small
 and embedded systems!
@@ -29,6 +30,14 @@ and embedded systems!
 Merecat is available as free/open source software under the simplified
 2-clause [BSD license][license].  For more information, see the manual
 page `merecat(8)`, or the [FAQ][].
+
+The rest of this README covers some basic functions and recommendations.
+For more in-depth use-case examples, see the following HowTos:
+
+ - https://troglobit.com/howtos/merecat-basic-cig-in-c/
+ - https://troglobit.com/howtos/merecat-and-lets-encrypt/
+ - https://troglobit.com/howtos/merecat-and-ikiwiki/
+ - https://troglobit.com/howtos/merecat-and-cgit/
 
 
 Docker
@@ -85,6 +94,17 @@ cgi "/cgi-bin/*|**.cgi" {
 Now the web server root, `/var/www/`, no longer serves files, only
 virtual host directories do, execpt for the shared files in `icons/`,
 `cgi-bin/`, and `errors/`.
+
+Merecat scrubs the environment before forking CGI children, so variables
+from the shell or systemd `EnvironmentFile` are not visible to CGI
+scripts.  Use `setenv` to inject custom variables:
+
+```conf
+cgi "/cgi-bin/*|**.cgi" {
+    enabled = true
+    setenv  = { "GIT_PROJECT_ROOT=/srv/repos", "GIT_HTTP_EXPORT_ALL=1" }
+}
+```
 
 On Linux bind mounts can be used to set up FTP and web access to the
 same files. Example `/etc/fstab`:
@@ -280,7 +300,7 @@ user@example:~/merecat/> sudo make install
 
 Cross compiling Merecat for an another target is possible by setting the
 `--host` flag to the configure script.  This is well documented in the
-[GNU Documentation][configure].  Note: ususally the `--build` system is
+[GNU Documentation][configure].  Note: usually the `--build` system is
 automatically detected.
 
 > Merecat builds are silent by default.  For detailed compiler output,

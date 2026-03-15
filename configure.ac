@@ -1,8 +1,18 @@
-AC_PREREQ([2.68])
-AC_INIT([Merecat httpd], [2.32-rc4], [https://github.com/troglobit/merecat/issues], [merecat])
+AC_PREREQ([2.69])
+AC_INIT([Merecat httpd], [3.00-rc1], [https://github.com/troglobit/merecat/issues], [merecat])
 AC_CONFIG_AUX_DIR(aux)
 AM_INIT_AUTOMAKE([1.11 foreign dist-xz])
 AM_SILENT_RULES([yes])
+
+AC_CANONICAL_HOST
+
+case "$host_os" in
+  darwin*|macos*)
+    CFLAGS="$CFLAGS -D_DARWIN_C_SOURCE"
+    AC_DEFINE([_DARWIN_C_SOURCE], [1],
+              [Define to enable Darwin-specific extensions (e.g. utimensat)])
+    ;;
+esac
 
 AC_CONFIG_SRCDIR([src/libhttpd.c])
 AC_CONFIG_HEADERS([config.h])
@@ -13,8 +23,9 @@ AC_CONFIG_FILES([Makefile
                  tests/Makefile
                  www/Makefile
                  www/cgi-bin/Makefile
-                 www/icons/Makefile]
-                 www/img/Makefile)
+                 www/icons/Makefile
+                 www/img/Makefile
+                 www/onboard/Makefile])
 
 # Use pkg-config to check for some deps; libConfuse, libssl
 PKG_PROG_PKG_CONFIG
@@ -29,41 +40,18 @@ m4_ifdef([AM_PROG_AR], [AM_PROG_AR])
 
 # Checks for libraries.
 AC_CHECK_LIB(crypt, crypt)
-AC_CHECK_LIB(rt, clock_gettime)
 AC_CHECK_LIB(resolv, hstrerror)
 
 # Checks for header files.
-AC_CHECK_HEADERS([arpa/inet.h fcntl.h grp.h memory.h netdb.h netinet/in.h osreldate.h paths.h poll.h stddef.h stdlib.h string.h termios.h sys/devpoll.h sys/event.h sys/param.h sys/poll.h sys/socket.h sys/time.h syslog.h unistd.h])
-AC_CHECK_HEADER_STDBOOL
-AC_HEADER_TIME
+AC_CHECK_HEADERS([grp.h osreldate.h poll.h sys/devpoll.h sys/event.h sys/poll.h sys/time.h])
 AC_HEADER_DIRENT
-
-AC_C_INLINE
-
-# Checks for typedefs, structures, and compiler characteristics.
-AC_TYPE_UID_T
-AC_TYPE_UINT8_T
-AC_TYPE_UINT16_T
-AC_TYPE_INT64_T
-AC_TYPE_MODE_T
-AC_TYPE_OFF_T
-AC_TYPE_PID_T
-AC_TYPE_SIZE_T
-AC_TYPE_SSIZE_T
 
 # Check for missing/broken API's, which we can replace, e.g. lib/lstat.c
 AC_REPLACE_FUNCS([strlcpy strlcat tempfile])
 AC_CONFIG_LIBOBJ_DIR([lib])
 
-# Checks for library functions.
-AC_FUNC_CHOWN
-AC_FUNC_FORK
-AC_FUNC_MMAP
-AC_FUNC_MALLOC
-AC_FUNC_REALLOC
-AC_FUNC_LSTAT_FOLLOWS_SLASHED_SYMLINK
-AC_FUNC_WAIT3
-AC_CHECK_FUNCS([alarm atexit atoll backtrace clock_gettime daemon dup2 gai_strerror getcwd getaddrinfo gethostbyname gethostname getnameinfo getpass gettimeofday hstrerror inet_ntoa isascii kqueue malloc memmove memset mkdir mmap munmap poll realpath select setenv setlogin setsid sigaction socket strcasecmp strchr strcspn strdup strerror strncasecmp strpbrk strrchr strspn strstr strtoul snprintf tzset waitpid])
+# Checks for library functions actually conditioned on in the source.
+AC_CHECK_FUNCS([atoll backtrace clock_gettime daemon hstrerror kqueue poll select setlogin setsid waitpid])
 
 # Check for command line options
 AC_ARG_ENABLE(builtin-icons,
@@ -137,7 +125,7 @@ AM_CONDITIONAL([HAVE_CONFUSE], [test "x$with_config" != "xno"])
 AM_CONDITIONAL([CREATE_SYMLINKS], [test "x$with_symlinks" != "xno"])
 
 AS_IF([test "x$with_ssl" != "xno"], [
-	PKG_CHECK_MODULES([OpenSSL], [openssl >= 1.1.1])
+	PKG_CHECK_MODULES([OpenSSL], [openssl >= 3.0.0])
 	LDFLAGS="$LDFLAGS $OpenSSL_LIBS"
 	CPPFLAGS="$CPPFLAGS $OpenSSL_CFLAGS"
 	AC_CHECK_LIB([crypto], [EVP_EncryptInit], [],
@@ -205,3 +193,34 @@ WWWDIR=`eval echo $WEBDIR`
 AC_SUBST(WWWDIR)
 
 AC_OUTPUT
+
+cat <<EOF
+
+------------------ Summary ------------------
+ $PACKAGE_NAME version $PACKAGE_VERSION
+  Prefix................: $(eval echo $prefix)
+  Sysconfdir............: $(eval echo $sysconfdir)
+  Web root..............: $WWWDIR
+  C Compiler............: $CC $CFLAGS $CPPFLAGS $LDFLAGS $LIBS
+
+Optional features:
+  HTTPS (OpenSSL).......: $with_ssl
+  Config file...........: $with_config
+  Gzip deflate (zlib)...: $with_zlib
+  Systemd...............: $with_systemd
+  Directory listings....: ${enable_dirlisting:-no}
+  Built-in icons........: ${enable_builtin_icons:-no}
+  Public html...........: ${enable_public_html:-no}
+  .htaccess.............: ${enable_htaccess:-no}
+  .htpasswd.............: ${enable_htpasswd:-no}
+  MSIE padding..........: ${enable_msie_padding:-no}
+  Symlinks..............: $with_symlinks
+
+------------- Compiler version --------------
+$($CC --version || true)
+---------------------------------------------
+
+Check the above options and compile with:
+ ${MAKE-make}
+
+EOF

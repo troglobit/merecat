@@ -37,9 +37,6 @@
 #include <ctype.h>
 #include <errno.h>
 #include <fcntl.h>
-#ifdef HAVE_MEMORY_H
-#include <memory.h>
-#endif
 #include <pwd.h>
 #include <signal.h>
 #include <stdio.h>
@@ -307,7 +304,7 @@ static void httpd_greeting(struct httpd *hs, sockaddr_t *sav4, sockaddr_t *sav6)
 	syslog(LOG_NOTICE, "%s starting on %s%s", PACKAGE_STRING, name, buf);
 }
 
-int httpd_cgi_init(struct httpd *hs, int enabled, char *cgi_pattern, int cgi_limit)
+int httpd_cgi_init(struct httpd *hs, int enabled, char *cgi_pattern, int cgi_limit, char **setenv, int setenv_len)
 {
 	char *cp;
 
@@ -315,6 +312,9 @@ int httpd_cgi_init(struct httpd *hs, int enabled, char *cgi_pattern, int cgi_lim
 		errno = EINVAL;
 		return -1;
 	}
+
+	hs->cgi_setenv     = setenv;
+	hs->cgi_setenv_len = setenv_len;
 
 	if (!cgi_pattern) {
 		hs->cgi_enabled = 0;
@@ -412,6 +412,169 @@ void httpd_location_free(struct httpd *hs)
 
 	LIST_FOREACH(loc, hs->location)
 		free(loc);
+}
+
+/*
+** Initialize HTTP reverse proxy rules.  The backend URL is resolved at
+** startup to avoid blocking DNS lookups during request handling.
+**/
+int httpd_proxy_add(struct httpd *hs, char *pattern, char *vhost, char *backend, char *redirect)
+{
+	struct http_proxy *pr;
+	struct addrinfo hints, *res;
+	const char *ptr;
+	char hostbuf[256];
+	char portstr[8];
+	int n;
+
+	if (!hs || !pattern || !backend) {
+		errno = EINVAL;
+		return -1;
+	}
+
+	pr = NEW(struct http_proxy, 1);
+	if (!pr)
+		return -1;
+
+	pr->pattern  = pattern;
+	pr->backend  = backend;
+	pr->port     = 80;
+	pr->resolved = 0;
+
+	if (vhost) {
+		pr->vhost = strdup(vhost);
+		if (!pr->vhost)
+			goto err;
+	}
+
+	/* Parse backend URL: http://host[:port][/path] */
+	ptr = backend;
+	if (strncasecmp(ptr, "http://", 7) == 0)
+		ptr += 7;
+
+	/* Extract hostname (up to ':' or '/' or end) */
+	n = (int)strcspn(ptr, ":/");
+	if (n >= (int)sizeof(hostbuf))
+		n = (int)sizeof(hostbuf) - 1;
+	strncpy(hostbuf, ptr, n);
+	hostbuf[n] = '\0';
+	pr->host = strdup(hostbuf);
+	if (!pr->host)
+		goto err;
+	ptr += n;
+
+	/* Extract port if present */
+	if (*ptr == ':') {
+		ptr++;
+		pr->port = (uint16_t)atoi(ptr);
+		ptr += strspn(ptr, "0123456789");
+		if (!pr->port)
+			pr->port = 80;
+	}
+
+	/* Extract path prefix (everything remaining).
+	 * strip_prefix is set when the backend URL has an explicit path
+	 * (including a bare trailing "/"), mirroring nginx proxy_pass semantics:
+	 *   http://host        -> preserve full request URI
+	 *   http://host/       -> strip matched prefix, forward remainder
+	 *   http://host/v2     -> strip matched prefix, prepend /v2
+	 */
+	if (*ptr == '/') {
+		pr->path         = strdup(ptr);
+		pr->strip_prefix = 1;
+	} else {
+		pr->path         = strdup("/");
+		pr->strip_prefix = 0;
+	}
+	if (!pr->path)
+		goto err;
+
+	/* Parse proxy-redirect: "FROM TO" rewrites Location/Refresh headers.
+	 * TODO: support "default" keyword to auto-derive FROM from backend path
+	 *       and TO from the pattern prefix (everything before the first glob).
+	 */
+	if (redirect && redirect[0] && strcmp(redirect, "off") != 0) {
+		const char *sp = strchr(redirect, ' ');
+
+		if (!sp || sp == redirect || !sp[1]) {
+			syslog(LOG_ERR, "proxy-pass: proxy-redirect must be \"FROM TO\", got: %s", redirect);
+			goto err;
+		}
+		pr->redirect_from = strndup(redirect, sp - redirect);
+		pr->redirect_to   = strdup(sp + 1);
+		if (!pr->redirect_from || !pr->redirect_to)
+			goto err;
+	}
+
+	/* Pre-resolve the backend hostname to avoid blocking at request time */
+	memset(&hints, 0, sizeof(hints));
+	hints.ai_family   = AF_INET;
+	hints.ai_socktype = SOCK_STREAM;
+	snprintf(portstr, sizeof(portstr), "%u", pr->port);
+	if (getaddrinfo(pr->host, portstr, &hints, &res) == 0) {
+		pr->addr     = ((struct sockaddr_in *)res->ai_addr)->sin_addr;
+		pr->resolved = 1;
+		freeaddrinfo(res);
+	} else {
+		syslog(LOG_ERR, "proxy-pass: cannot resolve backend host '%s'", pr->host);
+	}
+
+	LIST_INSERT(pr, hs->proxy);
+	return 0;
+err:
+	free(pr->redirect_to);
+	free(pr->redirect_from);
+	free(pr->vhost);
+	free(pr->host);
+	free(pr);
+	return -1;
+}
+
+void httpd_proxy_free(struct httpd *hs)
+{
+	struct http_proxy *pr;
+
+	LIST_FOREACH(pr, hs->proxy) {
+		free(pr->redirect_to);
+		free(pr->redirect_from);
+		free(pr->vhost);
+		free(pr->host);
+		free(pr->path);
+		free(pr);
+	}
+}
+
+/*
+** Match the request URL against configured proxy rules.
+** Returns the first matching rule, or NULL if no match.
+**
+** When a rule has a vhost filter, the request's Host: header must match
+** (port suffix ignored) before the URL pattern is tested.
+*/
+struct http_proxy *httpd_proxy_match(struct http_conn *hc)
+{
+	struct http_proxy *pr;
+
+	LIST_FOREACH(pr, hc->hs->proxy) {
+		if (!pr->backend)
+			continue;
+
+		if (pr->vhost) {
+			/* Use absolute-URL host if present, else Host: header */
+			const char *host = hc->reqhost[0] ? hc->reqhost : hc->hdrhost;
+			size_t n = strlen(pr->vhost);
+
+			/* Compare ignoring any :port suffix in the Host: header */
+			if (strncasecmp(pr->vhost, host, n) != 0 ||
+			    (host[n] != '\0' && host[n] != ':'))
+				continue;
+		}
+
+		if (match(pr->pattern, hc->encodedurl))
+			return pr;
+	}
+
+	return NULL;
 }
 
 /* Initialize listen sockets.  Try v6 first because of a Linux peculiarity;
@@ -555,7 +718,16 @@ static int initialize_listen_socket(sockaddr_t *sa)
 	/* Create socket. */
 	listen_fd = socket(sa->sa.sa_family, SOCK_STREAM, 0);
 	if (listen_fd < 0) {
-		syslog(LOG_CRIT, "Failed opening socket for %s: %s", httpd_ntoa(sa), strerror(errno));
+		/* EAFNOSUPPORT/EPROTONOSUPPORT means the address family is
+		 * disabled in the kernel (e.g. ipv6.disabled=1).  This is not
+		 * fatal — httpd_listen() will fall back to the other family. */
+		if (errno == EAFNOSUPPORT || errno == EPROTONOSUPPORT)
+			syslog(LOG_WARNING, "Skipping %s socket: %s",
+			       sa->sa.sa_family == AF_INET6 ? "IPv6" : "IPv4",
+			       strerror(errno));
+		else
+			syslog(LOG_CRIT, "Failed opening socket for %s: %s",
+			       httpd_ntoa(sa), strerror(errno));
 		return -1;
 	}
 
@@ -616,6 +788,7 @@ void httpd_exit(struct httpd *hs)
 	httpd_unlisten(hs);
 	httpd_redirect_free(hs);
 	httpd_location_free(hs);
+	httpd_proxy_free(hs);
 	free_httpd_server(hs);
 }
 
@@ -688,6 +861,9 @@ static char *err500form = "There was an unusual problem serving the requested UR
 static char *err501title = "Not Implemented";
 static char *err501form = "The requested method '%s' is not implemented by this server.\n";
 
+char *httpd_err502title = "Bad Gateway";
+char *httpd_err502form = "The proxy failed to connect to the upstream server for the URL '%s'.\n";
+
 char *httpd_err503title = "Service Temporarily Overloaded";
 char *httpd_err503form = "The requested URL '%s' is temporarily overloaded.  Please try again later.\n";
 
@@ -710,9 +886,17 @@ void httpd_send_response(struct http_conn *hc)
 	if (sub_process)
 		(void)httpd_clear_ndelay(hc->conn_fd);
 
-	/* Send the response, if necessary. */
-	if (hc->responselen > 0) {
+	/* Log the completed request.  We do this unconditionally here rather
+	 * than inside the responselen block below because for 200 file responses
+	 * the headers are sent inline with the file body via writev() in
+	 * handle_send(), which zeros responselen before finish_connection() calls
+	 * us.  Guarding on status != 0 prevents logging for idle keep-alive
+	 * connections that have not yet received a request. */
+	if (hc->status != 0)
 		make_log_entry(hc);
+
+	/* Send any buffered response (error pages, redirects, etc.). */
+	if (hc->responselen > 0) {
 		httpd_write(hc, hc->response, hc->responselen);
 		hc->responselen = 0;
 	}
@@ -847,12 +1031,6 @@ send_mime(struct http_conn *hc, int status, char *title, char *encodings,
 		if (content_encoding(hc, encodings, buf, sizeof(buf)))
 			add_response(hc, buf);
 
-		s100 = status / 100;
-		if (s100 != 2 && s100 != 3) {
-			snprintf(buf, sizeof(buf), "Cache-Control: no-cache,no-store\r\n");
-			add_response(hc, buf);
-		}
-
 		/* EntityTag -- https://en.wikipedia.org/wiki/HTTP_ETag */
 		if (hc->file_address) {
 			uint8_t dig[MD5_DIGEST_LENGTH];
@@ -867,11 +1045,16 @@ send_mime(struct http_conn *hc, int status, char *title, char *encodings,
 				 dig[8], dig[9], dig[10], dig[11], dig[12], dig[13], dig[14], dig[15]);
 		}
 
-		if (hc->hs->max_age >= 0) {
-			if (hc->hs->max_age == 0)
-				snprintf(buf, sizeof(buf), "Cache-Control: no-cache,no-stored\r\n");
+		s100 = status / 100;
+		int effective_max_age = hc->hs->max_age;
+		if (s100 != 2 && s100 != 3)
+			effective_max_age = 0;
+
+		if (effective_max_age >= 0) {
+			if (effective_max_age == 0)
+				snprintf(buf, sizeof(buf), "Cache-Control: no-cache,no-store\r\n");
 			else
-				snprintf(buf, sizeof(buf), "Cache-Control: max-age=%d\r\n%s", hc->hs->max_age, etagbuf);
+				snprintf(buf, sizeof(buf), "Cache-Control: max-age=%d\r\n%s", effective_max_age, etagbuf);
 			add_response(hc, buf);
 
 			/* Expires was superseded by Cache-Control in HTTP/1.1 */
@@ -883,7 +1066,7 @@ send_mime(struct http_conn *hc, int status, char *title, char *encodings,
 			**       properly set, which is very unlikely for many small
 			**       or embedded systems.
 			*/
-			expires = now + hc->hs->max_age;
+			expires = now + effective_max_age;
 			strftime(expbuf, sizeof(expbuf), rfc1123fmt, gmtime(&expires));
 			snprintf(buf, sizeof(buf), "Expires: %s\r\n", expbuf);
 			add_response(hc, buf);
@@ -3170,13 +3353,10 @@ static struct mime_entry typ_tab[] = {
 
 static const int n_typ_tab = sizeof(typ_tab) / sizeof(*typ_tab);
 
-
-/* qsort comparison routine - declared old-style on purpose, for portability. */
-static int ext_compare(a, b)
-struct mime_entry *a;
-struct mime_entry *b;
+/* qsort comparison routine */
+static int ext_compare(const void *a, const void *b)
 {
-	return strcmp(a->ext, b->ext);
+	return strcmp(((struct mime_entry *)a)->ext, ((struct mime_entry *)b)->ext);
 }
 
 static int mime_bsearch(struct http_conn *hc, char *ext, size_t ext_len)
@@ -3380,12 +3560,10 @@ static int is_reserved_htfile(const char *fn)
 	return 0;
 }
 
-/* qsort comparison routine - declared old-style on purpose, for portability. */
-static int name_compare(a, b)
-char **a;
-char **b;
+/* qsort comparison routine */
+static int name_compare(const void *a, const void *b)
 {
-	return strcmp(*a, *b);
+	return strcmp(*(char **)a, *(char **)b);
 }
 
 static int child_ls_read_names(struct http_conn *hc, DIR *dirp, FILE *fp, int onlydir)
@@ -3751,10 +3929,17 @@ static char *hostname_map(char *hostname)
 */
 static char **make_envp(struct http_conn *hc)
 {
-	static char *envp[50];
+	/* 50 standard vars + user-defined setenv vars + NULL terminator */
+	int    maxenv = 50 + hc->hs->cgi_setenv_len + 1;
+	char **envp   = malloc(maxenv * sizeof(char *));
 	int envn;
 	char *cp;
 	char buf[256];
+
+	if (!envp) {
+		syslog(LOG_ERR, "make_envp: out of memory");
+		return NULL;
+	}
 
 	envn = 0;
 	envp[envn++] = build_env("PATH=%s", CGI_PATH);
@@ -3877,6 +4062,10 @@ static char **make_envp(struct http_conn *hc)
 	if (getenv("TZ"))
 		envp[envn++] = build_env("TZ=%s", getenv("TZ"));
 	envp[envn++] = build_env("CGI_PATTERN=%s", hc->hs->cgi_pattern);
+
+	for (int i = 0; i < hc->hs->cgi_setenv_len; i++)
+		envp[envn++] = hc->hs->cgi_setenv[i];
+
 	envp[envn] = NULL;
 
 	return envp;

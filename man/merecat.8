@@ -25,9 +25,9 @@
 .\" CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 .\" ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
 .\" THE POSSIBILITY OF SUCH DAMAGE.
-.Dd Nov 28, 2021
+.Dd Mar 15, 2026
 .Dt MERECAT 8 SMM
-.Os "merecat (2.32)"
+.Os "merecat (3.00)"
 .Sh NAME
 .Nm merecat
 .Nd Simple, small and fast HTTP server
@@ -73,6 +73,11 @@ Dual server support, both HTTP/HTTPS from one process
 .It
 HTTP redirect support, per server.  E.g., possible to redirect from HTTP
 to HTTPS.  Limited set of Nginx style environment variables supported.
+.It
+Reverse proxy support
+.Pq Cm proxy-pass ,
+to front local application servers (Node.js, Python, Go, etc.) while
+letting Merecat handle TLS termination.
 .It
 Native PHP support, using php-cgi, if enabled in
 .Xr merecat.conf 5

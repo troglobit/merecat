@@ -33,6 +33,7 @@
 #include <sys/uio.h>
 #include <unistd.h>
 
+#include <openssl/bio.h>
 #include <openssl/ssl.h>
 #include <openssl/err.h>
 #include <openssl/x509.h>
@@ -155,6 +156,37 @@ error:
 	free(buf);
 }
 
+static int load_dh_params(SSL_CTX *ctx, FILE *fp)
+{
+	EVP_PKEY *pkey;
+	BIO *bio;
+
+	bio = BIO_new_fp(fp, BIO_NOCLOSE);
+	if (!bio) {
+		syslog(LOG_ERR, "BIO_new_fp failed");
+		return -1;
+	}
+
+	pkey = PEM_read_bio_Parameters(bio, NULL);
+	BIO_free(bio);
+	if (!pkey) {
+		syslog(LOG_ERR, "PEM_read_bio_Parameters failed");
+		return -1;
+	}
+
+	/* SSL_CTX_set0_tmp_dh_pkey() takes ownership of pkey on success,
+	 * avoiding the deprecated EVP_PKEY_get0_DH()/SSL_CTX_set_tmp_dh() path.
+	 * Requires OpenSSL >= 3.0.
+	 */
+	if (SSL_CTX_set0_tmp_dh_pkey(ctx, pkey) != 1) {
+		httpd_ssl_log_errors();
+		EVP_PKEY_free(pkey);
+		return -1;
+	}
+
+	return 0;
+}
+
 void *httpd_ssl_init(char *cert, char *key, char *dhparm, char *proto, char *ciphers)
 {
 	SSL_CTX *ctx;
@@ -224,7 +256,6 @@ void *httpd_ssl_init(char *cert, char *key, char *dhparm, char *proto, char *cip
 
 	if (dhparm) {
 		FILE *fp;
-		DH *dh = NULL;
 
 		fp = fopen(dhparm, "r");
 		if (!fp) {
@@ -233,9 +264,9 @@ void *httpd_ssl_init(char *cert, char *key, char *dhparm, char *proto, char *cip
 			return ctx;
 		}
 
-		dh = PEM_read_DHparams(fp, NULL, NULL, NULL);
+		int rc = load_dh_params(ctx, fp);
 		fclose(fp);
-		if (!dh || SSL_CTX_set_tmp_dh(ctx, dh) != 1)
+		if (rc)
 			httpd_ssl_log_errors();
 	}
 
@@ -417,10 +448,11 @@ void httpd_ssl_log_errors(void)
 
 ssize_t httpd_ssl_read(struct http_conn *hc, void *buf, size_t len)
 {
-	if (status(hc, SSL_read(hc->ssl, buf, len)))
+	int rc = SSL_read(hc->ssl, buf, len);
+	if (status(hc, rc))
 		return -1;
 
-	return len;
+	return rc;
 }
 
 ssize_t httpd_ssl_write(struct http_conn *hc, void *buf, size_t len)

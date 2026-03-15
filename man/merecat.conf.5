@@ -25,9 +25,9 @@
 .\" CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 .\" ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
 .\" THE POSSIBILITY OF SUCH DAMAGE.
-.Dd Nov 28, 2021
+.Dd Mar 15, 2026
 .Dt MERECAT.CONF 5
-.Os "merecat (2.32)"
+.Os "merecat (3.00)"
 .Sh NAME
 .Nm merecat.conf
 .Nd merecat httpd configuration file
@@ -176,7 +176,33 @@ for more on this.
 The CGI module is disabled by default.
 .It Cm limit = Ar NUM
 Maximum number of allowed simultaneous CGI programs.  Default 1.
+.It Cm setenv = Ar { "NAME=value", ... }
+List of environment variables to pass to all CGI programs.  Use this
+to inject custom variables that CGI scripts can read from their environment.
+Example:
+.Bd -literal -offset indent
+setenv = { "MY_VAR=hello", "APP_ENV=production" }
+.Ed
 .El
+.Pp
+.Sy Environment variables:
+Merecat scrubs the process environment before forking CGI children for
+security reasons.  Environment variables set in the shell or via systemd
+.Cm EnvironmentFile
+are therefore not visible to CGI programs.
+.Pp
+Use the
+.Cm setenv
+option to pass custom variables directly, or use a wrapper script for
+more complex needs:
+.Bd -unfilled -offset indent
+#!/bin/sh
+export GIT_PROJECT_ROOT=/srv/repos
+export GIT_HTTP_EXPORT_ALL=1
+exec /usr/lib/git-core/git-http-backend
+.Ed
+.Pp
+Install the wrapper as the CGI entry point instead of the program itself.
 .It Cm }
 .It Cm php Qo Ar PATTERN Qc Cm {
 Wildcard pattern for PHP scripts, for instance
@@ -278,7 +304,7 @@ If a server location directive is found it has precedence over
 any
 .Cm redirect
 or virtual host.  It is primarily used to rewrite, or redirect,
-requests insde the current server context.
+requests inside the current server context.
 .Pp
 E.g., for handling
 .Nm certbot
@@ -308,6 +334,117 @@ redirect "/**" {
     location = "https://$host$request_uri$args"
 }
 .Ed
+.El
+.It Cm }
+.It Cm proxy-pass Qo Ar PATTERN Qc {
+.Bl -tag -offset "" -compact
+.It Cm host = Qq Ar HOSTNAME
+Optional.  Only forward requests whose
+.Cm Host:
+header matches this hostname.  Use this with multihoming
+.Pq Cm virtual-host = true
+to route different virtual hosts to different backends on the same port.
+For example, to proxy only requests for
+.Qq git.example.com :
+.Bd -unfilled -offset "" -compact
+proxy-pass "/**" {
+    host    = "git.example.com"
+    backend = "http://localhost:3000"
+}
+.Ed
+.Pp
+When omitted, the rule applies regardless of the
+.Cm Host:
+header.
+.It Cm backend = Qq Ar http://HOST:PORT[/PATH]
+Forward matching requests to the given HTTP backend server, acting as a
+reverse proxy.  This is similar to the
+.Cm proxy_pass
+directive in nginx, and is the primary way to front local application
+servers (Node.js, Python, Go, etc.) with Merecat.
+.Pp
+The backend hostname is resolved at startup to avoid blocking DNS lookups
+during request handling.  Only HTTP backends are supported (not HTTPS).
+.Pp
+.Bd -unfilled -offset "" -compact
+proxy-pass "/api/**" {
+    backend = "http://localhost:3000"
+}
+.Ed
+.Pp
+The following headers are added to every forwarded request:
+.Bl -tag -compact -offset "" -width "X-Forwarded-Proto"
+.It Cm X-Forwarded-For
+Client IP address (or the value already in
+.Cm X-Forwarded-For
+if the client is itself a proxy).
+.It Cm X-Real-IP
+Client IP address.
+.It Cm X-Forwarded-Proto
+.Qq http
+or
+.Qq https ,
+depending on whether the client connected over a plain or TLS connection.
+.El
+.Pp
+When the backend
+.Cm URL
+includes a path component, the matched URL prefix is stripped before
+forwarding and replaced with the backend path.  For example, with:
+.Pp
+.Bd -unfilled -offset "" -compact
+proxy-pass "/api/**" {
+    backend = "http://localhost:3000/v2"
+}
+.Ed
+.Pp
+a client request for
+.Qq /api/users/42
+is forwarded as
+.Qq GET /v2/users/42
+to the backend.  If the backend URL has no path (or only
+.Qq / )
+the original request URI is forwarded unchanged.
+.Pp
+.It Cm proxy-redirect = Qq Ar FROM TO
+Optional.  Rewrite
+.Cm Location:
+and
+.Cm Refresh:
+response headers returned by the backend.  Both
+.Ar FROM
+and
+.Ar TO
+are literal URL prefixes separated by a space.  Any response header value
+that starts with
+.Ar FROM
+is rewritten so that prefix becomes
+.Ar TO .
+This is useful when a backend returns absolute redirects using its own path
+prefix and the frontend exposes it under a different prefix.
+.Pp
+For example, if the backend at
+.Qq http://localhost:6419
+redirects to
+.Qq http://localhost:6419/grip/
+but the frontend exposes the app under
+.Qq /grip/ ,
+add:
+.Bd -unfilled -offset "" -compact
+proxy-pass "/grip/**" {
+    backend        = "http://localhost:6419/"
+    proxy-redirect = "http://localhost:6419 http://localhost"
+}
+.Ed
+.Pp
+Merecat then rewrites
+.Qq Location: http://localhost:6419/grip/
+to
+.Qq Location: http://localhost/grip/ .
+.Pp
+Up to
+.Ar 8
+proxy-pass rules may be configured per server.
 .El
 .It Cm }
 .El

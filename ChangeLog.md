@@ -4,13 +4,54 @@ Change Log
 All relevant changes are documented in this file.
 
 
-[v2.32][UNRELEASED]
--------------------
+[v3.00][UNRELEASED]
+------------------
 
-Notable new features: multiple server support from one process, HTTPS,
-HTTP/1.1 keep-alive, and built-in gzip deflate compression using zlib.
+Notable new features: reverse proxy support, multiple server support from
+one process, HTTPS, HTTP/1.1 keep-alive, and built-in gzip deflate
+compression using zlib.
 
 ### Changes
+- Add reverse proxy support (`proxy-pass`), similar to nginx `proxy_pass`.
+  Front local application servers (Node.js, Python, Go, etc.) with Merecat
+  acting as the TLS-terminating entry point.  Configure in `merecat.conf`:
+
+      server default {
+          proxy-pass "/api/**" {
+              backend = "http://localhost:3000"
+          }
+      }
+
+  The backend hostname is resolved at startup.  Forwarded requests include
+  `X-Forwarded-For`, `X-Real-IP`, and `X-Forwarded-Proto` headers.  When
+  the backend URL carries a path component, the matched URL prefix is
+  stripped before forwarding (nginx-style path rewriting).  Up to 8 rules
+  are supported per server block.  Closes #20
+
+- Add `host` filter to `proxy-pass` rules for multihoming (virtual host)
+  setups.  When `virtual-host = true` is enabled, each `proxy-pass` rule
+  can restrict which `Host:` header it matches, enabling different backends
+  on the same port:
+
+      virtual-host = true
+      server secure {
+          port = 443
+          proxy-pass "/**" {
+              host    = "git.example.com"
+              backend = "http://localhost:3000"
+          }
+      }
+
+- Add `proxy-redirect` to rewrite `Location:` and `Refresh:` response
+  headers returned by the backend.  Use it when a backend issues absolute
+  redirects with its own host or path prefix that needs to be rewritten to
+  the frontend URL:
+
+      proxy-pass "/app/**" {
+          backend        = "http://localhost:4000/"
+          proxy-redirect = "http://localhost:4000 http://localhost"
+      }
+
 - Add support for HTTPS, works with certificates from Let's Encrypt
 - Add support for multiple servers, listen to different ports
 - Add support for built-in HTTP redirect, e.g. from HTTP to HTTPS
@@ -56,6 +97,26 @@ HTTP/1.1 keep-alive, and built-in gzip deflate compression using zlib.
 - Enable `SO_REUSEPORT` if available, useful for load balancing
 
 ### Fixes
+- Fix `Cache-Control` header being emitted twice for error responses
+  (4xx/5xx) when `max-age` is set.  Also correct a typo: `no-stored`
+  → `no-store`.  Thanks to Ángel (Keisial)
+- Fix document root not being set when running without a config file;
+  `data_dir` was used instead of `path`.  Thanks to Roman Shterenzon
+- Fix `merecat.conf` SSL example to use block syntax instead of the
+  invalid `ssl = on` key
+- Fix build on macOS: add `-D_DARWIN_C_SOURCE` for Darwin extensions,
+  replace `mkostemp()` with `mkstemp()` + `fcntl(FD_CLOEXEC)`, and
+  replace deprecated `getdtablesize()` with `sysconf(_SC_OPEN_MAX)`.
+  Thanks to Roman Shterenzon
+- Fix K&R-style `qsort` comparison callbacks in `libhttpd.c` and
+  `tdate_parse.c`; use proper `const void *` prototypes to silence
+  warnings on modern compilers.  Thanks to Roman Shterenzon
+- ssl: upgrade to OpenSSL 3; replace deprecated `PEM_read_DHparams()`
+  with `PEM_read_bio_Parameters()` + `SSL_CTX_set0_tmp_dh_pkey()`.
+  Thanks to Roman Shterenzon
+- Dockerfile: update base image from Alpine 3.6 to 3.21, fix
+  `ENTRYPOINT` to exec form so merecat receives signals directly.
+  Thanks to Roman Shterenzon
 - Fix CVE-2017-17663, buffer overrun in htpasswd tool, from thttpd v2.28
 - Fixes for non GNU C libraries like musl: `__progname`, `%m`, etc.
 - Fix `X-Forwarded-For` when using IPv6, thanks to Steve Kemp!
@@ -100,7 +161,7 @@ The "it works now" release.
 Initial release.  Based on [sthttpd][] master, 2015-07-22.
 
 [UNRELEASED]: https://github.com/troglobit/merecat/compare/v2.31...HEAD
-[v2.32]:      https://github.com/troglobit/merecat/compare/v2.31...v2.32
+[v3.00]:       https://github.com/troglobit/merecat/compare/v2.31...v3.00
 [v2.31]:      https://github.com/troglobit/merecat/compare/v2.30...v2.31
 [v2.30]:      https://github.com/troglobit/merecat/compare/v2.29...v2.30
 [sthttpd]:    https://github.com/blueness/sthttpd/
