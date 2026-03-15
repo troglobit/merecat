@@ -37,9 +37,6 @@
 #include <ctype.h>
 #include <errno.h>
 #include <fcntl.h>
-#ifdef HAVE_MEMORY_H
-#include <memory.h>
-#endif
 #include <pwd.h>
 #include <signal.h>
 #include <stdio.h>
