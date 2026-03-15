@@ -83,10 +83,11 @@ static void to64(char *s, long v, size_t len)
 {
 	size_t i;
 
-	for (i = 0; i <= len; i++) {
+	for (i = 0; i < len; i++) {
 		*s++ = itoa64[v & 0x3f];
 		v >>= 6;
 	}
+	*s = '\0';
 }
 
 static char *get_password(const char *prompt, char *password, size_t len)
@@ -129,7 +130,8 @@ static void add_password(char *user, FILE *fp)
 	const char *md5 = "$1$JASka/..$pV3V31AdjgqQmjTbgTNVu/";
 
 	/* Test if the system supports MD5 passwords */
-	if (strcmp(crypt("123456", md5), md5)) {
+	cpw = crypt("123456", md5);
+	if (!cpw || strcmp(cpw, md5)) {
 		/* The system does not support MD5 crypt: reset to default crypt. */
 		saltlen = 2;
 		index = 0;
