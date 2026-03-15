@@ -126,14 +126,15 @@ struct http_location {
 struct http_proxy {
 	struct http_proxy *prev, *next;
 
-	char          *pattern;  /* URL pattern to match against request URL */
-	char          *vhost;    /* Optional Host: filter for multihoming (owned) */
-	char          *backend;  /* Full backend URL (original config string) */
-	char          *host;     /* Backend hostname (parsed, owned) */
-	uint16_t       port;     /* Backend port */
-	char          *path;     /* Backend URL path prefix (parsed, owned) */
-	struct in_addr addr;     /* Pre-resolved backend IPv4 address */
-	int            resolved; /* Whether addr is valid */
+	char          *pattern;      /* URL pattern to match against request URL */
+	char          *vhost;        /* Optional Host: filter for multihoming (owned) */
+	char          *backend;      /* Full backend URL (original config string) */
+	char          *host;         /* Backend hostname (parsed, owned) */
+	uint16_t       port;         /* Backend port */
+	char          *path;         /* Backend URL path prefix (parsed, owned) */
+	int            strip_prefix; /* Strip matched URL prefix before forwarding */
+	struct in_addr addr;         /* Pre-resolved backend IPv4 address */
+	int            resolved;     /* Whether addr is valid */
 };
 
 /* A server. */

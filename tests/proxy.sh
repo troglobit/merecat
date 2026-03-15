@@ -41,7 +41,12 @@ echo "Pass 2/3"
 curl -s http://127.0.0.1:8086/proxy/test | grep '"x-forwarded-for".*"127.0.0.1"'
 curl -s http://127.0.0.1:8086/proxy/test | grep '"x-real-ip".*"127.0.0.1"'
 
-# Pass 3/3: path prefix stripped when backend URL carries a path component
+# Pass 3/4: path prefix stripped when backend URL carries a path component
 #   GET /v2proxy/hello -> GET /v2/hello forwarded to backend
-echo "Pass 3/3"
+echo "Pass 3/4"
 curl -s http://localhost:8086/v2proxy/hello | grep '"path".*"/v2/hello"'
+
+# Pass 4/4: path prefix stripped when backend URL has a trailing slash only
+#   GET /strip/hello -> GET /hello forwarded to backend
+echo "Pass 4/4"
+curl -s http://localhost:8086/strip/hello | grep '"path".*"/hello"'

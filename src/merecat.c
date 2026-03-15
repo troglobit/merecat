@@ -734,15 +734,16 @@ static char *proxy_build_request(connecttab *c)
 	 *   URL prefix and prepend the backend path (nginx proxy_pass style).
 	 * - Otherwise (backend path is "/" or empty) forward the original URL.
 	 */
-	if (pr->path && pr->path[0] && strcmp(pr->path, "/") != 0) {
-		int         rc  = match(pr->pattern, url);
-		const char *rem = (rc > 1) ? url + rc : url;
+	if (pr->strip_prefix) {
+		int         rc   = match(pr->pattern, url);
+		const char *rem  = (rc > 1) ? url + rc : url;
+		const char *base = strcmp(pr->path, "/") == 0 ? "" : pr->path;
 
 		snprintf(url_buf, sizeof(url_buf), "%s%s%s",
-			 pr->path,
+			 base,
 			 (rem[0] && rem[0] != '/') ? "/" : "",
 			 rem);
-		url = url_buf;
+		url = url_buf[0] ? url_buf : "/";
 	}
 
 	/* Pre-format Content-Length header only when a body is expected */

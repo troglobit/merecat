@@ -469,11 +469,20 @@ int httpd_proxy_add(struct httpd *hs, char *pattern, char *vhost, char *backend)
 			pr->port = 80;
 	}
 
-	/* Extract path prefix (everything remaining) */
-	if (*ptr == '/')
-		pr->path = strdup(ptr);
-	else
-		pr->path = strdup("/");
+	/* Extract path prefix (everything remaining).
+	 * strip_prefix is set when the backend URL has an explicit path
+	 * (including a bare trailing "/"), mirroring nginx proxy_pass semantics:
+	 *   http://host        -> preserve full request URI
+	 *   http://host/       -> strip matched prefix, forward remainder
+	 *   http://host/v2     -> strip matched prefix, prepend /v2
+	 */
+	if (*ptr == '/') {
+		pr->path         = strdup(ptr);
+		pr->strip_prefix = 1;
+	} else {
+		pr->path         = strdup("/");
+		pr->strip_prefix = 0;
+	}
 	if (!pr->path)
 		goto err;
 
