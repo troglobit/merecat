@@ -2174,6 +2174,10 @@ int main(int argc, char **argv)
 		exit(1);
 	}
 	max_connects -= SPARE_FDS;
+	if (max_connects <= 0) {
+		syslog(LOG_CRIT, "Not enough file descriptors (%d) to run", max_connects + SPARE_FDS);
+		exit(1);
+	}
 
 	/* Chroot if requested. */
 	if (do_chroot) {

@@ -3496,7 +3496,7 @@ static void figure_mime(struct http_conn *hc)
 
 	/* The last thing we do is actually generate the mime-encoding header. */
 	hc->encodings[0] = '\0';
-	for (i = n_me_indexes - 1; i >= 0; --i) {
+	for (i = n_me_indexes; i-- > 0; ) {
 		size_t len;
 
 		len = strlen(hc->encodings) + enc_tab[me_indexes[i]].val_len + 2;
