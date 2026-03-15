@@ -715,7 +715,16 @@ static int initialize_listen_socket(sockaddr_t *sa)
 	/* Create socket. */
 	listen_fd = socket(sa->sa.sa_family, SOCK_STREAM, 0);
 	if (listen_fd < 0) {
-		syslog(LOG_CRIT, "Failed opening socket for %s: %s", httpd_ntoa(sa), strerror(errno));
+		/* EAFNOSUPPORT/EPROTONOSUPPORT means the address family is
+		 * disabled in the kernel (e.g. ipv6.disabled=1).  This is not
+		 * fatal — httpd_listen() will fall back to the other family. */
+		if (errno == EAFNOSUPPORT || errno == EPROTONOSUPPORT)
+			syslog(LOG_WARNING, "Skipping %s socket: %s",
+			       sa->sa.sa_family == AF_INET6 ? "IPv6" : "IPv4",
+			       strerror(errno));
+		else
+			syslog(LOG_CRIT, "Failed opening socket for %s: %s",
+			       httpd_ntoa(sa), strerror(errno));
 		return -1;
 	}
 
