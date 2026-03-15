@@ -4025,6 +4025,7 @@ static char **make_envp(struct http_conn *hc)
 		if (cp2) {
 			snprintf(cp2, l, "%s%s", hc->hs->cwd, hc->expnfilename);
 			envp[envn++] = build_env("PATH_TRANSLATED=%s", cp2);
+			free(cp2);
 		}
 
 		if (ssi_silent)

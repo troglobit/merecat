@@ -28,6 +28,7 @@
 #include <config.h>
 
 /* System headers */
+#include <limits.h>
 #include <stdio.h>
 #include <stdarg.h>
 #include <stdlib.h>
@@ -723,6 +724,10 @@ int main(int argc, char **argv)
 	path_translated = getenv("PATH_TRANSLATED");
 	if (!path_translated) {
 		internal_error("Couldn't get PATH_TRANSLATED environment variable.");
+		exit(1);
+	}
+	if (strlen(path_translated) >= PATH_MAX) {
+		internal_error("PATH_TRANSLATED too long.");
 		exit(1);
 	}
 
