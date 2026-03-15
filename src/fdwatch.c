@@ -55,6 +55,11 @@
 #endif				/* !HAVE_DEVPOLL */
 #endif				/* HAVE_SYS_DEVPOLL_H */
 
+#ifdef HAVE_SYS_EPOLL_H
+#include <sys/epoll.h>
+#include <errno.h>
+#endif
+
 #ifdef HAVE_SYS_EVENT_H
 #include <sys/event.h>
 #endif				/* HAVE_SYS_EVENT_H */
@@ -98,7 +103,28 @@ static int kqueue_check_fd(int fd);
 static int kqueue_get_fd(int ridx);
 
 #else				/* HAVE_KQUEUE */
-# ifdef HAVE_DEVPOLL
+
+# ifdef HAVE_EPOLL_CREATE1
+
+#define WHICH                  "epoll"
+#define INIT(nfiles)           epoll_init(nfiles)
+#define EXIT()                 epoll_exit()
+#define ADD_FD(fd, rw)         epoll_add_fd(fd, rw)
+#define DEL_FD(fd)             epoll_del_fd(fd)
+#define WATCH(timeout_msecs)   epoll_watch(timeout_msecs)
+#define CHECK_FD(fd)           epoll_check_fd(fd)
+#define GET_FD(ridx)           epoll_get_fd(ridx)
+
+static int epoll_init(int nfiles);
+static void epoll_exit(void);
+static void epoll_add_fd(int fd, int rw);
+static void epoll_del_fd(int fd);
+static int epoll_watch(long timeout_msecs);
+static int epoll_check_fd(int fd);
+static int epoll_get_fd(int ridx);
+
+# else /* HAVE_EPOLL_CREATE1 */
+#  ifdef HAVE_DEVPOLL
 
 #define WHICH                  "devpoll"
 #define INIT(nfiles)           devpoll_init(nfiles)
@@ -117,8 +143,8 @@ static int devpoll_watch(long timeout_msecs);
 static int devpoll_check_fd(int fd);
 static int devpoll_get_fd(int ridx);
 
-# else				/* HAVE_DEVPOLL */
-#  ifdef HAVE_POLL
+#  else				/* HAVE_DEVPOLL */
+#   ifdef HAVE_POLL
 
 #define WHICH                  "poll"
 #define INIT(nfiles)           poll_init(nfiles)
@@ -137,8 +163,8 @@ static int poll_watch(long timeout_msecs);
 static int poll_check_fd(int fd);
 static int poll_get_fd(int ridx);
 
-#  else				/* HAVE_POLL */
-#   ifdef HAVE_SELECT
+#   else				/* HAVE_POLL */
+#    ifdef HAVE_SELECT
 
 #define WHICH                  "select"
 #define INIT(nfiles)           select_init(nfiles)
@@ -157,9 +183,10 @@ static int select_watch(long timeout_msecs);
 static int select_check_fd(int fd);
 static int select_get_fd(int ridx);
 
-#   endif			/* HAVE_SELECT */
-#  endif			/* HAVE_POLL */
-# endif				/* HAVE_DEVPOLL */
+#    endif			/* HAVE_SELECT */
+#   endif			/* HAVE_POLL */
+#  endif			/* HAVE_DEVPOLL */
+# endif /* HAVE_EPOLL_CREATE1 */
 #endif				/* HAVE_KQUEUE */
 
 
@@ -194,7 +221,7 @@ int fdwatch_get_nfiles(void)
 	}
 #endif
 
-#if defined(HAVE_SELECT) && ! ( defined(HAVE_POLL) || defined(HAVE_DEVPOLL) || defined(HAVE_KQUEUE) )
+#if defined(HAVE_SELECT) && ! ( defined(HAVE_POLL) || defined(HAVE_DEVPOLL) || defined(HAVE_EPOLL_CREATE1) || defined(HAVE_KQUEUE) )
 	/* If we use select(), then we must limit ourselves to FD_SETSIZE. */
 	nfiles = MIN(nfiles, FD_SETSIZE);
 #endif
@@ -471,7 +498,113 @@ static int kqueue_get_fd(int ridx)
 #else /* HAVE_KQUEUE */
 
 
-# ifdef HAVE_DEVPOLL
+# ifdef HAVE_EPOLL_CREATE1
+
+static int epollfd;
+static struct epoll_event *epoll_revents;
+static int *epoll_rfdidx;
+
+static int epoll_init(int nfiles)
+{
+	int i;
+
+	epollfd = epoll_create1(EPOLL_CLOEXEC);
+	if (epollfd == -1)
+		return -1;
+
+	epoll_revents = calloc(nfiles, sizeof(struct epoll_event));
+	if (!epoll_revents) {
+		close(epollfd);
+		return -1;
+	}
+
+	epoll_rfdidx = malloc(nfiles * sizeof(int));
+	if (!epoll_rfdidx) {
+		free(epoll_revents);
+		close(epollfd);
+		return -1;
+	}
+
+	for (i = 0; i < nfiles; i++)
+		epoll_rfdidx[i] = -1;
+
+	return 0;
+}
+
+static void epoll_exit(void)
+{
+	free(epoll_revents);
+	free(epoll_rfdidx);
+	close(epollfd);
+}
+
+static void epoll_add_fd(int fd, int rw)
+{
+	struct epoll_event ev;
+
+	ev.data.fd = fd;
+	ev.events  = (rw == FDW_READ) ? EPOLLIN : EPOLLOUT;
+	if (epoll_ctl(epollfd, EPOLL_CTL_ADD, fd, &ev) < 0)
+		syslog(LOG_ERR, "epoll_ctl(ADD, %d): %s", fd, strerror(errno));
+}
+
+static void epoll_del_fd(int fd)
+{
+	if (epoll_ctl(epollfd, EPOLL_CTL_DEL, fd, NULL) < 0)
+		syslog(LOG_ERR, "epoll_ctl(DEL, %d): %s", fd, strerror(errno));
+	epoll_rfdidx[fd] = -1;
+}
+
+static int epoll_watch(long timeout_msecs)
+{
+	int i, r;
+
+	r = epoll_wait(epollfd, epoll_revents, nfiles, (int)timeout_msecs);
+	if (r <= 0)
+		return r;
+
+	for (i = 0; i < r; i++)
+		epoll_rfdidx[epoll_revents[i].data.fd] = i;
+
+	return r;
+}
+
+static int epoll_check_fd(int fd)
+{
+	int ridx = epoll_rfdidx[fd];
+
+	if (ridx < 0 || ridx >= nreturned)
+		return 0;
+
+	if (epoll_revents[ridx].data.fd != fd)
+		return 0;
+
+	if (epoll_revents[ridx].events & EPOLLERR)
+		return 0;
+
+	switch (fd_rw[fd]) {
+	case FDW_READ:
+		return epoll_revents[ridx].events & (EPOLLIN | EPOLLHUP | EPOLLRDHUP);
+
+	case FDW_WRITE:
+		return epoll_revents[ridx].events & (EPOLLOUT | EPOLLHUP);
+	}
+
+	return 0;
+}
+
+static int epoll_get_fd(int ridx)
+{
+	if (ridx < 0 || ridx >= nreturned) {
+		syslog(LOG_ERR, "bad ridx (%d) in epoll_get_fd!", ridx);
+		return -1;
+	}
+
+	return epoll_revents[ridx].data.fd;
+}
+
+# else /* HAVE_EPOLL_CREATE1 */
+#  ifdef HAVE_DEVPOLL
 
 static int maxdpevents;
 static struct pollfd *dpevents;
@@ -958,6 +1091,8 @@ static int select_get_fd(int ridx)
 
 #  endif			/* HAVE_POLL */
 
-# endif				/* HAVE_DEVPOLL */
+#  endif			/* HAVE_DEVPOLL */
+
+# endif /* HAVE_EPOLL_CREATE1 */
 
 #endif				/* HAVE_KQUEUE */

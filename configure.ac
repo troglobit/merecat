@@ -43,7 +43,7 @@ AC_CHECK_LIB(crypt, crypt)
 AC_CHECK_LIB(resolv, hstrerror)
 
 # Checks for header files.
-AC_CHECK_HEADERS([grp.h osreldate.h poll.h sys/devpoll.h sys/event.h sys/poll.h sys/time.h])
+AC_CHECK_HEADERS([grp.h osreldate.h poll.h sys/devpoll.h sys/epoll.h sys/event.h sys/poll.h sys/sendfile.h sys/time.h])
 AC_HEADER_DIRENT
 
 # Check for missing/broken API's, which we can replace, e.g. lib/lstat.c
@@ -51,7 +51,7 @@ AC_REPLACE_FUNCS([strlcpy strlcat tempfile])
 AC_CONFIG_LIBOBJ_DIR([lib])
 
 # Checks for library functions actually conditioned on in the source.
-AC_CHECK_FUNCS([atoll backtrace clock_gettime daemon hstrerror kqueue poll select setlogin setsid waitpid])
+AC_CHECK_FUNCS([atoll backtrace clock_gettime daemon epoll_create1 hstrerror kqueue poll select sendfile setlogin setsid waitpid])
 
 # Check for command line options
 AC_ARG_ENABLE(builtin-icons,
@@ -215,6 +215,8 @@ Optional features:
   .htpasswd.............: ${enable_htpasswd:-no}
   MSIE padding..........: ${enable_msie_padding:-no}
   Symlinks..............: $with_symlinks
+  epoll.................: ${ac_cv_func_epoll_create1:-no}
+  sendfile..............: ${ac_cv_func_sendfile:-no}
 
 ------------- Compiler version --------------
 $($CC --version || true)

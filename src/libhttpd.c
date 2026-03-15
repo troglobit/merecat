@@ -53,6 +53,10 @@
 #include <osreldate.h>
 #endif
 
+#ifdef HAVE_SYS_SENDFILE_H
+#include <sys/sendfile.h>
+#endif
+
 #include <wordexp.h>
 
 #ifdef HAVE_DIRENT_H
@@ -2378,6 +2382,12 @@ static char *expand_symlinks(char *path, char **trailer, int no_symlink_check, i
 void httpd_close_conn(struct http_conn *hc, struct timeval *now)
 {
 	if (hc->file_address) {
+#ifdef HAVE_SENDFILE
+		if (hc->file_fd >= 0) {
+			close(hc->file_fd);
+			hc->file_fd = -1;
+		}
+#endif
 		mmc_unmap(hc->file_address, &(hc->sb), now);
 		hc->file_address = NULL;
 	}
@@ -2523,6 +2533,7 @@ void httpd_init_conn_content(struct http_conn *hc)
 	hc->do_keep_alive = 0;
 	hc->should_linger = 0;
 	hc->file_address = NULL;
+	hc->file_fd = -1;
 	hc->compression_type = COMPRESSION_NONE;
 }
 
@@ -5031,6 +5042,9 @@ sneaky:
 		char *extra = mod_headers(hc);
 
 		hc->file_address = mmc_map(hc->expnfilename, &(hc->sb), now);
+#ifdef HAVE_SENDFILE
+		hc->file_fd = open(hc->expnfilename, O_RDONLY | O_CLOEXEC);
+#endif
 		if (!hc->file_address) {
 			syslog(LOG_ERR, "mmc_map(%s): cannot find %s", hc->expnfilename, is_icon ? "icon" : "file");
 			if (is_icon)
