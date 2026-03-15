@@ -528,6 +528,7 @@ int httpd_proxy_add(struct httpd *hs, char *pattern, char *vhost, char *backend,
 err:
 	free(pr->redirect_to);
 	free(pr->redirect_from);
+	free(pr->path);
 	free(pr->vhost);
 	free(pr->host);
 	free(pr);
@@ -1801,8 +1802,10 @@ static int send_redirect(struct http_conn *hc, struct http_redir *redirect)
 	} else
 		unsetenv("args");
 
-        if (wordexp(redirect->location, &we, 0))
+        if (wordexp(redirect->location, &we, 0)) {
+		wordfree(&we);
 		return 0;
+	}
 
 	len = strlen(we.we_wordv[0]) + 16;
 	ptr = malloc(len);

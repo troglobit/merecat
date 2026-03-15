@@ -1104,12 +1104,10 @@ static void proxy_rewrite_headers(connecttab *c)
 					}
 					/* Recalculate pointers after realloc */
 					size_t val_off = (size_t)(val - buf);
-					size_t end_off = (size_t)(end - buf);
 					c->proxy_resp      = nb;
 					c->proxy_resp_size = new_len;
 					buf = nb;
 					val = buf + val_off;
-					end = buf + end_off;
 				}
 			}
 
