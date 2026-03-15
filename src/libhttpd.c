@@ -53,6 +53,10 @@
 #include <osreldate.h>
 #endif
 
+#ifdef HAVE_SYS_SENDFILE_H
+#include <sys/sendfile.h>
+#endif
+
 #include <wordexp.h>
 
 #ifdef HAVE_DIRENT_H
@@ -761,6 +765,14 @@ static int initialize_listen_socket(sockaddr_t *sa)
 		(void)close(listen_fd);
 		return -1;
 	}
+
+	/* Defer accept until data arrives (HTTP request), saving a wakeup. */
+#ifdef TCP_DEFER_ACCEPT
+	{
+		int timeout = 1;
+		setsockopt(listen_fd, IPPROTO_TCP, TCP_DEFER_ACCEPT, &timeout, sizeof(timeout));
+	}
+#endif
 
 	/* Use accept filtering, if available. */
 #ifdef SO_ACCEPTFILTER
@@ -2378,6 +2390,12 @@ static char *expand_symlinks(char *path, char **trailer, int no_symlink_check, i
 void httpd_close_conn(struct http_conn *hc, struct timeval *now)
 {
 	if (hc->file_address) {
+#ifdef HAVE_SENDFILE
+		if (hc->file_fd >= 0) {
+			close(hc->file_fd);
+			hc->file_fd = -1;
+		}
+#endif
 		mmc_unmap(hc->file_address, &(hc->sb), now);
 		hc->file_address = NULL;
 	}
@@ -2523,6 +2541,7 @@ void httpd_init_conn_content(struct http_conn *hc)
 	hc->do_keep_alive = 0;
 	hc->should_linger = 0;
 	hc->file_address = NULL;
+	hc->file_fd = -1;
 	hc->compression_type = COMPRESSION_NONE;
 }
 
@@ -2537,7 +2556,11 @@ int httpd_get_conn(struct httpd *hs, int listen_fd, struct http_conn *hc)
 
 	/* Accept the new connection. */
 	sz = sizeof(sa);
+#ifdef HAVE_ACCEPT4
+	hc->conn_fd = accept4(listen_fd, &sa.sa, &sz, SOCK_CLOEXEC);
+#else
 	hc->conn_fd = accept(listen_fd, &sa.sa, &sz);
+#endif
 	if (hc->conn_fd < 0) {
 		if (errno == EWOULDBLOCK)
 			return GC_NO_MORE;
@@ -2551,9 +2574,11 @@ int httpd_get_conn(struct httpd *hs, int listen_fd, struct http_conn *hc)
 		goto error;
 	}
 
+#ifndef HAVE_ACCEPT4
 	if (-1 == set_cloexec(hc->conn_fd))
 		syslog(LOG_ERR, "failed setting CLOEXEC on client socket: %s",
 		       strerror(errno));
+#endif
 
 	SETSOCKOPT(hc->conn_fd, IPPROTO_TCP, TCP_NODELAY);
 
@@ -5031,6 +5056,9 @@ sneaky:
 		char *extra = mod_headers(hc);
 
 		hc->file_address = mmc_map(hc->expnfilename, &(hc->sb), now);
+#ifdef HAVE_SENDFILE
+		hc->file_fd = open(hc->expnfilename, O_RDONLY | O_CLOEXEC);
+#endif
 		if (!hc->file_address) {
 			syslog(LOG_ERR, "mmc_map(%s): cannot find %s", hc->expnfilename, is_icon ? "icon" : "file");
 			if (is_icon)

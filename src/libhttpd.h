@@ -256,6 +256,7 @@ struct http_conn {
 	int has_deflate;	/* Built with zlib:deflate() and enabled */
 	int compression_type;
 	char *file_address;
+	int file_fd;
 
 	void *ssl;		/* Opaque SSL* */
 	int skip_redirect;	/* On location match, skip redirect */
