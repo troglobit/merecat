@@ -304,7 +304,7 @@ static void httpd_greeting(struct httpd *hs, sockaddr_t *sav4, sockaddr_t *sav6)
 	syslog(LOG_NOTICE, "%s starting on %s%s", PACKAGE_STRING, name, buf);
 }
 
-int httpd_cgi_init(struct httpd *hs, int enabled, char *cgi_pattern, int cgi_limit)
+int httpd_cgi_init(struct httpd *hs, int enabled, char *cgi_pattern, int cgi_limit, char **setenv, int setenv_len)
 {
 	char *cp;
 
@@ -312,6 +312,9 @@ int httpd_cgi_init(struct httpd *hs, int enabled, char *cgi_pattern, int cgi_lim
 		errno = EINVAL;
 		return -1;
 	}
+
+	hs->cgi_setenv     = setenv;
+	hs->cgi_setenv_len = setenv_len;
 
 	if (!cgi_pattern) {
 		hs->cgi_enabled = 0;
@@ -715,7 +718,16 @@ static int initialize_listen_socket(sockaddr_t *sa)
 	/* Create socket. */
 	listen_fd = socket(sa->sa.sa_family, SOCK_STREAM, 0);
 	if (listen_fd < 0) {
-		syslog(LOG_CRIT, "Failed opening socket for %s: %s", httpd_ntoa(sa), strerror(errno));
+		/* EAFNOSUPPORT/EPROTONOSUPPORT means the address family is
+		 * disabled in the kernel (e.g. ipv6.disabled=1).  This is not
+		 * fatal — httpd_listen() will fall back to the other family. */
+		if (errno == EAFNOSUPPORT || errno == EPROTONOSUPPORT)
+			syslog(LOG_WARNING, "Skipping %s socket: %s",
+			       sa->sa.sa_family == AF_INET6 ? "IPv6" : "IPv4",
+			       strerror(errno));
+		else
+			syslog(LOG_CRIT, "Failed opening socket for %s: %s",
+			       httpd_ntoa(sa), strerror(errno));
 		return -1;
 	}
 
@@ -874,9 +886,17 @@ void httpd_send_response(struct http_conn *hc)
 	if (sub_process)
 		(void)httpd_clear_ndelay(hc->conn_fd);
 
-	/* Send the response, if necessary. */
-	if (hc->responselen > 0) {
+	/* Log the completed request.  We do this unconditionally here rather
+	 * than inside the responselen block below because for 200 file responses
+	 * the headers are sent inline with the file body via writev() in
+	 * handle_send(), which zeros responselen before finish_connection() calls
+	 * us.  Guarding on status != 0 prevents logging for idle keep-alive
+	 * connections that have not yet received a request. */
+	if (hc->status != 0)
 		make_log_entry(hc);
+
+	/* Send any buffered response (error pages, redirects, etc.). */
+	if (hc->responselen > 0) {
 		httpd_write(hc, hc->response, hc->responselen);
 		hc->responselen = 0;
 	}
@@ -3909,10 +3929,17 @@ static char *hostname_map(char *hostname)
 */
 static char **make_envp(struct http_conn *hc)
 {
-	static char *envp[50];
+	/* 50 standard vars + user-defined setenv vars + NULL terminator */
+	int    maxenv = 50 + hc->hs->cgi_setenv_len + 1;
+	char **envp   = malloc(maxenv * sizeof(char *));
 	int envn;
 	char *cp;
 	char buf[256];
+
+	if (!envp) {
+		syslog(LOG_ERR, "make_envp: out of memory");
+		return NULL;
+	}
 
 	envn = 0;
 	envp[envn++] = build_env("PATH=%s", CGI_PATH);
@@ -4035,6 +4062,10 @@ static char **make_envp(struct http_conn *hc)
 	if (getenv("TZ"))
 		envp[envn++] = build_env("TZ=%s", getenv("TZ"));
 	envp[envn++] = build_env("CGI_PATTERN=%s", hc->hs->cgi_pattern);
+
+	for (int i = 0; i < hc->hs->cgi_setenv_len; i++)
+		envp[envn++] = hc->hs->cgi_setenv[i];
+
 	envp[envn] = NULL;
 
 	return envp;

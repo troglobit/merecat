@@ -90,6 +90,8 @@ int          no_empty_referers = 0;
 int          cgi_enabled       = 0;
 int          cgi_limit         = CGI_LIMIT;
 char        *cgi_pattern       = CGI_PATTERN;
+char       **cgi_setenv        = NULL;
+int          cgi_setenv_len    = 0;
 char        *local_pattern     = NULL;
 char        *php_cgi           = NULL;
 char        *php_pattern       = NULL;
@@ -2085,16 +2087,14 @@ int main(int argc, char **argv)
 		strlcat(path, "/", sizeof(path));
 
 	if (background) {
-		/* We're not going to use stdin stdout or stderr from here on,
-		** so close them to save file descriptors.
+		/* Daemonize - make ourselves a subprocess.  Let daemon()/the
+		** manual fork path redirect stdin/stdout/stderr to /dev/null
+		** rather than closing them manually first.  Closing them before
+		** the redirect leaves fds 0-2 free for reuse by the next socket()
+		** or accept() call, which can corrupt CGI POST body handling.
 		*/
-		(void)fclose(stdin);
-		(void)fclose(stdout);
-		(void)fclose(stderr);
-
-		/* Daemonize - make ourselves a subprocess. */
 #ifdef HAVE_DAEMON
-		if (daemon(1, 1) < 0) {
+		if (daemon(1, 0) < 0) {
 			syslog(LOG_CRIT, "daemon: %s", strerror(errno));
 			exit(1);
 		}
@@ -2111,6 +2111,17 @@ int main(int argc, char **argv)
 #ifdef HAVE_SETSID
 		setsid();
 #endif
+		/* Redirect stdio to /dev/null to prevent fd 0-2 reuse. */
+		{
+			int devnull = open("/dev/null", O_RDWR);
+			if (devnull >= 0) {
+				dup2(devnull, STDIN_FILENO);
+				dup2(devnull, STDOUT_FILENO);
+				dup2(devnull, STDERR_FILENO);
+				if (devnull > STDERR_FILENO)
+					close(devnull);
+			}
+		}
 #endif /* HAVE_DAEMON */
 	} else {
 		/* Even if we don't daemonize, we still want to disown our

@@ -58,12 +58,24 @@ static void conf_errfunc(cfg_t *cfg, const char *format, va_list args)
 
 static void conf_cgi(cfg_t *cfg)
 {
+	size_t i, n;
+
 	if (!cfg)
 		return;
 
 	cgi_pattern = (char *)cfg_title(cfg);
 	cgi_enabled = cfg_getbool(cfg, "enabled");
 	cgi_limit   = cfg_getint(cfg, "limit");
+
+	n = cfg_size(cfg, "setenv");
+	if (n > 0) {
+		cgi_setenv = malloc(n * sizeof(char *));
+		if (!cgi_setenv)
+			return;
+		for (i = 0; i < n; i++)
+			cgi_setenv[i] = cfg_getnstr(cfg, "setenv", i);
+		cgi_setenv_len = (int)n;
+	}
 }
 
 static void conf_php(cfg_t *cfg)
@@ -240,8 +252,9 @@ static int read_config(char *fn)
 		CFG_END ()
 	};
 	cfg_opt_t cgi_opts[] = {
-		CFG_BOOL("enabled", 0, CFGF_NONE),
-		CFG_INT ("limit", cgi_limit, CFGF_NONE),
+		CFG_BOOL    ("enabled", 0, CFGF_NONE),
+		CFG_INT     ("limit", cgi_limit, CFGF_NONE),
+		CFG_STR_LIST("setenv", NULL, CFGF_NONE),
 		CFG_END ()
 	};
 	cfg_opt_t php_opts[] = {

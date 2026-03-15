@@ -454,6 +454,8 @@ extern int       no_empty_referers;
 extern int       cgi_enabled;
 extern int       cgi_limit;
 extern char     *cgi_pattern;
+extern char    **cgi_setenv;
+extern int       cgi_setenv_len;
 extern char     *local_pattern;
 extern char     *php_cgi;
 extern char     *php_pattern;
