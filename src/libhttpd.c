@@ -3555,7 +3555,7 @@ static char *humane_size(struct stat *st)
 	}
 
 	bytes = st->st_size;
-	while (bytes > 1000 && i < NELEMS(mult)) {
+	while (bytes > 1000 && i < NELEMS(mult) - 1) {
 		bytes /= 1000;
 		i++;
 	}
@@ -3836,7 +3836,12 @@ error:
 	httpd_send_response(hc);
 
 	rewind(fp);
-	fread(buf, (size_t)len, 1, fp);
+	if (fread(buf, (size_t)len, 1, fp) != 1) {
+		syslog(LOG_ERR, "Failed reading dirlisting tempfile: %s", strerror(errno));
+		free(buf);
+		(void)fclose(fp);
+		return 1;
+	}
 	if (httpd_write(hc, buf, (size_t)len) <= 0) {
 		if (hc->errmsg)
 			syslog(LOG_ERR, "Failed sending dirlisting to client: %s", hc->errmsg);
@@ -3999,6 +4004,7 @@ static char **make_envp(struct http_conn *hc)
 		if (cp2) {
 			snprintf(cp2, l, "%s%s", hc->hs->cwd, hc->pathinfo);
 			envp[envn++] = build_env("PATH_TRANSLATED=%s", cp2);
+			free(cp2);
 		}
 	} else if (is_ssi(hc, NULL)) {
 		char buf[4];
@@ -4794,7 +4800,9 @@ done:
 		hc->compression_type = COMPRESSION_NONE;
 
 	fn = strrchr(hc->expnfilename, '.');
-	if (fn || strstr(hc->encodings, "gzip")) {
+	if (strstr(hc->encodings, "gzip")) {
+		header = "Vary: Accept-Encoding\r\n";
+	} else if (fn) {
 		for (i = 0; i < NELEMS(match); i++) {
 			if (strcmp(fn, match[i]))
 				continue;
