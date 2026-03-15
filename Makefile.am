@@ -21,15 +21,7 @@ doc:
 		cat www/footer.html >> $$out;				\
 	done
 
-## Generate MD5 checksum file
-MD5 = md5sum
-md5-dist:
-	@for file in $(DIST_ARCHIVES); do	\
-		$(MD5) $$file > ../$$file.md5;	\
-		mv $$file ../;			\
-	done
-
-## Check if tagged in git
+## Check if tagged in git, generate sha256 checksums, and move release files
 release-hook:
 	if [ ! `git tag | grep $(PACKAGE_VERSION)` ]; then				\
 		echo;									\
@@ -46,13 +38,17 @@ release-hook:
 		printf "\e[1m\e[44m>>Remember to push tags!\e[0m\n";			\
 		echo;									\
 	fi
+	@for file in $(DIST_ARCHIVES); do		\
+		sha256sum $$file > ../$$file.sha256;	\
+		mv $$file ../;				\
+	done
 
 # Target to run when building a release
-release: distcheck release-hook md5-dist
+release: distcheck release-hook
 	@echo
 	@echo "Resulting release files:"
 	@echo "================================================================="
-	@for file in $(DIST_ARCHIVES); do					\
-		printf "$$file    \tDistribution tarball\n";			\
-		printf "$$file.md5\t"; cat ../$$file.md5 | cut -f1 -d' ';	\
+	@for file in $(DIST_ARCHIVES); do						\
+		printf "$$file      \tDistribution tarball\n";				\
+		printf "$$file.sha256\t"; cat ../$$file.sha256 | cut -f1 -d' ';		\
 	done
