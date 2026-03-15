@@ -312,6 +312,24 @@ redirect "/**" {
 .It Cm }
 .It Cm proxy-pass Qo Ar PATTERN Qc {
 .Bl -tag -offset "" -compact
+.It Cm host = Qq Ar HOSTNAME
+Optional.  Only forward requests whose
+.Cm Host:
+header matches this hostname.  Use this with multihoming
+.Pq Cm virtual-host = true
+to route different virtual hosts to different backends on the same port.
+For example, to proxy only requests for
+.Qq git.example.com :
+.Bd -unfilled -offset "" -compact
+proxy-pass "/**" {
+    host    = "git.example.com"
+    backend = "http://localhost:3000"
+}
+.Ed
+.Pp
+When omitted, the rule applies regardless of the
+.Cm Host:
+header.
 .It Cm backend = Qq Ar http://HOST:PORT[/PATH]
 Forward matching requests to the given HTTP backend server, acting as a
 reverse proxy.  This is similar to the

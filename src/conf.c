@@ -146,6 +146,7 @@ static void conf_srv_proxy(struct srv *srv, cfg_t *cfg)
 			return;
 
 		srv->proxy[i].pattern = (char *)cfg_title(proxy);
+		srv->proxy[i].vhost   = cfg_getstr(proxy, "host");
 		srv->proxy[i].backend = cfg_getstr(proxy, "backend");
 	}
 }
@@ -227,6 +228,7 @@ static int read_config(char *fn)
 		CFG_END ()
 	};
 	cfg_opt_t proxy_opts[] = {
+		CFG_STR ("host",    NULL, CFGF_NONE),
 		CFG_STR ("backend", NULL, CFGF_NONE),
 		CFG_END ()
 	};

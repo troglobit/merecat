@@ -61,7 +61,7 @@ struct srv {
 
 	struct {
 		char *pattern;	/* Pattern to match() against */
-
+		char *vhost;	/* Optional Host: filter for multihoming */
 		char *backend;	/* Backend URL, e.g. "http://localhost:3000" */
 	} proxy[MAX_PROXIES];
 };

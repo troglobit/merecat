@@ -127,6 +127,7 @@ struct http_proxy {
 	struct http_proxy *prev, *next;
 
 	char          *pattern;  /* URL pattern to match against request URL */
+	char          *vhost;    /* Optional Host: filter for multihoming (owned) */
 	char          *backend;  /* Full backend URL (original config string) */
 	char          *host;     /* Backend hostname (parsed, owned) */
 	uint16_t       port;     /* Backend port */
@@ -300,7 +301,7 @@ extern int httpd_redirect_add(struct httpd *hs, int code, char *pattern, char *l
 extern int httpd_location_add(struct httpd *hs, char *pattern, char *path);
 
 /* Enable HTTP reverse proxy -- Note: O(n) lookup per HTTP request */
-extern int httpd_proxy_add(struct httpd *hs, char *pattern, char *backend);
+extern int httpd_proxy_add(struct httpd *hs, char *pattern, char *vhost, char *backend);
 
 /* Match request URL against proxy rules.  Returns matching rule, or NULL. */
 extern struct http_proxy *httpd_proxy_match(struct http_conn *hc);

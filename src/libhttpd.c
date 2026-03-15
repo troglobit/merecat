@@ -418,7 +418,7 @@ void httpd_location_free(struct httpd *hs)
 ** Initialize HTTP reverse proxy rules.  The backend URL is resolved at
 ** startup to avoid blocking DNS lookups during request handling.
 **/
-int httpd_proxy_add(struct httpd *hs, char *pattern, char *backend)
+int httpd_proxy_add(struct httpd *hs, char *pattern, char *vhost, char *backend)
 {
 	struct http_proxy *pr;
 	struct addrinfo hints, *res;
@@ -440,6 +440,12 @@ int httpd_proxy_add(struct httpd *hs, char *pattern, char *backend)
 	pr->backend  = backend;
 	pr->port     = 80;
 	pr->resolved = 0;
+
+	if (vhost) {
+		pr->vhost = strdup(vhost);
+		if (!pr->vhost)
+			goto err;
+	}
 
 	/* Parse backend URL: http://host[:port][/path] */
 	ptr = backend;
@@ -490,6 +496,7 @@ int httpd_proxy_add(struct httpd *hs, char *pattern, char *backend)
 	LIST_INSERT(pr, hs->proxy);
 	return 0;
 err:
+	free(pr->vhost);
 	free(pr->host);
 	free(pr);
 	return -1;
@@ -500,6 +507,7 @@ void httpd_proxy_free(struct httpd *hs)
 	struct http_proxy *pr;
 
 	LIST_FOREACH(pr, hs->proxy) {
+		free(pr->vhost);
 		free(pr->host);
 		free(pr->path);
 		free(pr);
@@ -509,6 +517,9 @@ void httpd_proxy_free(struct httpd *hs)
 /*
 ** Match the request URL against configured proxy rules.
 ** Returns the first matching rule, or NULL if no match.
+**
+** When a rule has a vhost filter, the request's Host: header must match
+** (port suffix ignored) before the URL pattern is tested.
 */
 struct http_proxy *httpd_proxy_match(struct http_conn *hc)
 {
@@ -517,6 +528,18 @@ struct http_proxy *httpd_proxy_match(struct http_conn *hc)
 	LIST_FOREACH(pr, hc->hs->proxy) {
 		if (!pr->backend)
 			continue;
+
+		if (pr->vhost) {
+			/* Use absolute-URL host if present, else Host: header */
+			const char *host = hc->reqhost[0] ? hc->reqhost : hc->hdrhost;
+			size_t n = strlen(pr->vhost);
+
+			/* Compare ignoring any :port suffix in the Host: header */
+			if (strncasecmp(pr->vhost, host, n) != 0 ||
+			    (host[n] != '\0' && host[n] != ':'))
+				continue;
+		}
+
 		if (match(pr->pattern, hc->encodedurl))
 			return pr;
 	}
