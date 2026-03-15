@@ -1,3 +1,43 @@
+- - - - - - - - - - regression tests - - - - - - - - - -
+
+The following features are documented but lack automated test coverage.
+Listed roughly in order of value vs. effort.
+
+Medium priority:
+
+- vhost.sh: two server{} blocks on different ports, each with its own
+  webroot; verify the right content is served per port/hostname.
+
+- useragent.sh: configure user-agent-deny with a pattern; verify
+  matching UA gets 403, non-matching UA gets 200.
+
+- custom-error.sh: place errors/404.html in webroot; request a missing
+  file and verify the custom page content is returned.
+
+- keepalive.sh: issue two GET requests over a single TCP connection;
+  verify both succeed without the connection being closed in between.
+
+- cache.sh: configure max-age; verify the response for a static file
+  includes Cache-Control: max-age=N matching the configured value.
+
+Lower priority (more setup required):
+
+- throttle.sh: configure a very low byte rate for a URL pattern; time
+  a transfer and verify it is rate-limited accordingly.
+
+- ssl.sh: generate a self-signed cert; verify curl --insecure gets 200
+  over HTTPS and that HTTP->HTTPS redirect works.
+
+- symlink.sh: create a symlink pointing outside the webroot with
+  check-symlinks = true; verify the request returns 403.
+
+Skip / manual only:
+
+- chroot.sh: requires root privileges; not suitable for CI.
+- referer.sh: check-referer behaviour; finicky to test reliably.
+- compression-level.sh: zlib level tuning; low regression risk.
+- signal.sh: USR1/USR2 (log reopen / graceful restart); manual only.
+
 - - - - - - - - - - before release - - - - - - - - - -
 
 - Add 'server' section to config file,

@@ -35,6 +35,7 @@
 #include <sys/param.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
+#include <netinet/tcp.h>
 #include <arpa/inet.h>
 #include <netdb.h>
 #include <stdlib.h>
@@ -255,6 +256,7 @@ struct http_conn {
 	int has_deflate;	/* Built with zlib:deflate() and enabled */
 	int compression_type;
 	char *file_address;
+	int file_fd;
 
 	void *ssl;		/* Opaque SSL* */
 	int skip_redirect;	/* On location match, skip redirect */

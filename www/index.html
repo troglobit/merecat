@@ -1,66 +1,107 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name=viewport content="width=device-width, initial-scale=0.8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Welcome to the Merecat embedded web server</title>
   <link rel="stylesheet" type="text/css" href="main.css">
   <link rel="icon" type="image/x-icon" href="/icons/favicon.ico">
+  <script>
+    (function () {
+      var stored = localStorage.getItem('theme');
+      var prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+      if (stored === 'dark' || (!stored && prefersDark))
+        document.documentElement.setAttribute('data-theme', 'dark');
+      else
+        document.documentElement.setAttribute('data-theme', 'light');
+    })();
+  </script>
 </head>
 <body>
 <div id="wrapper">
- <div id="header">
- <h1>Merecat &therefore; Embedded Web Server</h1>
- </div>
- <div id="right">
-  <a href="http://imgur.com/gallery/Yqty6rI">
-    <img style="width: 80%; height: auto;"
-	 src="/img/merecat.jpg" width="659" height="494"
-	 title="I think they're kitten suspicious ..."
-	 alt="A mere cat among a group of meerekats" />
-  </a>
- </div>
- <div id="content">
-<p>
-  Welcome to the Merecat web server.  This is the default landing
-  page for new installations.  Seeing this means the web server is
-  working and the owner has not set up any pages of their own yet.
-</p>
-<p>
-  Merecat started out as a pun at
-  <a href="https://github.com/cesanta/mongoose">Mongoose</a>, but is
-  now useful for actual web serving purposes.  However, it is not a
-  real <a href="https://en.wikipedia.org/wiki/Meerkat">Meerkat</a>,
-  merely another copycat, forked from 
-  <a href="http://www.acme.com/software/thttpd/">thttpd</a>.
-</p>
-<p>
-  It expands on the features originally offered by thttpd, e.g. native
-  HTTPS support, PHP CGI, gzip deflate using zlib, dual server support;
-  both HTTP &amp; HTTPS from one process, and built-in HTTP redirect.
-  The resulting footprint (~140 kiB) makes it suitable for small and
-  embedded systems.  See these fine manual pages for more information:
-  <ul>
-    <li><a href="merecat.8.html">merecat.8</a></li>
-    <li><a href="merecat.conf.5.html">merecat.conf.5</a></li>
-    <li><a href="htpasswd.1.html">htpasswd.1</a></li>
-    <li><a href="ssi.8.html">ssi.8</a></li>
-  </ul>
-</p>
-<h2>Credits</h2>
-<p>
-  <a href="http://www.acme.com">Jef Poskanzer</a> for creating and
-  maintaining thttpd for so long, and
-  <a href="http://imgur.com/user/SunShot">SunShot</a> for the Mere Cat
-  meme, huge props!
-</p>
+
+  <button id="theme-toggle" onclick="toggleTheme()" aria-label="Toggle light/dark mode" title="Toggle light/dark mode">
+    <svg id="icon-sun" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/>
+      <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/>
+      <line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/>
+      <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
+    </svg>
+    <svg id="icon-moon" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+    </svg>
+  </button>
+
+  <div id="header">
+    <h1>Merecat &there4; Embedded Web Server</h1>
+  </div>
+
+  <div id="right">
+    <a href="https://github.com/troglobit/merecat/">
+      <img src="/img/merecat.jpg" width="659" height="494"
+           title="I think they're kitten suspicious &hellip;"
+           alt="A mere cat among a group of meerkats" />
+    </a>
+  </div>
+
+  <div id="content">
+    <p>
+      Welcome to the Merecat web server.  This is the default landing page
+      for new installations.  If you see this page, the server is running
+      but the owner has not yet deployed their own site.
+    </p>
+    <p>
+      Merecat is a pun on
+      <a href="https://github.com/cesanta/mongoose">Mongoose</a>, forked
+      from <a href="http://www.acme.com/software/thttpd/">thttpd</a> and
+      grown into a capable lightweight server.  It is not a real
+      <a href="https://en.wikipedia.org/wiki/Meerkat">Meerkat</a> &mdash;
+      merely another copycat.
+    </p>
+    <p>
+      Feature highlights: native HTTPS via OpenSSL, reverse proxy
+      (<code>proxy-pass</code>), gzip compression, PHP CGI, Server-Side
+      Includes, HTTP/1.1 keep-alive, and dual HTTP&thinsp;+&thinsp;HTTPS
+      from a single process.  The resulting footprint (~140&thinsp;kiB)
+      makes it a natural fit for small and embedded systems.
+    </p>
+    <p>Manual pages:</p>
+    <ul>
+      <li><a href="merecat.8.html">merecat(8)</a> &mdash; server daemon</li>
+      <li><a href="merecat.conf.5.html">merecat.conf(5)</a> &mdash; configuration file</li>
+      <li><a href="htpasswd.1.html">htpasswd(1)</a> &mdash; password file utility</li>
+      <li><a href="ssi.8.html">ssi(8)</a> &mdash; server-side includes</li>
+    </ul>
+
+    <h2>Credits</h2>
+    <p>
+      <a href="http://www.acme.com">Jef Poskanzer</a> for creating and
+      maintaining <a href="http://www.acme.com/software/thttpd/">thttpd</a>,
+      <a href="http://www.acme.com/software/mini_httpd/">mini_httpd</a>, and
+      other fine tools over the years &mdash; a huge source of inspiration.
+      Also, <a href="http://imgur.com/user/SunShot">SunShot</a> for the
+      meerkat photo &mdash; many thanks!
+    </p>
+  </div>
+
+  <div id="footer">
+    <address>
+      <a href="https://github.com/troglobit/merecat/">merecat httpd</a>
+      is created and maintained by <a href="https://github.com/troglobit">Joachim Wiberg</a>
+      and is free software under the
+      <a href="https://en.wikipedia.org/wiki/BSD_licenses#2-clause_license_.28.22Simplified_BSD_License.22_or_.22FreeBSD_License.22.29">2-clause BSD license</a>
+    </address>
+  </div>
+
 </div>
-<div id="footer">
-<address><a href="https://github.com/troglobit/merecat/">merecat
-httpd</a> is free software under
-the <a href="https://en.wikipedia.org/wiki/BSD_licenses#2-clause_license_.28.22Simplified_BSD_License.22_or_.22FreeBSD_License.22.29">2-clause BSD license</a>
-</address>
-</div>
-</div>
+
+<script>
+  function toggleTheme() {
+    var isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+    var next   = isDark ? 'light' : 'dark';
+    document.documentElement.setAttribute('data-theme', next);
+    localStorage.setItem('theme', next);
+  }
+</script>
 </body>
 </html>

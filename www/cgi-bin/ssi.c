@@ -28,6 +28,7 @@
 #include <config.h>
 
 /* System headers */
+#include <limits.h>
 #include <stdio.h>
 #include <stdarg.h>
 #include <stdlib.h>
@@ -109,7 +110,7 @@ static void not_found(char *filename)
 {
 	char *title = "404 Not Found";
 
-	send_response(title, "The requested server-side includes filename, %s,\n"
+	send_response(title, "The requested server-side includes filename, %.256s,\n"
 		      "does not seem to exist.", filename);
 }
 
@@ -131,7 +132,7 @@ static void not_found2(char *directive, char *tag, char *filename2)
 
 static void not_permitted(char *directive, char *tag, char *val)
 {
-	syslog(LOG_NOTICE, "The filename requested in the %s %s=%s directive, "
+	syslog(LOG_NOTICE, "The filename requested in the %s %s=%.256s directive, "
 	       "is not allowed.", directive, tag, val);
 	show_errmsg();
 }
@@ -504,6 +505,8 @@ static void parse(char *vfilename, char *filename, FILE *fp, char *str)
 			break;
 		if (*cp == '"') {
 			cp = strpbrk(cp + 1, "\"");
+			if (!cp)
+				break;
 			++cp;
 			if (*cp == '\0')
 				break;
@@ -721,6 +724,10 @@ int main(int argc, char **argv)
 	path_translated = getenv("PATH_TRANSLATED");
 	if (!path_translated) {
 		internal_error("Couldn't get PATH_TRANSLATED environment variable.");
+		exit(1);
+	}
+	if (strlen(path_translated) >= PATH_MAX) {
+		internal_error("PATH_TRANSLATED too long.");
 		exit(1);
 	}
 

@@ -53,6 +53,10 @@
 #include <osreldate.h>
 #endif
 
+#ifdef HAVE_SYS_SENDFILE_H
+#include <sys/sendfile.h>
+#endif
+
 #include <wordexp.h>
 
 #ifdef HAVE_DIRENT_H
@@ -524,6 +528,7 @@ int httpd_proxy_add(struct httpd *hs, char *pattern, char *vhost, char *backend,
 err:
 	free(pr->redirect_to);
 	free(pr->redirect_from);
+	free(pr->path);
 	free(pr->vhost);
 	free(pr->host);
 	free(pr);
@@ -761,6 +766,15 @@ static int initialize_listen_socket(sockaddr_t *sa)
 		(void)close(listen_fd);
 		return -1;
 	}
+
+	/* Defer accept until data arrives (HTTP request), saving a wakeup. */
+#ifdef TCP_DEFER_ACCEPT
+	{
+		int timeout = 1;
+		if (setsockopt(listen_fd, IPPROTO_TCP, TCP_DEFER_ACCEPT, &timeout, sizeof(timeout)) < 0)
+			syslog(LOG_WARNING, "Failed setting TCP_DEFER_ACCEPT: %s", strerror(errno));
+	}
+#endif
 
 	/* Use accept filtering, if available. */
 #ifdef SO_ACCEPTFILTER
@@ -1444,6 +1458,8 @@ static int access_check2(struct http_conn *hc, char *dir)
 
 	/* Read it. */
 	while (fgets(line, sizeof(line), fp)) {
+		struct in_addr client_addr;
+
 		/* Nuke newline. */
 		l = strlen(line);
 		if (line[l - 1] == '\n') line[l - 1] = '\0';
@@ -1492,10 +1508,17 @@ static int access_check2(struct http_conn *hc, char *dir)
 			goto err;
 
 		/*
-		 * Does client addr match this rule?
-		 * TODO: Generalize and add IPv6 support
+		 * Use the pre-resolved address string rather than the raw
+		 * sockaddr union: on dual-stack IPv6 sockets sin.sin_addr
+		 * overlaps sin6_flowinfo (offset 4), not the actual address
+		 * (offset 8).  httpd_ntoa() already strips the ::ffff: prefix
+		 * from IPv4-mapped addresses, so inet_aton() gives the right
+		 * IPv4 value.  Pure IPv6 clients won't match IPv4 rules.
 		 */
-		if ((hc->client.sin.sin_addr.s_addr & ipv4_mask.s_addr) ==
+		if (!inet_aton(hc->client.address, &client_addr))
+			continue; /* IPv6 client, skip IPv4 rule */
+
+		if ((client_addr.s_addr & ipv4_mask.s_addr) ==
 		    (ipv4_addr.s_addr & ipv4_mask.s_addr)) {
 			/* Yes. */
 			switch (line[0]) {
@@ -1789,8 +1812,10 @@ static int send_redirect(struct http_conn *hc, struct http_redir *redirect)
 	} else
 		unsetenv("args");
 
-        if (wordexp(redirect->location, &we, 0))
+        if (wordexp(redirect->location, &we, 0)) {
+		wordfree(&we);
 		return 0;
+	}
 
 	len = strlen(we.we_wordv[0]) + 16;
 	ptr = malloc(len);
@@ -2378,6 +2403,12 @@ static char *expand_symlinks(char *path, char **trailer, int no_symlink_check, i
 void httpd_close_conn(struct http_conn *hc, struct timeval *now)
 {
 	if (hc->file_address) {
+#ifdef HAVE_SENDFILE
+		if (hc->file_fd >= 0) {
+			close(hc->file_fd);
+			hc->file_fd = -1;
+		}
+#endif
 		mmc_unmap(hc->file_address, &(hc->sb), now);
 		hc->file_address = NULL;
 	}
@@ -2523,6 +2554,7 @@ void httpd_init_conn_content(struct http_conn *hc)
 	hc->do_keep_alive = 0;
 	hc->should_linger = 0;
 	hc->file_address = NULL;
+	hc->file_fd = -1;
 	hc->compression_type = COMPRESSION_NONE;
 }
 
@@ -2537,7 +2569,11 @@ int httpd_get_conn(struct httpd *hs, int listen_fd, struct http_conn *hc)
 
 	/* Accept the new connection. */
 	sz = sizeof(sa);
+#ifdef HAVE_ACCEPT4
+	hc->conn_fd = accept4(listen_fd, &sa.sa, &sz, SOCK_CLOEXEC);
+#else
 	hc->conn_fd = accept(listen_fd, &sa.sa, &sz);
+#endif
 	if (hc->conn_fd < 0) {
 		if (errno == EWOULDBLOCK)
 			return GC_NO_MORE;
@@ -2551,9 +2587,13 @@ int httpd_get_conn(struct httpd *hs, int listen_fd, struct http_conn *hc)
 		goto error;
 	}
 
+#ifndef HAVE_ACCEPT4
 	if (-1 == set_cloexec(hc->conn_fd))
 		syslog(LOG_ERR, "failed setting CLOEXEC on client socket: %s",
 		       strerror(errno));
+#endif
+
+	SETSOCKOPT(hc->conn_fd, IPPROTO_TCP, TCP_NODELAY);
 
 	hc->hs = hs;
 	memset(&hc->client, 0, sizeof(hc->client));
@@ -3469,7 +3509,7 @@ static void figure_mime(struct http_conn *hc)
 
 	/* The last thing we do is actually generate the mime-encoding header. */
 	hc->encodings[0] = '\0';
-	for (i = n_me_indexes - 1; i >= 0; --i) {
+	for (i = n_me_indexes; i-- > 0; ) {
 		size_t len;
 
 		len = strlen(hc->encodings) + enc_tab[me_indexes[i]].val_len + 2;
@@ -3524,7 +3564,7 @@ static char *humane_size(struct stat *st)
 	}
 
 	bytes = st->st_size;
-	while (bytes > 1000 && i < NELEMS(mult)) {
+	while (bytes > 1000 && i < NELEMS(mult) - 1) {
 		bytes /= 1000;
 		i++;
 	}
@@ -3805,7 +3845,12 @@ error:
 	httpd_send_response(hc);
 
 	rewind(fp);
-	fread(buf, (size_t)len, 1, fp);
+	if (fread(buf, (size_t)len, 1, fp) != 1) {
+		syslog(LOG_ERR, "Failed reading dirlisting tempfile: %s", strerror(errno));
+		free(buf);
+		(void)fclose(fp);
+		return 1;
+	}
 	if (httpd_write(hc, buf, (size_t)len) <= 0) {
 		if (hc->errmsg)
 			syslog(LOG_ERR, "Failed sending dirlisting to client: %s", hc->errmsg);
@@ -3968,6 +4013,7 @@ static char **make_envp(struct http_conn *hc)
 		if (cp2) {
 			snprintf(cp2, l, "%s%s", hc->hs->cwd, hc->pathinfo);
 			envp[envn++] = build_env("PATH_TRANSLATED=%s", cp2);
+			free(cp2);
 		}
 	} else if (is_ssi(hc, NULL)) {
 		char buf[4];
@@ -3988,6 +4034,7 @@ static char **make_envp(struct http_conn *hc)
 		if (cp2) {
 			snprintf(cp2, l, "%s%s", hc->hs->cwd, hc->expnfilename);
 			envp[envn++] = build_env("PATH_TRANSLATED=%s", cp2);
+			free(cp2);
 		}
 
 		if (ssi_silent)
@@ -4763,7 +4810,9 @@ done:
 		hc->compression_type = COMPRESSION_NONE;
 
 	fn = strrchr(hc->expnfilename, '.');
-	if (fn || strstr(hc->encodings, "gzip")) {
+	if (strstr(hc->encodings, "gzip")) {
+		header = "Vary: Accept-Encoding\r\n";
+	} else if (fn) {
 		for (i = 0; i < NELEMS(match); i++) {
 			if (strcmp(fn, match[i]))
 				continue;
@@ -5029,6 +5078,9 @@ sneaky:
 		char *extra = mod_headers(hc);
 
 		hc->file_address = mmc_map(hc->expnfilename, &(hc->sb), now);
+#ifdef HAVE_SENDFILE
+		hc->file_fd = open(hc->expnfilename, O_RDONLY | O_CLOEXEC);
+#endif
 		if (!hc->file_address) {
 			syslog(LOG_ERR, "mmc_map(%s): cannot find %s", hc->expnfilename, is_icon ? "icon" : "file");
 			if (is_icon)

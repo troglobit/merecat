@@ -28,6 +28,7 @@
 
 #include <config.h>
 
+#include <errno.h>
 #include <getopt.h>
 #include <pwd.h>
 #ifdef HAVE_GRP_H
@@ -47,6 +48,10 @@
 
 #ifdef HAVE_ZLIB_H
 #include <zlib.h>
+#endif
+
+#ifdef HAVE_SYS_SENDFILE_H
+#include <sys/sendfile.h>
 #endif
 
 #include "conf.h"
@@ -565,6 +570,12 @@ static void clear_connection(connecttab *c, struct timeval *tv)
 
 		/* release file memory */
 		if (c->hc->file_address) {
+#ifdef HAVE_SENDFILE
+			if (c->hc->file_fd >= 0) {
+				close(c->hc->file_fd);
+				c->hc->file_fd = -1;
+			}
+#endif
 			mmc_unmap(c->hc->file_address, &c->hc->sb, tv);
 			c->hc->file_address = NULL;
 		}
@@ -895,7 +906,13 @@ static int proxy_start(connecttab *c, struct timeval *tv)
 		free(c->proxy_resp); c->proxy_resp = NULL;
 		return -1;
 	}
-	httpd_set_ndelay(fd);
+	if (httpd_set_ndelay(fd) < 0) {
+		syslog(LOG_ERR, "proxy-pass: failed setting non-blocking on socket: %s", strerror(errno));
+		close(fd);
+		free(c->proxy_req);  c->proxy_req  = NULL;
+		free(c->proxy_resp); c->proxy_resp = NULL;
+		return -1;
+	}
 
 	memset(&sa, 0, sizeof(sa));
 	sa.sin_family = AF_INET;
@@ -1093,12 +1110,10 @@ static void proxy_rewrite_headers(connecttab *c)
 					}
 					/* Recalculate pointers after realloc */
 					size_t val_off = (size_t)(val - buf);
-					size_t end_off = (size_t)(end - buf);
 					c->proxy_resp      = nb;
 					c->proxy_resp_size = new_len;
 					buf = nb;
 					val = buf + val_off;
-					end = buf + end_off;
 				}
 			}
 
@@ -1424,6 +1439,28 @@ static void handle_send(connecttab *c, struct timeval *tv)
 		/* Do we need to write the headers first? */
 		if (hc->responselen == 0) {
 			/* No, just write the file. */
+#ifdef HAVE_SENDFILE
+			if (hc->file_fd >= 0
+# ifdef ENABLE_SSL
+			    && !hc->ssl
+# endif
+			   ) {
+				off_t  offset = (off_t)c->next_byte_index;
+				size_t nbytes = (size_t)MIN(c->end_byte_index - c->next_byte_index, (off_t)max_bytes);
+# ifdef HAVE_SYS_SENDFILE_H
+				/* Linux: sendfile(out, in, &offset, count) */
+				sz = sendfile(hc->conn_fd, hc->file_fd, &offset, nbytes);
+# else
+				/* BSD: sendfile(in, out, offset, nbytes, hdtr, &sbytes, flags) */
+				{
+					off_t sent = 0;
+					int   rc   = sendfile(hc->file_fd, hc->conn_fd, offset, nbytes, NULL, &sent, 0);
+
+					sz = (rc == 0 || (rc < 0 && errno == EAGAIN)) ? (ssize_t)sent : -1;
+				}
+# endif
+			} else
+#endif /* HAVE_SENDFILE */
 			sz = httpd_write(hc, &(hc->file_address[c->next_byte_index]),
 					 MIN(c->end_byte_index - c->next_byte_index, (off_t)max_bytes));
 		} else {
@@ -2141,6 +2178,10 @@ int main(int argc, char **argv)
 		exit(1);
 	}
 	max_connects -= SPARE_FDS;
+	if (max_connects <= 0) {
+		syslog(LOG_CRIT, "Not enough file descriptors (%d) to run", max_connects + SPARE_FDS);
+		exit(1);
+	}
 
 	/* Chroot if requested. */
 	if (do_chroot) {

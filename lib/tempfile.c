@@ -26,9 +26,12 @@
 static FILE *fallback(void)
 {
 	char nm[15] = _PATH_TMP "XXXXXXXX";
+	mode_t oldmask;
 	int fd;
 
+	oldmask = umask(0177);
 	fd = mkstemp(nm);
+	umask(oldmask);
 	if (-1 == fd)
 		return NULL;
 
