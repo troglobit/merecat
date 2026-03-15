@@ -95,6 +95,17 @@ Now the web server root, `/var/www/`, no longer serves files, only
 virtual host directories do, execpt for the shared files in `icons/`,
 `cgi-bin/`, and `errors/`.
 
+Merecat scrubs the environment before forking CGI children, so variables
+from the shell or systemd `EnvironmentFile` are not visible to CGI
+scripts.  Use `setenv` to inject custom variables:
+
+```conf
+cgi "/cgi-bin/*|**.cgi" {
+    enabled = true
+    setenv  = { "GIT_PROJECT_ROOT=/srv/repos", "GIT_HTTP_EXPORT_ALL=1" }
+}
+```
+
 On Linux bind mounts can be used to set up FTP and web access to the
 same files. Example `/etc/fstab`:
 

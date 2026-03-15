@@ -304,7 +304,7 @@ static void httpd_greeting(struct httpd *hs, sockaddr_t *sav4, sockaddr_t *sav6)
 	syslog(LOG_NOTICE, "%s starting on %s%s", PACKAGE_STRING, name, buf);
 }
 
-int httpd_cgi_init(struct httpd *hs, int enabled, char *cgi_pattern, int cgi_limit)
+int httpd_cgi_init(struct httpd *hs, int enabled, char *cgi_pattern, int cgi_limit, char **setenv, int setenv_len)
 {
 	char *cp;
 
@@ -312,6 +312,9 @@ int httpd_cgi_init(struct httpd *hs, int enabled, char *cgi_pattern, int cgi_lim
 		errno = EINVAL;
 		return -1;
 	}
+
+	hs->cgi_setenv     = setenv;
+	hs->cgi_setenv_len = setenv_len;
 
 	if (!cgi_pattern) {
 		hs->cgi_enabled = 0;
@@ -3926,10 +3929,17 @@ static char *hostname_map(char *hostname)
 */
 static char **make_envp(struct http_conn *hc)
 {
-	static char *envp[50];
+	/* 50 standard vars + user-defined setenv vars + NULL terminator */
+	int    maxenv = 50 + hc->hs->cgi_setenv_len + 1;
+	char **envp   = malloc(maxenv * sizeof(char *));
 	int envn;
 	char *cp;
 	char buf[256];
+
+	if (!envp) {
+		syslog(LOG_ERR, "make_envp: out of memory");
+		return NULL;
+	}
 
 	envn = 0;
 	envp[envn++] = build_env("PATH=%s", CGI_PATH);
@@ -4052,6 +4062,10 @@ static char **make_envp(struct http_conn *hc)
 	if (getenv("TZ"))
 		envp[envn++] = build_env("TZ=%s", getenv("TZ"));
 	envp[envn++] = build_env("CGI_PATTERN=%s", hc->hs->cgi_pattern);
+
+	for (int i = 0; i < hc->hs->cgi_setenv_len; i++)
+		envp[envn++] = hc->hs->cgi_setenv[i];
+
 	envp[envn] = NULL;
 
 	return envp;

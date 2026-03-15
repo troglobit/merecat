@@ -176,6 +176,13 @@ for more on this.
 The CGI module is disabled by default.
 .It Cm limit = Ar NUM
 Maximum number of allowed simultaneous CGI programs.  Default 1.
+.It Cm setenv = Ar { "NAME=value", ... }
+List of environment variables to pass to all CGI programs.  Use this
+to inject custom variables that CGI scripts can read from their environment.
+Example:
+.Bd -literal -offset indent
+setenv = { "MY_VAR=hello", "APP_ENV=production" }
+.Ed
 .El
 .Pp
 .Sy Environment variables:
@@ -184,8 +191,10 @@ security reasons.  Environment variables set in the shell or via systemd
 .Cm EnvironmentFile
 are therefore not visible to CGI programs.
 .Pp
-To pass custom environment variables to a CGI program, use a wrapper
-script:
+Use the
+.Cm setenv
+option to pass custom variables directly, or use a wrapper script for
+more complex needs:
 .Bd -unfilled -offset indent
 #!/bin/sh
 export GIT_PROJECT_ROOT=/srv/repos
