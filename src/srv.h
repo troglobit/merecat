@@ -63,6 +63,7 @@ struct srv {
 		char *pattern;	/* Pattern to match() against */
 		char *vhost;	/* Optional Host: filter for multihoming */
 		char *backend;	/* Backend URL, e.g. "http://localhost:3000" */
+		char *redirect;	/* Optional "FROM TO" for Location/Refresh rewriting */
 	} proxy[MAX_PROXIES];
 };
 

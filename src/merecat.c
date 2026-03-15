@@ -987,6 +987,137 @@ static void handle_proxy_send(connecttab *c, struct timeval *tv)
 	}
 }
 
+/*
+ * Rewrite Location: and Refresh: response headers in the fully-buffered
+ * backend response, replacing redirect_from with redirect_to.
+ *
+ * This corrects root-relative redirects when a backend is proxied under a
+ * sub-path: e.g. backend sends "Location: /login", proxy-redirect rewrites
+ * it to "Location: /app/login" so the browser stays inside the proxy prefix.
+ *
+ * Only the header region (before "\r\n\r\n") is modified.  If the replacement
+ * would cause the buffer to exceed PROXY_RESP_MAX the rewrite is skipped and
+ * a warning is logged.
+ */
+static void proxy_rewrite_headers(connecttab *c)
+{
+	struct http_proxy *pr   = c->proxy_rule;
+	const char        *from = pr->redirect_from;
+	const char        *to   = pr->redirect_to;
+	size_t  from_len = strlen(from);
+	size_t  to_len   = strlen(to);
+	char   *buf      = c->proxy_resp;
+	size_t  len      = c->proxy_resp_len;
+	char   *hdr_end;
+	size_t  hdr_len;
+
+	/* Targets: header names whose URL value we may rewrite */
+	static const char *const targets[] = {
+		"\r\nLocation: ",
+		"\r\nRefresh: ",
+	};
+
+	/* Locate end of HTTP headers */
+	hdr_end = memmem(buf, len, "\r\n\r\n", 4);
+	if (!hdr_end)
+		return;
+	hdr_len = (size_t)(hdr_end - buf) + 4;
+
+	for (size_t t = 0; t < NELEMS(targets); t++) {
+		const char *tgt     = targets[t];
+		size_t      tgt_len = strlen(tgt);
+		char       *p       = buf;
+		char       *end     = buf + hdr_len;
+
+		while (p + tgt_len < end) {
+			/* Case-insensitive search for the header name */
+			char *found = NULL;
+
+			for (char *q = p; q + tgt_len <= end; q++) {
+				if (*q == '\r' &&
+				    strncasecmp(q, tgt, tgt_len) == 0) {
+					found = q + tgt_len;
+					break;
+				}
+			}
+			if (!found)
+				break;
+
+			/* For Refresh: skip past "N; url=" */
+			char *val = found;
+			if (tgt == targets[1]) {
+				char *u = NULL;
+				char *eol = memchr(val, '\r', (size_t)(end - val));
+				size_t vlen = eol ? (size_t)(eol - val) : (size_t)(end - val);
+
+				for (size_t i = 0; i + 4 <= vlen; i++) {
+					if (strncasecmp(val + i, "url=", 4) == 0) {
+						u = val + i + 4;
+						break;
+					}
+				}
+				if (!u) {
+					p = found;
+					continue;
+				}
+				val = u;
+			}
+
+			/* Check if the URL value starts with redirect_from */
+			if ((size_t)(end - val) < from_len ||
+			    strncmp(val, from, from_len) != 0) {
+				p = found;
+				continue;
+			}
+
+			/* Grow or shrink the buffer to accommodate the replacement */
+			ssize_t delta = (ssize_t)to_len - (ssize_t)from_len;
+			if (delta > 0) {
+				size_t new_len = len + (size_t)delta;
+				if (new_len > PROXY_RESP_MAX) {
+					syslog(LOG_WARNING,
+					       "proxy-redirect: skipping rewrite, "
+					       "buffer would exceed %d bytes",
+					       PROXY_RESP_MAX);
+					return;
+				}
+				if (new_len > c->proxy_resp_size) {
+					char *nb = realloc(c->proxy_resp, new_len);
+					if (!nb) {
+						syslog(LOG_WARNING,
+						       "proxy-redirect: skipping rewrite, "
+						       "out of memory");
+						return;
+					}
+					/* Recalculate pointers after realloc */
+					size_t val_off = (size_t)(val - buf);
+					size_t end_off = (size_t)(end - buf);
+					c->proxy_resp      = nb;
+					c->proxy_resp_size = new_len;
+					buf = nb;
+					val = buf + val_off;
+					end = buf + end_off;
+				}
+			}
+
+			/* Shift everything after FROM to make room for TO */
+			char  *after_from = val + from_len;
+			size_t tail_len   = len - (size_t)(after_from - buf);
+			memmove(val + to_len, after_from, tail_len);
+			memcpy(val, to, to_len);
+
+			len     += (size_t)delta;
+			hdr_len += (size_t)delta;
+			end      = buf + hdr_len;
+
+			/* Advance past the replacement to avoid re-matching */
+			p = val + to_len;
+		}
+	}
+
+	c->proxy_resp_len = len;
+}
+
 /* CNST_PROXY_READING: buffer the backend response until the connection closes */
 static void handle_proxy_read(connecttab *c, struct timeval *tv)
 {
@@ -1036,6 +1167,10 @@ static void handle_proxy_read(connecttab *c, struct timeval *tv)
 
 		free(c->proxy_req);
 		c->proxy_req = NULL;
+
+		/* Rewrite Location:/Refresh: headers if proxy-redirect is configured */
+		if (c->proxy_rule->redirect_from)
+			proxy_rewrite_headers(c);
 
 		/* Hand the buffered response back to the client */
 		hc->bytes_sent = 0;

@@ -24,6 +24,30 @@ All relevant changes are documented in this file.
   stripped before forwarding (nginx-style path rewriting).  Up to 8 rules
   are supported per server block.  Closes #20
 
+- Add `host` filter to `proxy-pass` rules for multihoming (virtual host)
+  setups.  When `virtual-host = true` is enabled, each `proxy-pass` rule
+  can restrict which `Host:` header it matches, enabling different backends
+  on the same port:
+
+      virtual-host = true
+      server secure {
+          port = 443
+          proxy-pass "/**" {
+              host    = "git.example.com"
+              backend = "http://localhost:3000"
+          }
+      }
+
+- Add `proxy-redirect` to rewrite `Location:` and `Refresh:` response
+  headers returned by the backend.  Use it when a backend issues absolute
+  redirects with its own host or path prefix that needs to be rewritten to
+  the frontend URL:
+
+      proxy-pass "/app/**" {
+          backend        = "http://localhost:4000/"
+          proxy-redirect = "http://localhost:4000 http://localhost"
+      }
+
 
 [v2.32][UNRELEASED]
 -------------------

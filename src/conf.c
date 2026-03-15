@@ -145,9 +145,10 @@ static void conf_srv_proxy(struct srv *srv, cfg_t *cfg)
 		if (!proxy)
 			return;
 
-		srv->proxy[i].pattern = (char *)cfg_title(proxy);
-		srv->proxy[i].vhost   = cfg_getstr(proxy, "host");
-		srv->proxy[i].backend = cfg_getstr(proxy, "backend");
+		srv->proxy[i].pattern  = (char *)cfg_title(proxy);
+		srv->proxy[i].vhost    = cfg_getstr(proxy, "host");
+		srv->proxy[i].backend  = cfg_getstr(proxy, "backend");
+		srv->proxy[i].redirect = cfg_getstr(proxy, "proxy-redirect");
 	}
 }
 
@@ -228,8 +229,9 @@ static int read_config(char *fn)
 		CFG_END ()
 	};
 	cfg_opt_t proxy_opts[] = {
-		CFG_STR ("host",    NULL, CFGF_NONE),
-		CFG_STR ("backend", NULL, CFGF_NONE),
+		CFG_STR ("host",           NULL, CFGF_NONE),
+		CFG_STR ("backend",        NULL, CFGF_NONE),
+		CFG_STR ("proxy-redirect", NULL, CFGF_NONE),
 		CFG_END ()
 	};
 	cfg_opt_t redirect_opts[] = {

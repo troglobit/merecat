@@ -133,6 +133,8 @@ struct http_proxy {
 	uint16_t       port;         /* Backend port */
 	char          *path;         /* Backend URL path prefix (parsed, owned) */
 	int            strip_prefix; /* Strip matched URL prefix before forwarding */
+	char          *redirect_from;/* Rewrite Location/Refresh: replace this prefix ... */
+	char          *redirect_to;  /* ... with this prefix (both NULL = disabled) */
 	struct in_addr addr;         /* Pre-resolved backend IPv4 address */
 	int            resolved;     /* Whether addr is valid */
 };
@@ -302,7 +304,7 @@ extern int httpd_redirect_add(struct httpd *hs, int code, char *pattern, char *l
 extern int httpd_location_add(struct httpd *hs, char *pattern, char *path);
 
 /* Enable HTTP reverse proxy -- Note: O(n) lookup per HTTP request */
-extern int httpd_proxy_add(struct httpd *hs, char *pattern, char *vhost, char *backend);
+extern int httpd_proxy_add(struct httpd *hs, char *pattern, char *vhost, char *backend, char *redirect);
 
 /* Match request URL against proxy rules.  Returns matching rule, or NULL. */
 extern struct http_proxy *httpd_proxy_match(struct http_conn *hc);

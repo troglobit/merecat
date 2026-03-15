@@ -415,7 +415,7 @@ void httpd_location_free(struct httpd *hs)
 ** Initialize HTTP reverse proxy rules.  The backend URL is resolved at
 ** startup to avoid blocking DNS lookups during request handling.
 **/
-int httpd_proxy_add(struct httpd *hs, char *pattern, char *vhost, char *backend)
+int httpd_proxy_add(struct httpd *hs, char *pattern, char *vhost, char *backend, char *redirect)
 {
 	struct http_proxy *pr;
 	struct addrinfo hints, *res;
@@ -486,6 +486,23 @@ int httpd_proxy_add(struct httpd *hs, char *pattern, char *vhost, char *backend)
 	if (!pr->path)
 		goto err;
 
+	/* Parse proxy-redirect: "FROM TO" rewrites Location/Refresh headers.
+	 * TODO: support "default" keyword to auto-derive FROM from backend path
+	 *       and TO from the pattern prefix (everything before the first glob).
+	 */
+	if (redirect && redirect[0] && strcmp(redirect, "off") != 0) {
+		const char *sp = strchr(redirect, ' ');
+
+		if (!sp || sp == redirect || !sp[1]) {
+			syslog(LOG_ERR, "proxy-pass: proxy-redirect must be \"FROM TO\", got: %s", redirect);
+			goto err;
+		}
+		pr->redirect_from = strndup(redirect, sp - redirect);
+		pr->redirect_to   = strdup(sp + 1);
+		if (!pr->redirect_from || !pr->redirect_to)
+			goto err;
+	}
+
 	/* Pre-resolve the backend hostname to avoid blocking at request time */
 	memset(&hints, 0, sizeof(hints));
 	hints.ai_family   = AF_INET;
@@ -502,6 +519,8 @@ int httpd_proxy_add(struct httpd *hs, char *pattern, char *vhost, char *backend)
 	LIST_INSERT(pr, hs->proxy);
 	return 0;
 err:
+	free(pr->redirect_to);
+	free(pr->redirect_from);
 	free(pr->vhost);
 	free(pr->host);
 	free(pr);
@@ -513,6 +532,8 @@ void httpd_proxy_free(struct httpd *hs)
 	struct http_proxy *pr;
 
 	LIST_FOREACH(pr, hs->proxy) {
+		free(pr->redirect_to);
+		free(pr->redirect_from);
 		free(pr->vhost);
 		free(pr->host);
 		free(pr->path);
