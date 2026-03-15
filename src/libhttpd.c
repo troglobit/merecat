@@ -2555,6 +2555,8 @@ int httpd_get_conn(struct httpd *hs, int listen_fd, struct http_conn *hc)
 		syslog(LOG_ERR, "failed setting CLOEXEC on client socket: %s",
 		       strerror(errno));
 
+	SETSOCKOPT(hc->conn_fd, IPPROTO_TCP, TCP_NODELAY);
+
 	hc->hs = hs;
 	memset(&hc->client, 0, sizeof(hc->client));
 	memcpy(&hc->client, &sa, sizeof(sa));
