@@ -4,6 +4,51 @@ Change Log
 All relevant changes are documented in this file.
 
 
+[v2.33][UNRELEASED]
+-------------------
+
+### Changes
+- Add reverse proxy support (`proxy-pass`), similar to nginx `proxy_pass`.
+  Front local application servers (Node.js, Python, Go, etc.) with Merecat
+  acting as the TLS-terminating entry point.  Configure in `merecat.conf`:
+
+      server default {
+          proxy-pass "/api/**" {
+              backend = "http://localhost:3000"
+          }
+      }
+
+  The backend hostname is resolved at startup.  Forwarded requests include
+  `X-Forwarded-For`, `X-Real-IP`, and `X-Forwarded-Proto` headers.  When
+  the backend URL carries a path component, the matched URL prefix is
+  stripped before forwarding (nginx-style path rewriting).  Up to 8 rules
+  are supported per server block.  Closes #20
+
+- Add `host` filter to `proxy-pass` rules for multihoming (virtual host)
+  setups.  When `virtual-host = true` is enabled, each `proxy-pass` rule
+  can restrict which `Host:` header it matches, enabling different backends
+  on the same port:
+
+      virtual-host = true
+      server secure {
+          port = 443
+          proxy-pass "/**" {
+              host    = "git.example.com"
+              backend = "http://localhost:3000"
+          }
+      }
+
+- Add `proxy-redirect` to rewrite `Location:` and `Refresh:` response
+  headers returned by the backend.  Use it when a backend issues absolute
+  redirects with its own host or path prefix that needs to be rewritten to
+  the frontend URL:
+
+      proxy-pass "/app/**" {
+          backend        = "http://localhost:4000/"
+          proxy-redirect = "http://localhost:4000 http://localhost"
+      }
+
+
 [v2.32][UNRELEASED]
 -------------------
 

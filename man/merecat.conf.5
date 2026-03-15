@@ -310,6 +310,117 @@ redirect "/**" {
 .Ed
 .El
 .It Cm }
+.It Cm proxy-pass Qo Ar PATTERN Qc {
+.Bl -tag -offset "" -compact
+.It Cm host = Qq Ar HOSTNAME
+Optional.  Only forward requests whose
+.Cm Host:
+header matches this hostname.  Use this with multihoming
+.Pq Cm virtual-host = true
+to route different virtual hosts to different backends on the same port.
+For example, to proxy only requests for
+.Qq git.example.com :
+.Bd -unfilled -offset "" -compact
+proxy-pass "/**" {
+    host    = "git.example.com"
+    backend = "http://localhost:3000"
+}
+.Ed
+.Pp
+When omitted, the rule applies regardless of the
+.Cm Host:
+header.
+.It Cm backend = Qq Ar http://HOST:PORT[/PATH]
+Forward matching requests to the given HTTP backend server, acting as a
+reverse proxy.  This is similar to the
+.Cm proxy_pass
+directive in nginx, and is the primary way to front local application
+servers (Node.js, Python, Go, etc.) with Merecat.
+.Pp
+The backend hostname is resolved at startup to avoid blocking DNS lookups
+during request handling.  Only HTTP backends are supported (not HTTPS).
+.Pp
+.Bd -unfilled -offset "" -compact
+proxy-pass "/api/**" {
+    backend = "http://localhost:3000"
+}
+.Ed
+.Pp
+The following headers are added to every forwarded request:
+.Bl -tag -compact -offset "" -width "X-Forwarded-Proto"
+.It Cm X-Forwarded-For
+Client IP address (or the value already in
+.Cm X-Forwarded-For
+if the client is itself a proxy).
+.It Cm X-Real-IP
+Client IP address.
+.It Cm X-Forwarded-Proto
+.Qq http
+or
+.Qq https ,
+depending on whether the client connected over a plain or TLS connection.
+.El
+.Pp
+When the backend
+.Cm URL
+includes a path component, the matched URL prefix is stripped before
+forwarding and replaced with the backend path.  For example, with:
+.Pp
+.Bd -unfilled -offset "" -compact
+proxy-pass "/api/**" {
+    backend = "http://localhost:3000/v2"
+}
+.Ed
+.Pp
+a client request for
+.Qq /api/users/42
+is forwarded as
+.Qq GET /v2/users/42
+to the backend.  If the backend URL has no path (or only
+.Qq / )
+the original request URI is forwarded unchanged.
+.Pp
+.It Cm proxy-redirect = Qq Ar FROM TO
+Optional.  Rewrite
+.Cm Location:
+and
+.Cm Refresh:
+response headers returned by the backend.  Both
+.Ar FROM
+and
+.Ar TO
+are literal URL prefixes separated by a space.  Any response header value
+that starts with
+.Ar FROM
+is rewritten so that prefix becomes
+.Ar TO .
+This is useful when a backend returns absolute redirects using its own path
+prefix and the frontend exposes it under a different prefix.
+.Pp
+For example, if the backend at
+.Qq http://localhost:6419
+redirects to
+.Qq http://localhost:6419/grip/
+but the frontend exposes the app under
+.Qq /grip/ ,
+add:
+.Bd -unfilled -offset "" -compact
+proxy-pass "/grip/**" {
+    backend        = "http://localhost:6419/"
+    proxy-redirect = "http://localhost:6419 http://localhost"
+}
+.Ed
+.Pp
+Merecat then rewrites
+.Qq Location: http://localhost:6419/grip/
+to
+.Qq Location: http://localhost/grip/ .
+.Pp
+Up to
+.Ar 8
+proxy-pass rules may be configured per server.
+.El
+.It Cm }
 .El
 .It Cm }
 .El

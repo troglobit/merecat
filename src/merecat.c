@@ -141,17 +141,34 @@ typedef struct {
 	int      zs_state;
 	void    *zs_output_head;
 #endif
+
+	/* Proxy-pass state */
+	int                proxy_fd;        /* Backend socket fd, -1 if none */
+	struct http_proxy *proxy_rule;      /* Matched proxy rule */
+	char              *proxy_req;       /* HTTP request to send to backend */
+	size_t             proxy_req_len;   /* Total request length */
+	size_t             proxy_req_sent;  /* Bytes forwarded to backend so far */
+	char              *proxy_resp;      /* Buffered response from backend */
+	size_t             proxy_resp_size; /* Allocated response buffer size */
+	size_t             proxy_resp_len;  /* Bytes received from backend */
+	size_t             proxy_resp_sent; /* Bytes forwarded to client so far */
 } connecttab;
 static connecttab *connects;
 static int num_connects, max_connects, first_free_connect;
 static int httpd_conn_count;
 
 /* The connection states. */
-#define CNST_FREE 0
-#define CNST_READING 1
-#define CNST_SENDING 2
-#define CNST_PAUSING 3
-#define CNST_LINGERING 4
+#define CNST_FREE             0
+#define CNST_READING          1
+#define CNST_SENDING          2
+#define CNST_PAUSING          3
+#define CNST_LINGERING        4
+/* Proxy-pass states: backend fd is in fdwatch (not conn_fd) */
+#define CNST_PROXY_CONNECTING 5  /* Waiting for non-blocking connect() */
+#define CNST_PROXY_SENDING    6  /* Sending HTTP request to backend */
+#define CNST_PROXY_READING    7  /* Reading HTTP response from backend */
+/* Response-forwarding state: conn_fd is back in fdwatch */
+#define CNST_PROXY_SEND_RESP  8  /* Forwarding buffered response to client */
 
 static struct httpd *server_list = NULL;
 int terminate = 0;
@@ -441,8 +458,23 @@ static void update_throttles(arg_t arg, struct timeval *now)
 static void really_clear_connection(connecttab *c, struct timeval *tv)
 {
 	stats_bytes += c->hc->bytes_sent;
-	if (c->conn_state != CNST_PAUSING)
+
+	/* conn_fd is NOT in fdwatch during proxy backend states or PAUSING */
+	if (c->conn_state != CNST_PAUSING &&
+	    c->conn_state != CNST_PROXY_CONNECTING &&
+	    c->conn_state != CNST_PROXY_SENDING &&
+	    c->conn_state != CNST_PROXY_READING)
 		fdwatch_del_fd(c->hc->conn_fd);
+
+	/* Close any open proxy backend connection */
+	if (c->proxy_fd != -1) {
+		fdwatch_del_fd(c->proxy_fd);
+		close(c->proxy_fd);
+		c->proxy_fd = -1;
+	}
+	free(c->proxy_req);  c->proxy_req  = NULL;
+	free(c->proxy_resp); c->proxy_resp = NULL;
+	c->proxy_rule = NULL;
 
 	httpd_close_conn(c->hc, tv);
 	clear_throttles(c, tv);
@@ -647,6 +679,15 @@ int handle_newconnect(struct httpd *hs, struct timeval *tv, int fd)
 		c->linger_timer = NULL;
 		c->next_byte_index = 0;
 		c->numtnums = 0;
+		c->proxy_fd        = -1;
+		c->proxy_rule      = NULL;
+		c->proxy_req       = NULL;
+		c->proxy_req_len   = 0;
+		c->proxy_req_sent  = 0;
+		c->proxy_resp      = NULL;
+		c->proxy_resp_size = 0;
+		c->proxy_resp_len  = 0;
+		c->proxy_resp_sent = 0;
 
 		/* Set the connection file descriptor to no-delay mode. */
 		(void)httpd_set_ndelay(c->hc->conn_fd);
@@ -659,6 +700,519 @@ int handle_newconnect(struct httpd *hs, struct timeval *tv, int fd)
 	}
 }
 
+
+/* -------------------------------------------------------------------------
+** Proxy-pass: non-blocking reverse proxy state machine
+** -----------------------------------------------------------------------*/
+
+#define PROXY_RESP_INITIAL  65536
+#define PROXY_RESP_MAX      (8 * 1024 * 1024)
+
+/*
+** Build the HTTP/1.0 request to forward to the backend server.
+** Adds X-Forwarded-For, X-Real-IP, X-Forwarded-Proto and passes through
+** the relevant client headers (Cookie, Authorization, Content-Type, etc.).
+*/
+static char *proxy_build_request(connecttab *c)
+{
+	struct http_conn  *hc  = c->hc;
+	struct http_proxy *pr  = c->proxy_rule;
+	const char        *method = httpd_method_str(hc->method);
+	const char        *client = httpd_client(hc);
+	const char        *proto  = hc->hs->ctx ? "https" : "http";
+	const char        *url    = hc->encodedurl;
+	char               url_buf[4096];
+	char               cl_buf[64];
+	char              *req = NULL;
+	int                hlen;
+
+	cl_buf[0] = '\0';
+
+	/*
+	 * URL to forward:
+	 * - If backend has a non-trivial path (/something), strip the matched
+	 *   URL prefix and prepend the backend path (nginx proxy_pass style).
+	 * - Otherwise (backend path is "/" or empty) forward the original URL.
+	 */
+	if (pr->strip_prefix) {
+		int         rc   = match(pr->pattern, url);
+		const char *rem  = (rc > 1) ? url + rc : url;
+		const char *base = strcmp(pr->path, "/") == 0 ? "" : pr->path;
+
+		snprintf(url_buf, sizeof(url_buf), "%s%s%s",
+			 base,
+			 (rem[0] && rem[0] != '/') ? "/" : "",
+			 rem);
+		url = url_buf[0] ? url_buf : "/";
+	}
+
+	/* Pre-format Content-Length header only when a body is expected */
+	if (hc->contentlength > 0)
+		snprintf(cl_buf, sizeof(cl_buf),
+			 "Content-Length: %zu\r\n", (size_t)hc->contentlength);
+
+	hlen = asprintf(&req,
+		"%s %s%s%s HTTP/1.0\r\n"
+		"Host: %s\r\n"
+		"Connection: close\r\n"
+		"X-Forwarded-For: %s\r\n"
+		"X-Real-IP: %s\r\n"
+		"X-Forwarded-Proto: %s\r\n"
+		"%s%s%s"   /* Accept */
+		"%s%s%s"   /* Accept-Encoding */
+		"%s%s%s"   /* User-Agent */
+		"%s%s%s"   /* Referer */
+		"%s%s%s"   /* Cookie */
+		"%s%s%s"   /* Authorization */
+		"%s%s%s"   /* Content-Type */
+		"%s"       /* Content-Length (pre-formatted above) */
+		"\r\n",
+		method,
+		url,
+		(hc->query && hc->query[0]) ? "?" : "",
+		(hc->query && hc->query[0]) ? hc->query : "",
+		pr->host,
+		client, client, proto,
+		(hc->accept    && *hc->accept)    ? "Accept: "          : "",
+		(hc->accept    && *hc->accept)    ? hc->accept          : "",
+		(hc->accept    && *hc->accept)    ? "\r\n"              : "",
+		(hc->accepte   && *hc->accepte)   ? "Accept-Encoding: " : "",
+		(hc->accepte   && *hc->accepte)   ? hc->accepte         : "",
+		(hc->accepte   && *hc->accepte)   ? "\r\n"              : "",
+		(hc->useragent && *hc->useragent) ? "User-Agent: "      : "",
+		(hc->useragent && *hc->useragent) ? hc->useragent       : "",
+		(hc->useragent && *hc->useragent) ? "\r\n"              : "",
+		(hc->referer   && *hc->referer)   ? "Referer: "         : "",
+		(hc->referer   && *hc->referer)   ? hc->referer         : "",
+		(hc->referer   && *hc->referer)   ? "\r\n"              : "",
+		(hc->cookie    && *hc->cookie)    ? "Cookie: "          : "",
+		(hc->cookie    && *hc->cookie)    ? hc->cookie          : "",
+		(hc->cookie    && *hc->cookie)    ? "\r\n"              : "",
+		(hc->authorization && *hc->authorization) ? "Authorization: " : "",
+		(hc->authorization && *hc->authorization) ? hc->authorization : "",
+		(hc->authorization && *hc->authorization) ? "\r\n"           : "",
+		(hc->contenttype && *hc->contenttype) ? "Content-Type: " : "",
+		(hc->contenttype && *hc->contenttype) ? hc->contenttype  : "",
+		(hc->contenttype && *hc->contenttype) ? "\r\n"           : "",
+		cl_buf);
+
+	if (hlen < 0)
+		return NULL;
+
+	/* Append request body if present (POST, PUT, PATCH) */
+	if (hc->contentlength > 0 && hc->read_idx > hc->checked_idx) {
+		size_t avail    = hc->read_idx - hc->checked_idx;
+		size_t body_len = avail < (size_t)hc->contentlength
+		                  ? avail : (size_t)hc->contentlength;
+		char  *full     = realloc(req, hlen + body_len + 1);
+
+		if (!full) {
+			free(req);
+			return NULL;
+		}
+		memcpy(full + hlen, hc->read_buf + hc->checked_idx, body_len);
+		full[hlen + body_len] = '\0';
+		req   = full;
+		hlen += body_len;
+	}
+
+	c->proxy_req_len = hlen;
+	return req;
+}
+
+/*
+** Send a 502 Bad Gateway error to the client and tear down the proxy
+** connection.  Restores conn_fd in fdwatch so the normal close path works.
+*/
+static void proxy_error(connecttab *c, struct timeval *tv)
+{
+	struct http_conn *hc = c->hc;
+
+	if (c->proxy_fd != -1) {
+		fdwatch_del_fd(c->proxy_fd);
+		close(c->proxy_fd);
+		c->proxy_fd = -1;
+	}
+	free(c->proxy_req);  c->proxy_req  = NULL;
+	free(c->proxy_resp); c->proxy_resp = NULL;
+	c->proxy_rule = NULL;
+
+	/*
+	 * Restore conn_fd and reset state so the normal finish/clear path
+	 * (which expects CNST_SENDING or similar) works correctly.
+	 */
+	fdwatch_add_fd(hc->conn_fd, c, FDW_WRITE);
+	c->conn_state = CNST_SENDING;
+
+	httpd_send_err(hc, 502, httpd_err502title, "", httpd_err502form, hc->encodedurl);
+	finish_connection(c, tv);
+}
+
+/*
+** Initiate a non-blocking connection to the proxy backend and build the
+** request to forward.  Transitions to CNST_PROXY_CONNECTING.
+*/
+static int proxy_start(connecttab *c, struct timeval *tv)
+{
+	struct http_conn  *hc = c->hc;
+	struct http_proxy *pr = c->proxy_rule;
+	struct sockaddr_in sa;
+	int                fd;
+
+	/* Allocate response buffer */
+	c->proxy_resp = malloc(PROXY_RESP_INITIAL);
+	if (!c->proxy_resp) {
+		syslog(LOG_ERR, "proxy-pass: out of memory for response buffer");
+		return -1;
+	}
+	c->proxy_resp_size = PROXY_RESP_INITIAL;
+	c->proxy_resp_len  = 0;
+	c->proxy_resp_sent = 0;
+
+	/* Build the forwarded request (headers + optional body) */
+	c->proxy_req = proxy_build_request(c);
+	if (!c->proxy_req) {
+		syslog(LOG_ERR, "proxy-pass: failed building request");
+		free(c->proxy_resp); c->proxy_resp = NULL;
+		return -1;
+	}
+	c->proxy_req_sent = 0;
+
+	if (!pr->resolved) {
+		syslog(LOG_ERR, "proxy-pass: backend '%s' not resolved", pr->host);
+		free(c->proxy_req);  c->proxy_req  = NULL;
+		free(c->proxy_resp); c->proxy_resp = NULL;
+		return -1;
+	}
+
+	/* Create a non-blocking TCP socket for the backend connection */
+	fd = socket(AF_INET, SOCK_STREAM, 0);
+	if (fd < 0) {
+		syslog(LOG_ERR, "proxy-pass: socket: %s", strerror(errno));
+		free(c->proxy_req);  c->proxy_req  = NULL;
+		free(c->proxy_resp); c->proxy_resp = NULL;
+		return -1;
+	}
+	httpd_set_ndelay(fd);
+
+	memset(&sa, 0, sizeof(sa));
+	sa.sin_family = AF_INET;
+	sa.sin_port   = htons(pr->port);
+	sa.sin_addr   = pr->addr;
+
+	if (connect(fd, (struct sockaddr *)&sa, sizeof(sa)) < 0 &&
+	    errno != EINPROGRESS) {
+		syslog(LOG_ERR, "proxy-pass: connect %s:%d: %s",
+		       pr->host, pr->port, strerror(errno));
+		close(fd);
+		free(c->proxy_req);  c->proxy_req  = NULL;
+		free(c->proxy_resp); c->proxy_resp = NULL;
+		return -1;
+	}
+
+	c->proxy_fd = fd;
+
+	/* Stop watching the client fd; watch the backend fd for writability */
+	fdwatch_del_fd(hc->conn_fd);
+	fdwatch_add_fd(fd, c, FDW_WRITE);
+	c->conn_state = CNST_PROXY_CONNECTING;
+
+	syslog(LOG_DEBUG, "proxy-pass: connecting to %s:%d for %s",
+	       pr->host, pr->port, hc->encodedurl);
+	return 0;
+}
+
+/* CNST_PROXY_CONNECTING: connect() completed, start sending the request */
+static void handle_proxy_connect(connecttab *c, struct timeval *tv)
+{
+	int       err    = 0;
+	socklen_t errlen = sizeof(err);
+	ssize_t   sz;
+
+	if (getsockopt(c->proxy_fd, SOL_SOCKET, SO_ERROR, &err, &errlen) < 0 || err) {
+		syslog(LOG_ERR, "proxy-pass: connect failed: %s",
+		       err ? strerror(err) : strerror(errno));
+		proxy_error(c, tv);
+		return;
+	}
+
+	/* Connected — try to send the request right away */
+	sz = write(c->proxy_fd,
+		   c->proxy_req + c->proxy_req_sent,
+		   c->proxy_req_len - c->proxy_req_sent);
+
+	if (sz < 0) {
+		if (errno == EAGAIN || errno == EWOULDBLOCK) {
+			c->conn_state = CNST_PROXY_SENDING;
+			return;
+		}
+		syslog(LOG_ERR, "proxy-pass: write: %s", strerror(errno));
+		proxy_error(c, tv);
+		return;
+	}
+
+	c->proxy_req_sent += sz;
+	if (c->proxy_req_sent >= c->proxy_req_len) {
+		/* Request fully sent — switch to reading the response */
+		fdwatch_del_fd(c->proxy_fd);
+		fdwatch_add_fd(c->proxy_fd, c, FDW_READ);
+		c->conn_state = CNST_PROXY_READING;
+	} else {
+		c->conn_state = CNST_PROXY_SENDING;
+	}
+}
+
+/* CNST_PROXY_SENDING: continue draining the request buffer to the backend */
+static void handle_proxy_send(connecttab *c, struct timeval *tv)
+{
+	ssize_t sz;
+
+	sz = write(c->proxy_fd,
+		   c->proxy_req + c->proxy_req_sent,
+		   c->proxy_req_len - c->proxy_req_sent);
+
+	if (sz < 0) {
+		if (errno == EAGAIN || errno == EWOULDBLOCK)
+			return;
+		syslog(LOG_ERR, "proxy-pass: write backend: %s", strerror(errno));
+		proxy_error(c, tv);
+		return;
+	}
+
+	c->proxy_req_sent += sz;
+	if (c->proxy_req_sent >= c->proxy_req_len) {
+		fdwatch_del_fd(c->proxy_fd);
+		fdwatch_add_fd(c->proxy_fd, c, FDW_READ);
+		c->conn_state = CNST_PROXY_READING;
+	}
+}
+
+/*
+ * Rewrite Location: and Refresh: response headers in the fully-buffered
+ * backend response, replacing redirect_from with redirect_to.
+ *
+ * This corrects root-relative redirects when a backend is proxied under a
+ * sub-path: e.g. backend sends "Location: /login", proxy-redirect rewrites
+ * it to "Location: /app/login" so the browser stays inside the proxy prefix.
+ *
+ * Only the header region (before "\r\n\r\n") is modified.  If the replacement
+ * would cause the buffer to exceed PROXY_RESP_MAX the rewrite is skipped and
+ * a warning is logged.
+ */
+static void proxy_rewrite_headers(connecttab *c)
+{
+	struct http_proxy *pr   = c->proxy_rule;
+	const char        *from = pr->redirect_from;
+	const char        *to   = pr->redirect_to;
+	size_t  from_len = strlen(from);
+	size_t  to_len   = strlen(to);
+	char   *buf      = c->proxy_resp;
+	size_t  len      = c->proxy_resp_len;
+	char   *hdr_end;
+	size_t  hdr_len;
+
+	/* Targets: header names whose URL value we may rewrite */
+	static const char *const targets[] = {
+		"\r\nLocation: ",
+		"\r\nRefresh: ",
+	};
+
+	/* Locate end of HTTP headers */
+	hdr_end = memmem(buf, len, "\r\n\r\n", 4);
+	if (!hdr_end)
+		return;
+	hdr_len = (size_t)(hdr_end - buf) + 4;
+
+	for (size_t t = 0; t < NELEMS(targets); t++) {
+		const char *tgt     = targets[t];
+		size_t      tgt_len = strlen(tgt);
+		char       *p       = buf;
+		char       *end     = buf + hdr_len;
+
+		while (p + tgt_len < end) {
+			/* Case-insensitive search for the header name */
+			char *found = NULL;
+
+			for (char *q = p; q + tgt_len <= end; q++) {
+				if (*q == '\r' &&
+				    strncasecmp(q, tgt, tgt_len) == 0) {
+					found = q + tgt_len;
+					break;
+				}
+			}
+			if (!found)
+				break;
+
+			/* For Refresh: skip past "N; url=" */
+			char *val = found;
+			if (tgt == targets[1]) {
+				char *u = NULL;
+				char *eol = memchr(val, '\r', (size_t)(end - val));
+				size_t vlen = eol ? (size_t)(eol - val) : (size_t)(end - val);
+
+				for (size_t i = 0; i + 4 <= vlen; i++) {
+					if (strncasecmp(val + i, "url=", 4) == 0) {
+						u = val + i + 4;
+						break;
+					}
+				}
+				if (!u) {
+					p = found;
+					continue;
+				}
+				val = u;
+			}
+
+			/* Check if the URL value starts with redirect_from */
+			if ((size_t)(end - val) < from_len ||
+			    strncmp(val, from, from_len) != 0) {
+				p = found;
+				continue;
+			}
+
+			/* Grow or shrink the buffer to accommodate the replacement */
+			ssize_t delta = (ssize_t)to_len - (ssize_t)from_len;
+			if (delta > 0) {
+				size_t new_len = len + (size_t)delta;
+				if (new_len > PROXY_RESP_MAX) {
+					syslog(LOG_WARNING,
+					       "proxy-redirect: skipping rewrite, "
+					       "buffer would exceed %d bytes",
+					       PROXY_RESP_MAX);
+					return;
+				}
+				if (new_len > c->proxy_resp_size) {
+					char *nb = realloc(c->proxy_resp, new_len);
+					if (!nb) {
+						syslog(LOG_WARNING,
+						       "proxy-redirect: skipping rewrite, "
+						       "out of memory");
+						return;
+					}
+					/* Recalculate pointers after realloc */
+					size_t val_off = (size_t)(val - buf);
+					size_t end_off = (size_t)(end - buf);
+					c->proxy_resp      = nb;
+					c->proxy_resp_size = new_len;
+					buf = nb;
+					val = buf + val_off;
+					end = buf + end_off;
+				}
+			}
+
+			/* Shift everything after FROM to make room for TO */
+			char  *after_from = val + from_len;
+			size_t tail_len   = len - (size_t)(after_from - buf);
+			memmove(val + to_len, after_from, tail_len);
+			memcpy(val, to, to_len);
+
+			len     += (size_t)delta;
+			hdr_len += (size_t)delta;
+			end      = buf + hdr_len;
+
+			/* Advance past the replacement to avoid re-matching */
+			p = val + to_len;
+		}
+	}
+
+	c->proxy_resp_len = len;
+}
+
+/* CNST_PROXY_READING: buffer the backend response until the connection closes */
+static void handle_proxy_read(connecttab *c, struct timeval *tv)
+{
+	struct http_conn *hc = c->hc;
+	ssize_t           sz;
+
+	/* Grow the response buffer if it is full */
+	if (c->proxy_resp_len >= c->proxy_resp_size) {
+		size_t  new_size = c->proxy_resp_size * 2;
+		char   *new_buf;
+
+		if (new_size > PROXY_RESP_MAX) {
+			syslog(LOG_ERR, "proxy-pass: response exceeds %d bytes", PROXY_RESP_MAX);
+			proxy_error(c, tv);
+			return;
+		}
+		new_buf = realloc(c->proxy_resp, new_size);
+		if (!new_buf) {
+			syslog(LOG_ERR, "proxy-pass: out of memory growing response buffer");
+			proxy_error(c, tv);
+			return;
+		}
+		c->proxy_resp      = new_buf;
+		c->proxy_resp_size = new_size;
+	}
+
+	sz = read(c->proxy_fd,
+		  c->proxy_resp + c->proxy_resp_len,
+		  c->proxy_resp_size - c->proxy_resp_len);
+
+	if (sz < 0) {
+		if (errno == EINTR || errno == EAGAIN || errno == EWOULDBLOCK)
+			return;
+		syslog(LOG_ERR, "proxy-pass: read backend: %s", strerror(errno));
+		proxy_error(c, tv);
+		return;
+	}
+
+	if (sz == 0) {
+		/* Backend closed the connection — full response is buffered */
+		syslog(LOG_DEBUG, "proxy-pass: %zu byte response from %s for %s",
+		       c->proxy_resp_len, c->proxy_rule->host, hc->encodedurl);
+
+		fdwatch_del_fd(c->proxy_fd);
+		close(c->proxy_fd);
+		c->proxy_fd = -1;
+
+		free(c->proxy_req);
+		c->proxy_req = NULL;
+
+		/* Rewrite Location:/Refresh: headers if proxy-redirect is configured */
+		if (c->proxy_rule->redirect_from)
+			proxy_rewrite_headers(c);
+
+		/* Hand the buffered response back to the client */
+		hc->bytes_sent = 0;
+		fdwatch_add_fd(hc->conn_fd, c, FDW_WRITE);
+		c->conn_state = CNST_PROXY_SEND_RESP;
+		return;
+	}
+
+	c->proxy_resp_len += sz;
+}
+
+/* CNST_PROXY_SEND_RESP: stream the buffered backend response to the client */
+static void handle_proxy_send_resp(connecttab *c, struct timeval *tv)
+{
+	struct http_conn *hc = c->hc;
+	ssize_t           sz;
+
+	sz = httpd_write(hc,
+			 c->proxy_resp + c->proxy_resp_sent,
+			 c->proxy_resp_len - c->proxy_resp_sent);
+
+	if (sz == 0 || (sz < 0 && (errno == EWOULDBLOCK || errno == EAGAIN)))
+		return;
+
+	if (sz < 0) {
+		if (errno != EPIPE && errno != ECONNRESET)
+			syslog(LOG_ERR, "proxy-pass: write client: %s", strerror(errno));
+		clear_connection(c, tv);
+		return;
+	}
+
+	c->proxy_resp_sent += sz;
+	hc->bytes_sent     += sz;
+
+	if (c->proxy_resp_sent >= c->proxy_resp_len) {
+		/* Proxy response fully delivered — close gracefully */
+		hc->do_keep_alive = 0;
+		finish_connection(c, tv);
+	}
+}
+
+/* -----------------------------------------------------------------------*/
 
 static void handle_read(connecttab *c, struct timeval *tv)
 {
@@ -734,6 +1288,21 @@ static void handle_read(connecttab *c, struct timeval *tv)
 		httpd_send_err(hc, 503, httpd_err503title, "", httpd_err503form, hc->encodedurl);
 		finish_connection(c, tv);
 		return;
+	}
+
+	/* Check for a proxy-pass rule before trying to serve a local file */
+	{
+		struct http_proxy *pr = httpd_proxy_match(hc);
+
+		if (pr) {
+			c->proxy_rule = pr;
+			if (proxy_start(c, tv) < 0) {
+				httpd_send_err(hc, 502, httpd_err502title, "",
+					       httpd_err502form, hc->encodedurl);
+				finish_connection(c, tv);
+			}
+			return;
+		}
 	}
 
 	/* Start the connection going. */
@@ -1752,11 +2321,27 @@ int main(int argc, char **argv)
 
 		/* Find the connections that need servicing. */
 		while ((ct = (connecttab *)fdwatch_get_next_arg()) != (connecttab *)-1) {
+			int fd_ok;
+
 			if (!ct)
 				continue;
 
 			hc = ct->hc;
-			if (!fdwatch_check_fd(hc->conn_fd)) {
+
+			/*
+			 * During proxy backend states the backend fd (not the
+			 * client fd) is registered in fdwatch.  Check the right
+			 * one so we don't mistake a quiescent client fd for an
+			 * error and tear down a live proxy connection.
+			 */
+			if (ct->conn_state == CNST_PROXY_CONNECTING ||
+			    ct->conn_state == CNST_PROXY_SENDING    ||
+			    ct->conn_state == CNST_PROXY_READING)
+				fd_ok = fdwatch_check_fd(ct->proxy_fd);
+			else
+				fd_ok = fdwatch_check_fd(hc->conn_fd);
+
+			if (!fd_ok) {
 				/* Something went wrong. */
 				hc->do_keep_alive = 0;
 				clear_connection(ct, &tv);
@@ -1772,6 +2357,22 @@ int main(int argc, char **argv)
 
 				case CNST_LINGERING:
 					handle_linger(ct, &tv);
+					break;
+
+				case CNST_PROXY_CONNECTING:
+					handle_proxy_connect(ct, &tv);
+					break;
+
+				case CNST_PROXY_SENDING:
+					handle_proxy_send(ct, &tv);
+					break;
+
+				case CNST_PROXY_READING:
+					handle_proxy_read(ct, &tv);
+					break;
+
+				case CNST_PROXY_SEND_RESP:
+					handle_proxy_send_resp(ct, &tv);
 					break;
 				}
 			}

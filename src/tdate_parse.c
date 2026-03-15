@@ -32,9 +32,6 @@
 #include <config.h>
 
 #include <ctype.h>
-#ifdef HAVE_MEMORY_H
-#include <memory.h>
-#endif
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>

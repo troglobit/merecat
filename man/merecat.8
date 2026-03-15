@@ -74,6 +74,11 @@ Dual server support, both HTTP/HTTPS from one process
 HTTP redirect support, per server.  E.g., possible to redirect from HTTP
 to HTTPS.  Limited set of Nginx style environment variables supported.
 .It
+Reverse proxy support
+.Pq Cm proxy-pass ,
+to front local application servers (Node.js, Python, Go, etc.) while
+letting Merecat handle TLS termination.
+.It
 Native PHP support, using php-cgi, if enabled in
 .Xr merecat.conf 5
 .El
