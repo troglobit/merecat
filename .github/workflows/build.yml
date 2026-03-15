@@ -28,7 +28,7 @@ jobs:
         run: |
           sudo apt-get -y update
           sudo apt-get -y install tree libconfuse-dev libssl-dev zlib1g-dev php-cgi
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v6
       - name: Create configure script
         run: |
           ./autogen.sh
