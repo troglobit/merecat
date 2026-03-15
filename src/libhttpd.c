@@ -766,6 +766,14 @@ static int initialize_listen_socket(sockaddr_t *sa)
 		return -1;
 	}
 
+	/* Defer accept until data arrives (HTTP request), saving a wakeup. */
+#ifdef TCP_DEFER_ACCEPT
+	{
+		int timeout = 1;
+		setsockopt(listen_fd, IPPROTO_TCP, TCP_DEFER_ACCEPT, &timeout, sizeof(timeout));
+	}
+#endif
+
 	/* Use accept filtering, if available. */
 #ifdef SO_ACCEPTFILTER
 	{
@@ -2548,7 +2556,11 @@ int httpd_get_conn(struct httpd *hs, int listen_fd, struct http_conn *hc)
 
 	/* Accept the new connection. */
 	sz = sizeof(sa);
+#ifdef HAVE_ACCEPT4
+	hc->conn_fd = accept4(listen_fd, &sa.sa, &sz, SOCK_CLOEXEC);
+#else
 	hc->conn_fd = accept(listen_fd, &sa.sa, &sz);
+#endif
 	if (hc->conn_fd < 0) {
 		if (errno == EWOULDBLOCK)
 			return GC_NO_MORE;
@@ -2562,9 +2574,11 @@ int httpd_get_conn(struct httpd *hs, int listen_fd, struct http_conn *hc)
 		goto error;
 	}
 
+#ifndef HAVE_ACCEPT4
 	if (-1 == set_cloexec(hc->conn_fd))
 		syslog(LOG_ERR, "failed setting CLOEXEC on client socket: %s",
 		       strerror(errno));
+#endif
 
 	SETSOCKOPT(hc->conn_fd, IPPROTO_TCP, TCP_NODELAY);
 
