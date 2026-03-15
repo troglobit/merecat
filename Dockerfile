@@ -1,12 +1,13 @@
-FROM alpine:3.6
+FROM alpine:3.21
 
 # Build depends
 RUN apk add --no-cache gcc musl-dev make automake autoconf zlib-dev
+# For OpenSSL and libconfuse support:
+# RUN apk add --no-cache openssl-dev confuse-dev
 
 # Install from GIT
-WORKDIR .
 ADD . /merecat
-RUN cd merecat/; ./build.sh; make install-strip; cd ..; rm -rf merecat
+RUN cd merecat && ./build.sh && make install-strip && cd .. && rm -rf merecat
 
 # Alternatively, install from released tarball
 #RUN wget https://ftp.troglobit.com/merecat/merecat-2.32.tar.xz;	\
@@ -16,9 +17,9 @@ RUN cd merecat/; ./build.sh; make install-strip; cd ..; rm -rf merecat
 #    make install-strip
 
 # Clean up container
-# m4 perl binutils binutils-libs bmp isl libgomp libatomic pkgconf 
+# m4 perl binutils binutils-libs bmp isl libgomp libatomic pkgconf
 RUN apk del --purge gcc musl-dev make automake autoconf zlib-dev
 
 EXPOSE 80
 VOLUME /var/www
-ENTRYPOINT merecat -p 80 -n /var/www
+ENTRYPOINT ["/usr/sbin/merecat", "-p", "80", "-n", "/var/www"]

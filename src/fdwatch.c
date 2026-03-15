@@ -176,7 +176,11 @@ int fdwatch_get_nfiles(void)
 #endif
 
 	/* Figure out how many fd's we can have. */
-	nfiles = getdtablesize();
+	nfiles = sysconf(_SC_OPEN_MAX);
+	if (nfiles == -1) {
+		/* Fallback if sysconf fails */
+		nfiles = 1024;
+	}
 #ifdef RLIMIT_NOFILE
 	/* If we have getrlimit(), use that, and attempt to raise the limit. */
 	if (getrlimit(RLIMIT_NOFILE, &rl) == 0) {
@@ -436,7 +440,7 @@ static int kqueue_check_fd(int fd)
 	if (ridx >= nreturned)
 		return 0;
 
-	if (kqrevents[ridx].ident != fd)
+	if ((int)kqrevents[ridx].ident != fd)
 		return 0;
 
 	if (kqrevents[ridx].flags & EV_ERROR)

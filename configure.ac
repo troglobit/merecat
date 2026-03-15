@@ -1,8 +1,18 @@
-AC_PREREQ([2.68])
-AC_INIT([Merecat httpd], [2.32-rc4], [https://github.com/troglobit/merecat/issues], [merecat])
+AC_PREREQ([2.69])
+AC_INIT([Merecat httpd], [3.00-rc1], [https://github.com/troglobit/merecat/issues], [merecat])
 AC_CONFIG_AUX_DIR(aux)
 AM_INIT_AUTOMAKE([1.11 foreign dist-xz])
 AM_SILENT_RULES([yes])
+
+AC_CANONICAL_HOST
+
+case "$host_os" in
+  darwin*|macos*)
+    CFLAGS="$CFLAGS -D_DARWIN_C_SOURCE"
+    AC_DEFINE([_DARWIN_C_SOURCE], [1],
+              [Define to enable Darwin-specific extensions (e.g. utimensat)])
+    ;;
+esac
 
 AC_CONFIG_SRCDIR([src/libhttpd.c])
 AC_CONFIG_HEADERS([config.h])
@@ -115,7 +125,7 @@ AM_CONDITIONAL([HAVE_CONFUSE], [test "x$with_config" != "xno"])
 AM_CONDITIONAL([CREATE_SYMLINKS], [test "x$with_symlinks" != "xno"])
 
 AS_IF([test "x$with_ssl" != "xno"], [
-	PKG_CHECK_MODULES([OpenSSL], [openssl >= 1.1.1])
+	PKG_CHECK_MODULES([OpenSSL], [openssl >= 3.0.0])
 	LDFLAGS="$LDFLAGS $OpenSSL_LIBS"
 	CPPFLAGS="$CPPFLAGS $OpenSSL_CFLAGS"
 	AC_CHECK_LIB([crypto], [EVP_EncryptInit], [],
