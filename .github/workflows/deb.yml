@@ -10,20 +10,18 @@ on:
 
 jobs:
   build-deb:
-    name: ubuntu-${{ matrix.distro }}
+    name: ubuntu-24.04
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        distro: ['22.04', '24.04']
-      fail-fast: false
     container:
-      image: ubuntu:${{ matrix.distro }}
+      image: ubuntu:24.04
+    env:
+      DEBIAN_FRONTEND: noninteractive
     steps:
       - name: Install build dependencies
         run: |
           apt-get -y update
           apt-get -y install git devscripts equivs
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - name: Install package build dependencies
         run: |
           mk-build-deps --install --remove --tool "apt-get -y --no-install-recommends" debian/control
@@ -35,7 +33,7 @@ jobs:
           dpkg-deb --info ../merecat_*.deb
           dpkg-deb --contents ../merecat_*.deb
       - name: Upload artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
-          name: merecat-deb-ubuntu-${{ matrix.distro }}
+          name: merecat-deb-ubuntu-24.04
           path: ../merecat_*.deb
