@@ -25,9 +25,9 @@
 .\" CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 .\" ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
 .\" THE POSSIBILITY OF SUCH DAMAGE.
-.Dd Aug 3, 2019
+.Dd May 27, 2026
 .Dt SSI 8 SMM
-.Os "merecat (2.32)"
+.Os "merecat (3.00)"
 .Sh NAME
 .Nm ssi
 .Nd Server-Side-Includes CGI program
@@ -37,7 +37,7 @@
 This is an external CGI program that provides the same functionality as
 the built-in server-side-includes feature in many HTTP daemons.  It is
 written for use with
-.Xr thttpd 8
+.Nm thttpd
 and
 .Xr merecat 8 ,
 but should be easy to adapt to other systems.
@@ -48,7 +48,7 @@ pattern in
 .Xr merecat.conf 5
 to trigger the SSI script, which requires enabling the SSI module.  Then
 there is the traditional
-.Xr thttpd 8
+.Nm thttpd
 approach.  We start with the relevant settings needed in
 .Nm merecat.conf :
 .Bd -literal -offset indent
@@ -85,7 +85,7 @@ then the compound URL would be:
 .Ed
 .Sh INCLUDE FORMAT
 The format description below is adapted from
-.Aq http://hoohoo.ncsa.uiuc.edu/docs/tutorials/includes.html .
+.Aq https://web.archive.org/web/http://hoohoo.ncsa.uiuc.edu/docs/tutorials/includes.html .
 .Pp
 All directives are formatted as SGML comments within the document.  This
 is in case the document should ever find itself in the client's hands

@@ -25,7 +25,7 @@
 .\" CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 .\" ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
 .\" THE POSSIBILITY OF SUCH DAMAGE.
-.Dd Mar 15, 2026
+.Dd May 27, 2026
 .Dt MERECAT 8 SMM
 .Os "merecat (3.00)"
 .Sh NAME
@@ -280,7 +280,7 @@ of -l, and there may be other differences.
 .Sh CGI
 .Pp
 Merecat httpd supports the CGI 1.1 spec.,
-.Lk https://tools.ietf.org/html/rfc3875 .
+.Lk https://www.rfc-editor.org/rfc/rfc3875 .
 .Pp
 In order for a CGI program to be allowed to run, its name must match the
 pattern specified either at compile time, on the command line, or in the
@@ -477,7 +477,7 @@ to answer to all of the different IP addresses.  Example:
 .Pp
 If your OS's version of ifconfig doesn't have an alias command, you're
 probably out of luck (but see
-.Lk http://www.acme.com/software/thttpd/notes.html
+.Lk https://www.acme.com/software/thttpd/notes.html
 for more info).
 .Pp
 Third and last, you must set up merecat to handle the multiple hosts.
@@ -707,11 +707,13 @@ So first and foremost, a huge thanks to
 .An Jef Poskanzer
 for creating
 .Nm thttpd
+.Pq Lk https://www.acme.com/software/thttpd/
 and making it open source under the simplified 2-clause BSD license!
 .An Anthony G. Basile
 deserves another thank you, for merging Gentoo patches and refactoring
 the build system in
-.Nm sthttpd .
+.Nm sthttpd
+.Pq Lk https://github.com/blueness/sthttpd .
 .Pp
 Also, many thanks to contributors, reviewers, testers: John LoVerso,
 Jordan Hayes, Chris Torek, Jim Thompson, Barton Schaffer, Geoff Adams,
