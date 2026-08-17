@@ -4271,7 +4271,7 @@ static void post_post_garbage_hack(struct http_conn *hc)
 		(void)httpd_set_ndelay(hc->conn_fd);
 
 	/* And read up to 2 bytes. */
-	httpd_read(hc, buf, sizeof(buf));
+	(void)httpd_read(hc, buf, sizeof(buf));
 }
 
 /* Normalize newlines from CGI to RFC3875 \r\n format, for details see
