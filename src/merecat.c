@@ -2545,7 +2545,24 @@ int main(int argc, char **argv)
 			if (!fd_ok) {
 				/* Something went wrong. */
 				hc->do_keep_alive = 0;
-				clear_connection(ct, &tv);
+				if (ct->conn_state == CNST_PROXY_CONNECTING ||
+				    ct->conn_state == CNST_PROXY_SENDING    ||
+				    ct->conn_state == CNST_PROXY_READING) {
+					/* Backend error, e.g. connection refused:
+					** tell the client instead of hanging up
+					*/
+					int       err = 0;
+					socklen_t len = sizeof(err);
+
+					getsockopt(ct->proxy_fd, SOL_SOCKET, SO_ERROR, &err, &len);
+					syslog(LOG_ERR, "proxy-pass: backend %s:%d error for %s: %s",
+					       ct->proxy_rule->host, ct->proxy_rule->port,
+					       hc->encodedurl,
+					       err ? strerror(err) : "connection error");
+					proxy_error(ct, &tv);
+				} else {
+					clear_connection(ct, &tv);
+				}
 			} else {
 				switch (ct->conn_state) {
 				case CNST_READING:

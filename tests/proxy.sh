@@ -57,47 +57,47 @@ BACKEND=$!
 trap "kill $BACKEND 2>/dev/null; true" EXIT
 sleep 1
 
-# Pass 1/11: request is forwarded and response comes from the backend
-echo "Pass 1/11"
+# Pass 1/12: request is forwarded and response comes from the backend
+echo "Pass 1/12"
 curl -s http://localhost:8086/proxy/hello | grep '"path".*"/proxy/hello"'
 
-# Pass 2/11: X-Forwarded-For and X-Real-IP headers are injected.
+# Pass 2/12: X-Forwarded-For and X-Real-IP headers are injected.
 # Use 127.0.0.1 explicitly to guarantee an IPv4 loopback address.
-echo "Pass 2/11"
+echo "Pass 2/12"
 curl -s http://127.0.0.1:8086/proxy/test | grep '"x-forwarded-for".*"127.0.0.1"'
 curl -s http://127.0.0.1:8086/proxy/test | grep '"x-real-ip".*"127.0.0.1"'
 
-# Pass 3/11: path prefix stripped when backend URL carries a path component
+# Pass 3/12: path prefix stripped when backend URL carries a path component
 #   GET /v2proxy/hello -> GET /v2/hello forwarded to backend
-echo "Pass 3/11"
+echo "Pass 3/12"
 curl -s http://localhost:8086/v2proxy/hello | grep '"path".*"/v2/hello"'
 
-# Pass 4/11: path prefix stripped when backend URL has a trailing slash only
+# Pass 4/12: path prefix stripped when backend URL has a trailing slash only
 #   GET /strip/hello -> GET /hello forwarded to backend
-echo "Pass 4/11"
+echo "Pass 4/12"
 curl -s http://localhost:8086/strip/hello | grep '"path".*"/hello"'
 
-# Pass 5/11: proxy-redirect rewrites Location: header in backend response
+# Pass 5/12: proxy-redirect rewrites Location: header in backend response
 #   Backend returns: Location: http://localhost:9090/redir/foo/target
 #   Merecat rewrites:          Location: http://localhost:8086/redir/foo/target
-echo "Pass 5/11"
+echo "Pass 5/12"
 loc=$(curl -s -o /dev/null -D - http://localhost:8086/redir/foo | grep -i '^Location:')
 echo "$loc" | grep "http://localhost:8086/redir/foo/target"
 
-# Pass 6/11: query string is forwarded exactly once
+# Pass 6/12: query string is forwarded exactly once
 #   GET /proxy/search?q=foo&n=2 -> same path and query on the backend
-echo "Pass 6/11"
+echo "Pass 6/12"
 curl -s 'http://localhost:8086/proxy/search?q=foo&n=2' | grep '"path".*"/proxy/search?q=foo&n=2"'
 
-# Pass 7/11: query string survives path prefix stripping
+# Pass 7/12: query string survives path prefix stripping
 #   GET /v2proxy/search?q=bar -> GET /v2/search?q=bar on the backend
-echo "Pass 7/11"
+echo "Pass 7/12"
 curl -s 'http://localhost:8086/v2proxy/search?q=bar' | grep '"path".*"/v2/search?q=bar"'
 
-# Pass 8/11: POST body larger than one read() arrives complete at the backend
+# Pass 8/12: POST body larger than one read() arrives complete at the backend
 #   1 MiB body cannot fit in the socket buffers with the headers, so this
 #   exercises the request body buffering (CNST_PROXY_BODY) path.
-echo "Pass 8/11"
+echo "Pass 8/12"
 body=$(mktemp)
 head -c 1048576 /dev/urandom > "$body"
 sha=$(sha256sum "$body" | cut -d' ' -f1)
@@ -106,14 +106,14 @@ rm -f "$body"
 echo "$resp" | grep '"len": 1048576'
 echo "$resp" | grep "\"sha\": \"$sha\""
 
-# Pass 9/11: POST body over the 8 MiB cap is rejected with 413 up front
-echo "Pass 9/11"
+# Pass 9/12: POST body over the 8 MiB cap is rejected with 413 up front
+echo "Pass 9/12"
 code=$(head -c 9437184 /dev/zero | curl -s -o /dev/null -w '%{http_code}' \
 	--data-binary @- http://localhost:8086/proxy/upload)
 test "$code" = "413"
 
-# Pass 10/11: backend that closes without sending anything yields 502
-echo "Pass 10/11"
+# Pass 10/12: backend that closes without sending anything yields 502
+echo "Pass 10/12"
 python3 - <<'EOF' &
 import socket
 srv = socket.socket()
@@ -137,9 +137,9 @@ code=$(curl -s -o /dev/null -w '%{http_code}' --max-time 10 http://localhost:808
 kill $MUTE 2>/dev/null || true
 test "$code" = "502"
 
-# Pass 11/11: malformed proxy-redirect refuses to start instead of
+# Pass 11/12: malformed proxy-redirect refuses to start instead of
 # silently dropping the rule and serving /api/** from the docroot
-echo "Pass 11/11"
+echo "Pass 11/12"
 badconf=$(mktemp)
 cat > "$badconf" <<CONF
 server bad {
@@ -155,3 +155,23 @@ CONF
 timeout 5 ../src/merecat -f "$badconf" -n -l err srv && rc=0 || rc=$?
 rm -f "$badconf"
 test "$rc" != "0" && test "$rc" != "124"
+
+# Pass 12/12: backend that resets the connection (closes without reading
+# the request) yields 502, not an empty reply
+echo "Pass 12/12"
+python3 - <<'EOF' &
+import socket
+srv = socket.socket()
+srv.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+srv.bind(("127.0.0.1", 9092)); srv.listen(8)
+while True:
+    c, _ = srv.accept()
+    # Close with the forwarded request unread: the kernel answers the
+    # in-flight data with RST, which surfaces as EPOLLERR at the proxy.
+    c.close()
+EOF
+RST=$!
+sleep 1
+code=$(curl -s -o /dev/null -w '%{http_code}' --max-time 10 http://localhost:8086/rst/x || true)
+kill $RST 2>/dev/null || true
+test "$code" = "502"
