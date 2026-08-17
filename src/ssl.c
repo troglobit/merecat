@@ -370,6 +370,11 @@ int httpd_ssl_want_write(struct http_conn *hc)
 	return hc->ssl && SSL_want_write(hc->ssl);
 }
 
+int httpd_ssl_pending(struct http_conn *hc)
+{
+	return hc->ssl && SSL_has_pending(hc->ssl);
+}
+
 int httpd_ssl_open(struct http_conn *hc)
 {
 	SSL_CTX *ctx = NULL;
@@ -433,8 +438,21 @@ void httpd_ssl_log_errors(void)
 ssize_t httpd_ssl_read(struct http_conn *hc, void *buf, size_t len)
 {
 	int rc = SSL_read(hc->ssl, buf, len);
+
 	if (status(hc, rc))
 		return -1;
+
+	/* SSL_read() returns at most one TLS record, but OpenSSL has
+	** already drained the fd, which therefore never signals readable
+	** for data still buffered in the SSL object.  Return it all.
+	*/
+	while ((size_t)rc < len && SSL_has_pending(hc->ssl)) {
+		int n = SSL_read(hc->ssl, (char *)buf + rc, len - rc);
+
+		if (status(hc, n))
+			break;
+		rc += n;
+	}
 
 	return rc;
 }

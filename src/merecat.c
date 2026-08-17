@@ -1277,6 +1277,7 @@ static void handle_read(connecttab *c, struct timeval *tv)
 	int sz;
 	struct http_conn *hc = c->hc;
 
+again:
 	/* Is there room in our buffer to read more bytes? */
 	if (hc->read_idx >= hc->read_size) {
 		if (hc->read_size > 5000) {
@@ -1320,6 +1321,9 @@ static void handle_read(connecttab *c, struct timeval *tv)
 	/* Do we have a complete request yet? */
 	switch (httpd_got_request(hc)) {
 	case GR_NO_REQUEST:
+		/* Data buffered in the SSL object never signals the fd */
+		if (httpd_ssl_pending(hc))
+			goto again;
 		return;
 
 	case GR_BAD_REQUEST:

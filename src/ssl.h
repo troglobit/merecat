@@ -49,6 +49,9 @@ int httpd_ssl_accept(struct http_conn *hc);
 /* Handshake direction: does OpenSSL want to write? */
 int httpd_ssl_want_write(struct http_conn *hc);
 
+/* Data buffered in the SSL object, i.e. readable without an fd event */
+int httpd_ssl_pending(struct http_conn *hc);
+
 /* Close a HTTP/HTTPS connection */
 void httpd_ssl_close(struct http_conn *hc);
 
@@ -70,6 +73,7 @@ ssize_t httpd_ssl_writev (struct http_conn *hc, struct iovec *iov, int num);
 #define httpd_ssl_open(hc)             (hc->ssl = NULL, 0)
 #define httpd_ssl_accept(hc)           0
 #define httpd_ssl_want_write(hc)       0
+#define httpd_ssl_pending(hc)          0
 #define httpd_ssl_close(hc)
 #define httpd_ssl_shutdown(hc)
 
