@@ -877,19 +877,20 @@ static void proxy_error(connecttab *c, struct timeval *tv)
 
 /*
 ** Initiate a non-blocking connection to the proxy backend and build the
-** request to forward.  Transitions to CNST_PROXY_CONNECTING.
+** request to forward.  Transitions to CNST_PROXY_CONNECTING, or sends
+** a 502 and finishes the connection on failure.
 */
-static int proxy_start(connecttab *c, struct timeval *tv)
+static void proxy_start(connecttab *c, struct timeval *tv)
 {
 	struct http_conn  *hc = c->hc;
 	struct http_proxy *pr = c->proxy_rule;
-	int                fd;
+	int                fd = -1;
 
 	/* Allocate response buffer */
 	c->proxy_resp = malloc(PROXY_RESP_INITIAL);
 	if (!c->proxy_resp) {
 		syslog(LOG_ERR, "proxy-pass: out of memory for response buffer");
-		return -1;
+		goto err;
 	}
 	c->proxy_resp_size = PROXY_RESP_INITIAL;
 	c->proxy_resp_len  = 0;
@@ -899,42 +900,31 @@ static int proxy_start(connecttab *c, struct timeval *tv)
 	c->proxy_req = proxy_build_request(c);
 	if (!c->proxy_req) {
 		syslog(LOG_ERR, "proxy-pass: failed building request");
-		free(c->proxy_resp); c->proxy_resp = NULL;
-		return -1;
+		goto err;
 	}
 	c->proxy_req_sent = 0;
 
 	if (!pr->resolved) {
 		syslog(LOG_ERR, "proxy-pass: backend '%s' not resolved", pr->host);
-		free(c->proxy_req);  c->proxy_req  = NULL;
-		free(c->proxy_resp); c->proxy_resp = NULL;
-		return -1;
+		goto err;
 	}
 
 	/* Create a non-blocking TCP socket for the backend connection */
 	fd = socket(pr->sa.sa.sa_family, SOCK_STREAM, 0);
 	if (fd < 0) {
 		syslog(LOG_ERR, "proxy-pass: socket: %s", strerror(errno));
-		free(c->proxy_req);  c->proxy_req  = NULL;
-		free(c->proxy_resp); c->proxy_resp = NULL;
-		return -1;
+		goto err;
 	}
 	if (httpd_set_ndelay(fd) < 0) {
 		syslog(LOG_ERR, "proxy-pass: failed setting non-blocking on socket: %s", strerror(errno));
-		close(fd);
-		free(c->proxy_req);  c->proxy_req  = NULL;
-		free(c->proxy_resp); c->proxy_resp = NULL;
-		return -1;
+		goto err;
 	}
 
 	if (connect(fd, &pr->sa.sa, pr->salen) < 0 &&
 	    errno != EINPROGRESS) {
 		syslog(LOG_ERR, "proxy-pass: connect %s:%d: %s",
 		       pr->host, pr->port, strerror(errno));
-		close(fd);
-		free(c->proxy_req);  c->proxy_req  = NULL;
-		free(c->proxy_resp); c->proxy_resp = NULL;
-		return -1;
+		goto err;
 	}
 
 	c->proxy_fd = fd;
@@ -945,7 +935,13 @@ static int proxy_start(connecttab *c, struct timeval *tv)
 
 	syslog(LOG_DEBUG, "proxy-pass: connecting to %s:%d for %s",
 	       pr->host, pr->port, hc->encodedurl);
-	return 0;
+	return;
+err:
+	if (fd >= 0)
+		close(fd);
+	proxy_release(c);
+	httpd_send_err(hc, 502, httpd_err502title, "", httpd_err502form, hc->encodedurl);
+	finish_connection(c, tv);
 }
 
 /* CNST_PROXY_SENDING: drain the request buffer to the backend */
@@ -1270,11 +1266,7 @@ static void handle_proxy_body(connecttab *c, struct timeval *tv)
 	if (hc->read_idx - hc->checked_idx < hc->contentlength)
 		return;
 
-	if (proxy_start(c, tv) < 0) {
-		httpd_send_err(hc, 502, httpd_err502title, "",
-			       httpd_err502form, hc->encodedurl);
-		finish_connection(c, tv);
-	}
+	proxy_start(c, tv);
 }
 
 /* -----------------------------------------------------------------------*/
@@ -1382,11 +1374,7 @@ again:
 				}
 			}
 
-			if (proxy_start(c, tv) < 0) {
-				httpd_send_err(hc, 502, httpd_err502title, "",
-					       httpd_err502form, hc->encodedurl);
-				finish_connection(c, tv);
-			}
+			proxy_start(c, tv);
 			return;
 		}
 	}
