@@ -769,7 +769,7 @@ static char *proxy_build_request(connecttab *c)
 			 "Content-Length: %zu\r\n", (size_t)hc->contentlength);
 
 	hlen = asprintf(&req,
-		"%s %s%s%s HTTP/1.0\r\n"
+		"%s %s HTTP/1.0\r\n"
 		"Host: %s\r\n"
 		"Connection: close\r\n"
 		"X-Forwarded-For: %s\r\n"
@@ -786,8 +786,6 @@ static char *proxy_build_request(connecttab *c)
 		"\r\n",
 		method,
 		url,
-		(hc->query && hc->query[0]) ? "?" : "",
-		(hc->query && hc->query[0]) ? hc->query : "",
 		pr->host,
 		client, client, proto,
 		(hc->accept    && *hc->accept)    ? "Accept: "          : "",

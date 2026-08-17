@@ -1,6 +1,6 @@
 #!/bin/sh
 # Verify proxy-pass directive: forwarding, header injection, path stripping,
-# and proxy-redirect header rewriting.
+# query string forwarding, and proxy-redirect header rewriting.
 
 set -ex
 
@@ -43,29 +43,39 @@ BACKEND=$!
 trap "kill $BACKEND 2>/dev/null; true" EXIT
 sleep 1
 
-# Pass 1/5: request is forwarded and response comes from the backend
-echo "Pass 1/5"
+# Pass 1/7: request is forwarded and response comes from the backend
+echo "Pass 1/7"
 curl -s http://localhost:8086/proxy/hello | grep '"path".*"/proxy/hello"'
 
-# Pass 2/5: X-Forwarded-For and X-Real-IP headers are injected.
+# Pass 2/7: X-Forwarded-For and X-Real-IP headers are injected.
 # Use 127.0.0.1 explicitly to guarantee an IPv4 loopback address.
-echo "Pass 2/5"
+echo "Pass 2/7"
 curl -s http://127.0.0.1:8086/proxy/test | grep '"x-forwarded-for".*"127.0.0.1"'
 curl -s http://127.0.0.1:8086/proxy/test | grep '"x-real-ip".*"127.0.0.1"'
 
-# Pass 3/5: path prefix stripped when backend URL carries a path component
+# Pass 3/7: path prefix stripped when backend URL carries a path component
 #   GET /v2proxy/hello -> GET /v2/hello forwarded to backend
-echo "Pass 3/5"
+echo "Pass 3/7"
 curl -s http://localhost:8086/v2proxy/hello | grep '"path".*"/v2/hello"'
 
-# Pass 4/5: path prefix stripped when backend URL has a trailing slash only
+# Pass 4/7: path prefix stripped when backend URL has a trailing slash only
 #   GET /strip/hello -> GET /hello forwarded to backend
-echo "Pass 4/5"
+echo "Pass 4/7"
 curl -s http://localhost:8086/strip/hello | grep '"path".*"/hello"'
 
-# Pass 5/5: proxy-redirect rewrites Location: header in backend response
+# Pass 5/7: proxy-redirect rewrites Location: header in backend response
 #   Backend returns: Location: http://localhost:9090/redir/foo/target
 #   Merecat rewrites:          Location: http://localhost:8086/redir/foo/target
-echo "Pass 5/5"
+echo "Pass 5/7"
 loc=$(curl -s -o /dev/null -D - http://localhost:8086/redir/foo | grep -i '^Location:')
 echo "$loc" | grep "http://localhost:8086/redir/foo/target"
+
+# Pass 6/7: query string is forwarded exactly once
+#   GET /proxy/search?q=foo&n=2 -> same path and query on the backend
+echo "Pass 6/7"
+curl -s 'http://localhost:8086/proxy/search?q=foo&n=2' | grep '"path".*"/proxy/search?q=foo&n=2"'
+
+# Pass 7/7: query string survives path prefix stripping
+#   GET /v2proxy/search?q=bar -> GET /v2/search?q=bar on the backend
+echo "Pass 7/7"
+curl -s 'http://localhost:8086/v2proxy/search?q=bar' | grep '"path".*"/v2/search?q=bar"'
