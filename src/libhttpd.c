@@ -1689,6 +1689,7 @@ static int auth_check2(struct http_conn *hc, char *dir)
 	char *authpass;
 	char *colon;
 	int l;
+	int fd;
 	FILE *fp;
 	char line[500];
 	char *cryp;
@@ -1700,17 +1701,21 @@ static int auth_check2(struct http_conn *hc, char *dir)
 	snprintf(hc->authpath, hc->maxauthpath, "%s/%s", dir, AUTH_FILE);
 
 	/* Does this directory have an auth file? */
-	if (lstat(hc->authpath, &sb) < 0)
+	fd = open_dotfile(hc->authpath);
+	if (fd == -1)
 		/* Nope, let the request go through. */
 		return 0;
+	if (fd < 0)
+		goto denied;
 
-	/* If it was a symlink, check that the target exists */
-	if (stat(hc->authpath, &sb) < 0)
-		goto enoent;
+	/* The mtime is used for the cached-credentials check below */
+	if (fstat(fd, &sb) < 0)
+		goto denied;
 
 	/* Does this request contain basic authorization info? */
 	if (hc->authorization[0] == '\0' || strncmp(hc->authorization, "Basic ", 6) != 0) {
 		/* Nope, return a 401 Unauthorized. */
+		close(fd);
 		send_authenticate(hc, dir);
 		return -1;
 	}
@@ -1722,6 +1727,7 @@ static int auth_check2(struct http_conn *hc, char *dir)
 	authpass = strchr(authinfo, ':');
 	if (!authpass) {
 		/* No colon?  Bogus auth info. */
+		close(fd);
 		send_authenticate(hc, dir);
 		return -1;
 	}
@@ -1736,6 +1742,7 @@ static int auth_check2(struct http_conn *hc, char *dir)
 	if (hc->maxprevauthpath != 0 &&
 	    strcmp(hc->authpath, hc->prevauthpath) == 0 && sb.st_mtime == prevmtime && strcmp(authinfo, hc->prevuser) == 0) {
 		/* Yes.  Check against the cached encrypted password. */
+		close(fd);
 		crypt_result = crypt(authpass, hc->prevcryp);
 		if (!crypt_result)
 			return -1;
@@ -1752,18 +1759,10 @@ static int auth_check2(struct http_conn *hc, char *dir)
 		return -1;
 	}
 
-	/* Open the password file. */
-	fp = fopen(hc->authpath, "r");
-	if (!fp) {
-	enoent:
-		/* The file exists but we can't open it?  Disallow access. */
-		syslog(LOG_ERR, "%.80s auth file %s could not be opened: %s",
-		       httpd_client(hc), hc->authpath, strerror(errno));
-		httpd_send_err(hc, 403, err403title, "",
-			       ERROR_FORM(err403form, "The requested URL '%s' is protected.\n"),
-			       hc->encodedurl);
-		return -1;
-	}
+	/* Open the password file for reading. */
+	fp = fdopen(fd, "r");
+	if (!fp)
+		goto denied;
 
 	/* Read it. */
 	while (fgets(line, sizeof(line), fp)) {
@@ -1818,6 +1817,17 @@ static int auth_check2(struct http_conn *hc, char *dir)
 	(void)fclose(fp);
 	send_authenticate(hc, dir);
 
+	return -1;
+
+denied:
+	/* The file exists but we can't open it?  Disallow access. */
+	if (fd >= 0)
+		close(fd);
+	syslog(LOG_ERR, "%.80s auth file %.80s could not be opened: %s",
+	       httpd_client(hc), hc->authpath, strerror(errno));
+	httpd_send_err(hc, 403, err403title, "",
+		       ERROR_FORM(err403form, "The requested URL '%s' is protected.\n"),
+		       hc->encodedurl);
 	return -1;
 }
 
