@@ -959,6 +959,8 @@ static void handle_proxy_connect(connecttab *c, struct timeval *tv)
 		return;
 	}
 
+	c->active_at = tv->tv_sec;
+
 	/* Connected — try to send the request right away */
 	sz = write(c->proxy_fd,
 		   c->proxy_req + c->proxy_req_sent,
@@ -1003,6 +1005,7 @@ static void handle_proxy_send(connecttab *c, struct timeval *tv)
 	}
 
 	c->proxy_req_sent += sz;
+	c->active_at = tv->tv_sec;
 	if (c->proxy_req_sent >= c->proxy_req_len) {
 		fdwatch_del_fd(c->proxy_fd);
 		fdwatch_add_fd(c->proxy_fd, c, FDW_READ);
@@ -1195,12 +1198,14 @@ static void handle_proxy_read(connecttab *c, struct timeval *tv)
 
 		/* Hand the buffered response back to the client */
 		hc->bytes_sent = 0;
+		c->active_at = tv->tv_sec;
 		fdwatch_add_fd(hc->conn_fd, c, FDW_WRITE);
 		c->conn_state = CNST_PROXY_SEND_RESP;
 		return;
 	}
 
 	c->proxy_resp_len += sz;
+	c->active_at = tv->tv_sec;
 }
 
 /* CNST_PROXY_SEND_RESP: stream the buffered backend response to the client */
@@ -1225,6 +1230,7 @@ static void handle_proxy_send_resp(connecttab *c, struct timeval *tv)
 
 	c->proxy_resp_sent += sz;
 	hc->bytes_sent     += sz;
+	c->active_at        = tv->tv_sec;
 
 	if (c->proxy_resp_sent >= c->proxy_resp_len) {
 		/* Proxy response fully delivered — close gracefully */
@@ -1735,6 +1741,27 @@ static void idle(arg_t arg, struct timeval *now)
 			if (now->tv_sec - c->active_at >= IDLE_READ_TIMELIMIT) {
 				syslog(LOG_INFO, "%.80s: connection timed out in SSL handshake",
 				       httpd_client(c->hc));
+				clear_connection(c, now);
+			}
+			break;
+
+		case CNST_PROXY_CONNECTING:
+		case CNST_PROXY_SENDING:
+		case CNST_PROXY_READING:
+			if (now->tv_sec - c->active_at >= IDLE_READ_TIMELIMIT) {
+				syslog(LOG_ERR, "proxy-pass: backend %s:%d timed out for %s",
+				       c->proxy_rule->host, c->proxy_rule->port,
+				       c->hc->encodedurl);
+				proxy_error(c, now);
+			}
+			break;
+
+		case CNST_PROXY_SEND_RESP:
+			if (now->tv_sec - c->active_at >= IDLE_SEND_TIMELIMIT) {
+				syslog(LOG_INFO, "%.80s: connection timed out sending proxy response",
+				       httpd_client(c->hc));
+				/* Mid-response, cannot recycle for keep-alive */
+				c->hc->do_keep_alive = 0;
 				clear_connection(c, now);
 			}
 			break;
