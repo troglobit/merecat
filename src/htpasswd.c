@@ -15,10 +15,12 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#ifdef HAVE_SYS_RANDOM_H
+#include <sys/random.h>		/* getentropy() on macOS */
+#endif
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <termios.h>
-#include <time.h>
 #include <unistd.h>
 
 extern char *crypt(const char *key, const char *setting);
@@ -96,6 +98,32 @@ static void to64(char *s, long v, size_t len)
 	*s = '\0';
 }
 
+/* getentropy(), then arc4random_buf() which cannot fail, and as a
+** last resort for systems with neither, /dev/urandom
+*/
+static int get_random(void *dst, size_t len)
+{
+#ifdef HAVE_GETENTROPY
+	if (getentropy(dst, len) == 0)
+		return 0;
+#endif
+#ifdef HAVE_ARC4RANDOM_BUF
+	arc4random_buf(dst, len);
+	return 0;
+#else
+	FILE *fp;
+	size_t n = 0;
+
+	fp = fopen("/dev/urandom", "r");
+	if (fp) {
+		n = fread(dst, 1, len, fp);
+		fclose(fp);
+	}
+
+	return n == len ? 0 : -1;
+#endif
+}
+
 static char *get_password(const char *prompt, char *password, size_t len)
 {
 	int c;
@@ -133,6 +161,7 @@ static void add_password(char *user, FILE *fp)
 	char salt[12] = "$1$"; /* Long enough for MD5 Crypt */
 	size_t index = 3;
 	size_t saltlen = 8;
+	long rnd;
 	const char *md5 = "$1$JASka/..$pV3V31AdjgqQmjTbgTNVu/";
 
 	/* Test if the system supports MD5 passwords */
@@ -174,8 +203,11 @@ static void add_password(char *user, FILE *fp)
 		}
 	}
 
-	srandom(time(NULL));
-	to64(&salt[index], random(), saltlen);
+	if (get_random(&rnd, sizeof(rnd)) < 0) {
+		fprintf(stderr, "Failed to gather random data for salt.\n");
+		goto error;
+	}
+	to64(&salt[index], rnd, saltlen);
 
 	cpw = crypt(pw, salt);
 	if (cpw)
