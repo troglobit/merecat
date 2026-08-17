@@ -464,6 +464,25 @@ static void update_throttles(arg_t arg, struct timeval *now)
 }
 
 
+/* Release proxy state, if any; safe to call for non-proxy connections */
+static void proxy_release(connecttab *c)
+{
+	if (c->proxy_fd != -1) {
+		fdwatch_del_fd(c->proxy_fd);
+		close(c->proxy_fd);
+		c->proxy_fd = -1;
+	}
+	free(c->proxy_req);  c->proxy_req  = NULL;
+	free(c->proxy_resp); c->proxy_resp = NULL;
+	c->proxy_rule      = NULL;
+	c->proxy_req_len   = 0;
+	c->proxy_req_sent  = 0;
+	c->proxy_resp_size = 0;
+	c->proxy_resp_len  = 0;
+	c->proxy_resp_sent = 0;
+}
+
+
 static void really_clear_connection(connecttab *c, struct timeval *tv)
 {
 	stats_bytes += c->hc->bytes_sent;
@@ -475,16 +494,7 @@ static void really_clear_connection(connecttab *c, struct timeval *tv)
 	    c->conn_state != CNST_PROXY_READING)
 		fdwatch_del_fd(c->hc->conn_fd);
 
-	/* Close any open proxy backend connection */
-	if (c->proxy_fd != -1) {
-		fdwatch_del_fd(c->proxy_fd);
-		close(c->proxy_fd);
-		c->proxy_fd = -1;
-	}
-	free(c->proxy_req);  c->proxy_req  = NULL;
-	free(c->proxy_resp); c->proxy_resp = NULL;
-	c->proxy_rule = NULL;
-
+	proxy_release(c);
 	httpd_close_conn(c->hc, tv);
 	clear_throttles(c, tv);
 	if (c->linger_timer) {
@@ -582,8 +592,9 @@ static void clear_connection(connecttab *c, struct timeval *tv)
 			c->hc->file_address = NULL;
 		}
 
-		/* release httpd_conn auxiliary memory */
+		/* release httpd_conn auxiliary memory and any proxy state */
 		httpd_destroy_conn(c->hc);
+		proxy_release(c);
 
 		/* reinitialize httpd_conn */
 		httpd_init_conn_mem(c->hc);
@@ -845,14 +856,7 @@ static void proxy_error(connecttab *c, struct timeval *tv)
 {
 	struct http_conn *hc = c->hc;
 
-	if (c->proxy_fd != -1) {
-		fdwatch_del_fd(c->proxy_fd);
-		close(c->proxy_fd);
-		c->proxy_fd = -1;
-	}
-	free(c->proxy_req);  c->proxy_req  = NULL;
-	free(c->proxy_resp); c->proxy_resp = NULL;
-	c->proxy_rule = NULL;
+	proxy_release(c);
 
 	/*
 	 * Restore conn_fd and reset state so the normal finish/clear path
@@ -1234,6 +1238,7 @@ static void handle_proxy_send_resp(connecttab *c, struct timeval *tv)
 	if (sz < 0) {
 		if (errno != EPIPE && errno != ECONNRESET)
 			syslog(LOG_ERR, "proxy-pass: write client: %s", strerror(errno));
+		hc->do_keep_alive = 0;
 		clear_connection(c, tv);
 		return;
 	}
