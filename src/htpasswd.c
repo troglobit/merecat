@@ -51,18 +51,23 @@ static void getword(char *word, char *line, char stop)
 static int get_line(char *s, int n, FILE *f)
 {
 	int i = 0;
+	int c;
 
 	while (1) {
-		s[i] = (char)fgetc(f);
+		c = fgetc(f);
+		if (c == CR)
+			c = fgetc(f);
 
-		if (s[i] == CR)
-			s[i] = fgetc(f);
-
-		if ((s[i] == 0x4) || (s[i] == LF) || (i == (n - 1))) {
+		if (c == EOF || c == 0x4 || c == LF || i == n - 1) {
 			s[i] = '\0';
-			return (feof(f) ? 1 : 0);
+			/* A final line without newline is still a line;
+			** end-of-input is signalled on the next call
+			*/
+			if (c == EOF)
+				return (i == 0 || ferror(f)) ? 1 : 0;
+			return 0;
 		}
-		++i;
+		s[i++] = (char)c;
 	}
 }
 
