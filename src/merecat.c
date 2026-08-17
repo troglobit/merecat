@@ -29,6 +29,7 @@
 #include <config.h>
 
 #include <errno.h>
+#include <fcntl.h>
 #include <getopt.h>
 #include <pwd.h>
 #ifdef HAVE_GRP_H
@@ -2262,51 +2263,12 @@ int main(int argc, char **argv)
 	if (path[strlen(path) - 1] != '/')
 		strlcat(path, "/", sizeof(path));
 
-	if (background) {
-		/* Daemonize - make ourselves a subprocess.  Let daemon()/the
-		** manual fork path redirect stdin/stdout/stderr to /dev/null
-		** rather than closing them manually first.  Closing them before
-		** the redirect leaves fds 0-2 free for reuse by the next socket()
-		** or accept() call, which can corrupt CGI POST body handling.
-		*/
-#ifdef HAVE_DAEMON
-		if (daemon(1, 0) < 0) {
-			syslog(LOG_CRIT, "daemon: %s", strerror(errno));
-			exit(1);
-		}
-#else /* HAVE_DAEMON */
-		switch (fork()) {
-		case 0:
-			break;
-		case -1:
-			syslog(LOG_CRIT, "fork: %s", strerror(errno));
-			exit(1);
-		default:
-			exit(0);
-		}
-#ifdef HAVE_SETSID
-		setsid();
-#endif
-		/* Redirect stdio to /dev/null to prevent fd 0-2 reuse. */
-		{
-			int devnull = open("/dev/null", O_RDWR);
-			if (devnull >= 0) {
-				dup2(devnull, STDIN_FILENO);
-				dup2(devnull, STDOUT_FILENO);
-				dup2(devnull, STDERR_FILENO);
-				if (devnull > STDERR_FILENO)
-					close(devnull);
-			}
-		}
-#endif /* HAVE_DAEMON */
-	} else {
-		/* Even if we don't daemonize, we still want to disown our
-		** parent process.
-		*/
-#ifdef HAVE_SETSID
-		setsid();
-#endif
-	}
+	/* Daemonizing is delayed until all config is validated and the
+	** listen sockets are bound, so startup errors reach the caller as
+	** a non-zero exit code.  Open /dev/null for the stdio redirect
+	** now, before a possible chroot() hides it.
+	*/
+	int devnull = open("/dev/null", O_RDWR);
 
 	/* Initialize the fdwatch package.  We have to do this before
 	** chrooting, if /dev/poll is used.
@@ -2412,11 +2374,6 @@ int main(int argc, char **argv)
 	num_connects = 0;
 	httpd_conn_count = 0;
 
-	/* Create PID file */
-	if (!pidfn)
-		pidfn = ident;
-	pidfile(pidfn);
-
 	/* Get servers from .conf file */
 	num = conf_srv(srvtab, NELEMS(srvtab));
 	if (num == -1) {
@@ -2436,6 +2393,53 @@ int main(int argc, char **argv)
 	/* Start socket watchers for all servers */
 	LIST_FOREACH(server, server_list)
 		srv_start(server);
+
+	if (background) {
+		/* Redirect stdin/stdout/stderr to /dev/null rather than
+		** closing them.  Closing leaves fds 0-2 free for reuse by
+		** the next socket() or accept() call, which can corrupt CGI
+		** POST body handling.
+		*/
+#ifdef HAVE_DAEMON
+		if (daemon(1, 1) < 0) {
+			syslog(LOG_CRIT, "daemon: %s", strerror(errno));
+			exit(1);
+		}
+#else /* HAVE_DAEMON */
+		switch (fork()) {
+		case 0:
+			break;
+		case -1:
+			syslog(LOG_CRIT, "fork: %s", strerror(errno));
+			exit(1);
+		default:
+			exit(0);
+		}
+#ifdef HAVE_SETSID
+		setsid();
+#endif
+#endif /* HAVE_DAEMON */
+		if (devnull >= 0) {
+			dup2(devnull, STDIN_FILENO);
+			dup2(devnull, STDOUT_FILENO);
+			dup2(devnull, STDERR_FILENO);
+		}
+	} else {
+		/* Even if we don't daemonize, we still want to disown our
+		** parent process.
+		*/
+#ifdef HAVE_SETSID
+		setsid();
+#endif
+	}
+
+	if (devnull > STDERR_FILENO)
+		close(devnull);
+
+	/* Create PID file, after daemon() so it holds the child PID */
+	if (!pidfn)
+		pidfn = ident;
+	pidfile(pidfn);
 
 	/* If we're root, try to become someone else. */
 	if (getuid() == 0) {
