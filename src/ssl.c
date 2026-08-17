@@ -26,7 +26,6 @@
 */
 
 #include <config.h>
-#include <poll.h>
 #include <string.h>
 #include <syslog.h>
 #include <sys/stat.h>
@@ -344,38 +343,31 @@ leave:
 }
 
 /*
-** Poll underlying fd and call SSL_accept() as long as it
-** wants more ... or until our patience runs out.
+** Drive the handshake whenever the fd signals readiness, see
+** CNST_SSL_ACCEPTING in merecat.c.  Returns 0 when the handshake is
+** complete, 1 to wait for another fd event, and -1 on fatal error.
 */
-static int accept_connection(struct http_conn *hc)
+int httpd_ssl_accept(struct http_conn *hc)
 {
-	struct pollfd pfd = {
-		.events = POLLIN,
-		.fd     = hc->conn_fd,
-	};
-	int rc, retries = 5;
+	if (status(hc, SSL_accept(hc->ssl))) {
+		if (EAGAIN == errno)
+			return 1;
 
-retry:
-	rc = poll(&pfd, 1, 100);
-	if (rc > 0) {
-		rc = status(hc, SSL_accept(hc->ssl));
-		if (-1 == rc && EAGAIN == errno)
-			goto retry;
+		if (hc->errmsg)
+			syslog(LOG_INFO, "%.80s: failed HTTPS connection: %s.",
+			       httpd_client(hc), hc->errmsg);
+		ERR_clear_error();
+		httpd_ssl_close(hc);
 
-		return rc;
-	}
-
-	if (rc < 0) {
-		hc->errmsg = strerror(errno);
 		return -1;
 	}
 
-	if (--retries > 0)
-		goto retry;
+	return 0;
+}
 
-	hc->errmsg = "client timeout";
-
-	return -1;
+int httpd_ssl_want_write(struct http_conn *hc)
+{
+	return hc->ssl && SSL_want_write(hc->ssl);
 }
 
 int httpd_ssl_open(struct http_conn *hc)
@@ -390,26 +382,18 @@ int httpd_ssl_open(struct http_conn *hc)
 	hc->ssl = NULL;
 	if (hc->hs)
 		ctx = hc->hs->ctx;
+	if (!ctx)
+		return 0;
 
-	if (ctx) {
-		hc->ssl = SSL_new(ctx);
-		if (!hc->ssl) {
-			hc->errmsg = "creating connection";
-			return 1;
-		}
-
-		if (-1 == httpd_set_ndelay(hc->conn_fd))
-			syslog(LOG_ERR, "Failed setting SSL non-blocking: %s",
-			       strerror(errno));
-
-		SSL_set_fd(hc->ssl, hc->conn_fd);
-		if (-1 == accept_connection(hc)) {
-			ERR_clear_error();
-			SSL_free(hc->ssl);
-
-			return 1;
-		}
+	hc->ssl = SSL_new(ctx);
+	if (!hc->ssl) {
+		hc->errmsg = "creating connection";
+		syslog(LOG_INFO, "%.80s: failed HTTPS connection: %s.",
+		       httpd_client(hc), hc->errmsg);
+		return -1;
 	}
+
+	SSL_set_fd(hc->ssl, hc->conn_fd);
 
 	return 0;
 }

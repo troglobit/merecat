@@ -176,6 +176,7 @@ static int httpd_conn_count;
 #define CNST_PROXY_READING    7  /* Reading HTTP response from backend */
 /* Response-forwarding state: conn_fd is back in fdwatch */
 #define CNST_PROXY_SEND_RESP  8  /* Forwarding buffered response to client */
+#define CNST_SSL_ACCEPTING    9  /* TLS handshake in progress */
 
 static struct httpd *server_list = NULL;
 int terminate = 0;
@@ -682,7 +683,10 @@ int handle_newconnect(struct httpd *hs, struct timeval *tv, int fd)
 			return 1;
 		}
 
-		c->conn_state = CNST_READING;
+		if (c->hc->ssl)
+			c->conn_state = CNST_SSL_ACCEPTING;
+		else
+			c->conn_state = CNST_READING;
 		/* Pop it off the free list. */
 		first_free_connect = c->next_free_connect;
 		c->next_free_connect = -1;
@@ -1420,6 +1424,42 @@ static void handle_read(connecttab *c, struct timeval *tv)
 }
 
 
+/* CNST_SSL_ACCEPTING: drive the TLS handshake on fd events.  Note,
+** active_at is deliberately not refreshed while handshaking, giving
+** the whole handshake one IDLE_READ_TIMELIMIT budget so a trickled
+** handshake cannot hold a connection slot indefinitely.
+*/
+static void handle_ssl_accept(connecttab *c, struct timeval *tv)
+{
+	struct http_conn *hc = c->hc;
+	int rc;
+
+	rc = httpd_ssl_accept(hc);
+	if (rc < 0) {
+		clear_connection(c, tv);
+		return;
+	}
+
+	if (rc > 0) {
+		/* Still handshaking, OpenSSL may have flipped direction */
+		fdwatch_del_fd(hc->conn_fd);
+		fdwatch_add_fd(hc->conn_fd, c,
+			       httpd_ssl_want_write(hc) ? FDW_WRITE : FDW_READ);
+		return;
+	}
+
+	c->conn_state = CNST_READING;
+	c->active_at = tv->tv_sec;
+	fdwatch_del_fd(hc->conn_fd);
+	fdwatch_add_fd(hc->conn_fd, c, FDW_READ);
+
+	/* The request may already sit decrypted in the SSL buffer, in
+	** which case the fd never signals readable again.
+	*/
+	handle_read(c, tv);
+}
+
+
 static void handle_send(connecttab *c, struct timeval *tv)
 {
 	size_t max_bytes;
@@ -1686,6 +1726,14 @@ static void idle(arg_t arg, struct timeval *now)
 		case CNST_PAUSING:
 			if (now->tv_sec - c->active_at >= IDLE_SEND_TIMELIMIT) {
 				syslog(LOG_INFO, "%.80s: connection timed out sending",
+				       httpd_client(c->hc));
+				clear_connection(c, now);
+			}
+			break;
+
+		case CNST_SSL_ACCEPTING:
+			if (now->tv_sec - c->active_at >= IDLE_READ_TIMELIMIT) {
+				syslog(LOG_INFO, "%.80s: connection timed out in SSL handshake",
 				       httpd_client(c->hc));
 				clear_connection(c, now);
 			}
@@ -2425,6 +2473,10 @@ int main(int argc, char **argv)
 
 				case CNST_PROXY_SEND_RESP:
 					handle_proxy_send_resp(ct, &tv);
+					break;
+
+				case CNST_SSL_ACCEPTING:
+					handle_ssl_accept(ct, &tv);
 					break;
 				}
 			}

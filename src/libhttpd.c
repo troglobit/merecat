@@ -2607,12 +2607,8 @@ int httpd_get_conn(struct httpd *hs, int listen_fd, struct http_conn *hc)
 	memset(hc->client.address, 0, sizeof(hc->client.address));
 	strlcpy(hc->client.address, address, sizeof(hc->client.address));
 
-	if (httpd_ssl_open(hc)) {
-		if (hc->errmsg)
-			syslog(LOG_INFO, "%.80s: failed HTTPS connection: %s.",
-			       httpd_client(hc), hc->errmsg);
+	if (httpd_ssl_open(hc))
 		goto error;
-	}
 	httpd_init_conn_content(hc);
 
 	return GC_OK;
