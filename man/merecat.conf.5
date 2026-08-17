@@ -365,6 +365,10 @@ servers (Node.js, Python, Go, etc.) with Merecat.
 .Pp
 The backend hostname is resolved at startup to avoid blocking DNS lookups
 during request handling.  Only HTTP backends are supported (not HTTPS).
+IPv6 backends use the bracketed literal syntax
+.Qq http://[::1]:3000 ;
+when a hostname has both IPv4 and IPv6 addresses the IPv4 address is
+preferred.
 .Pp
 .Bd -unfilled -offset "" -compact
 proxy-pass "/api/**" {
@@ -405,6 +409,20 @@ is forwarded as
 to the backend.  If the backend URL has no path (or only
 .Qq / )
 the original request URI is forwarded unchanged.
+.Pp
+Requests are forwarded as HTTP/1.0 with
+.Qq Connection: close ,
+and both the request body and the backend response are buffered in
+full before being relayed.  Request bodies and responses are limited
+to 8 MiB: a larger request body is rejected with
+.Qq 413 Request Entity Too Large ,
+a larger response with
+.Qq 502 Bad Gateway .
+A backend that is down, resets the connection, or stalls for 60
+seconds without making progress also results in a
+.Qq 502 Bad Gateway .
+Proxied requests are access logged with the status code returned by
+the backend.
 .Pp
 .It Cm proxy-redirect = Qq Ar FROM TO
 Optional.  Rewrite

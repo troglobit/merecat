@@ -22,11 +22,20 @@ compression using zlib.
           }
       }
 
-  The backend hostname is resolved at startup.  Forwarded requests include
-  `X-Forwarded-For`, `X-Real-IP`, and `X-Forwarded-Proto` headers.  When
-  the backend URL carries a path component, the matched URL prefix is
-  stripped before forwarding (nginx-style path rewriting).  Up to 8 rules
-  are supported per server block.  Closes #20
+  The backend hostname is resolved at startup.  IPv6 backends are
+  supported using bracketed literals, e.g. `http://[::1]:3000`; when a
+  name has both A and AAAA records the IPv4 address is preferred.
+  Forwarded requests include `X-Forwarded-For`, `X-Real-IP`, and
+  `X-Forwarded-Proto` headers.  When the backend URL carries a path
+  component, the matched URL prefix is stripped before forwarding
+  (nginx-style path rewriting).  Up to 8 rules are supported per server
+  block.  Closes #20
+
+  Requests are forwarded as HTTP/1.0 and both request body and response
+  are buffered in full, capped at 8 MiB: larger bodies are rejected with
+  413, larger responses with 502.  A backend that stalls for 60 seconds
+  is dropped with a 502 to the client.  Proxied requests are access
+  logged with the status code returned by the backend
 
 - Add `host` filter to `proxy-pass` rules for multihoming (virtual host)
   setups.  When `virtual-host = true` is enabled, each `proxy-pass` rule
