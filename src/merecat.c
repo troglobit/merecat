@@ -1181,6 +1181,16 @@ static void handle_proxy_read(connecttab *c, struct timeval *tv)
 	}
 
 	if (sz == 0) {
+		/* Backend closed without sending anything: 502, not an
+		** empty write that would spin on the always-writable fd
+		*/
+		if (c->proxy_resp_len == 0) {
+			syslog(LOG_ERR, "proxy-pass: empty response from %s for %s",
+			       c->proxy_rule->host, hc->encodedurl);
+			proxy_error(c, tv);
+			return;
+		}
+
 		/* Backend closed the connection — full response is buffered */
 		syslog(LOG_DEBUG, "proxy-pass: %zu byte response from %s for %s",
 		       c->proxy_resp_len, c->proxy_rule->host, hc->encodedurl);

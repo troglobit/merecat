@@ -57,47 +57,47 @@ BACKEND=$!
 trap "kill $BACKEND 2>/dev/null; true" EXIT
 sleep 1
 
-# Pass 1/9: request is forwarded and response comes from the backend
-echo "Pass 1/9"
+# Pass 1/10: request is forwarded and response comes from the backend
+echo "Pass 1/10"
 curl -s http://localhost:8086/proxy/hello | grep '"path".*"/proxy/hello"'
 
-# Pass 2/9: X-Forwarded-For and X-Real-IP headers are injected.
+# Pass 2/10: X-Forwarded-For and X-Real-IP headers are injected.
 # Use 127.0.0.1 explicitly to guarantee an IPv4 loopback address.
-echo "Pass 2/9"
+echo "Pass 2/10"
 curl -s http://127.0.0.1:8086/proxy/test | grep '"x-forwarded-for".*"127.0.0.1"'
 curl -s http://127.0.0.1:8086/proxy/test | grep '"x-real-ip".*"127.0.0.1"'
 
-# Pass 3/9: path prefix stripped when backend URL carries a path component
+# Pass 3/10: path prefix stripped when backend URL carries a path component
 #   GET /v2proxy/hello -> GET /v2/hello forwarded to backend
-echo "Pass 3/9"
+echo "Pass 3/10"
 curl -s http://localhost:8086/v2proxy/hello | grep '"path".*"/v2/hello"'
 
-# Pass 4/9: path prefix stripped when backend URL has a trailing slash only
+# Pass 4/10: path prefix stripped when backend URL has a trailing slash only
 #   GET /strip/hello -> GET /hello forwarded to backend
-echo "Pass 4/9"
+echo "Pass 4/10"
 curl -s http://localhost:8086/strip/hello | grep '"path".*"/hello"'
 
-# Pass 5/9: proxy-redirect rewrites Location: header in backend response
+# Pass 5/10: proxy-redirect rewrites Location: header in backend response
 #   Backend returns: Location: http://localhost:9090/redir/foo/target
 #   Merecat rewrites:          Location: http://localhost:8086/redir/foo/target
-echo "Pass 5/9"
+echo "Pass 5/10"
 loc=$(curl -s -o /dev/null -D - http://localhost:8086/redir/foo | grep -i '^Location:')
 echo "$loc" | grep "http://localhost:8086/redir/foo/target"
 
-# Pass 6/9: query string is forwarded exactly once
+# Pass 6/10: query string is forwarded exactly once
 #   GET /proxy/search?q=foo&n=2 -> same path and query on the backend
-echo "Pass 6/9"
+echo "Pass 6/10"
 curl -s 'http://localhost:8086/proxy/search?q=foo&n=2' | grep '"path".*"/proxy/search?q=foo&n=2"'
 
-# Pass 7/9: query string survives path prefix stripping
+# Pass 7/10: query string survives path prefix stripping
 #   GET /v2proxy/search?q=bar -> GET /v2/search?q=bar on the backend
-echo "Pass 7/9"
+echo "Pass 7/10"
 curl -s 'http://localhost:8086/v2proxy/search?q=bar' | grep '"path".*"/v2/search?q=bar"'
 
-# Pass 8/9: POST body larger than one read() arrives complete at the backend
+# Pass 8/10: POST body larger than one read() arrives complete at the backend
 #   1 MiB body cannot fit in the socket buffers with the headers, so this
 #   exercises the request body buffering (CNST_PROXY_BODY) path.
-echo "Pass 8/9"
+echo "Pass 8/10"
 body=$(mktemp)
 head -c 1048576 /dev/urandom > "$body"
 sha=$(sha256sum "$body" | cut -d' ' -f1)
@@ -106,8 +106,33 @@ rm -f "$body"
 echo "$resp" | grep '"len": 1048576'
 echo "$resp" | grep "\"sha\": \"$sha\""
 
-# Pass 9/9: POST body over the 8 MiB cap is rejected with 413 up front
-echo "Pass 9/9"
+# Pass 9/10: POST body over the 8 MiB cap is rejected with 413 up front
+echo "Pass 9/10"
 code=$(head -c 9437184 /dev/zero | curl -s -o /dev/null -w '%{http_code}' \
 	--data-binary @- http://localhost:8086/proxy/upload)
 test "$code" = "413"
+
+# Pass 10/10: backend that closes without sending anything yields 502
+echo "Pass 10/10"
+python3 - <<'EOF' &
+import socket
+srv = socket.socket()
+srv.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+srv.bind(("127.0.0.1", 9091)); srv.listen(8)
+while True:
+    c, _ = srv.accept()
+    # Read the full request, then close without sending a byte: the
+    # proxy sees a clean EOF (not RST) with an empty response buffer.
+    req = b""
+    while b"\r\n\r\n" not in req:
+        data = c.recv(65536)
+        if not data:
+            break
+        req += data
+    c.close()
+EOF
+MUTE=$!
+sleep 1
+code=$(curl -s -o /dev/null -w '%{http_code}' --max-time 10 http://localhost:8086/dead/x || true)
+kill $MUTE 2>/dev/null || true
+test "$code" = "502"
