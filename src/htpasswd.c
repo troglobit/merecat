@@ -350,37 +350,36 @@ int main(int argc, char *argv[])
 	if (!tfp) {
 		fprintf(stderr, "Could not open temp file.\n");
 		close(tfd);
+		unlink(tmp);
 		return 1;
 	}
 
 	if (strlen(argv[1]) > (sizeof(pwfilename) - 1)) {
 		fprintf(stderr, "%s: filename is too long\n", argv[0]);
-		fclose(tfp);
-		return 1;
+		goto bail;
 	}
 
 	if (((strchr(argv[1], ';')) != NULL) || ((strchr(argv[1], '>')) != NULL)) {
 		fprintf(stderr, "%s: filename contains an illegal character\n", argv[0]);
-		fclose(tfp);
-		return 1;
+		goto bail;
 	}
 
 	if (strlen(argv[2]) > (sizeof(user) - 1)) {
 		fprintf(stderr, "%s: username is too long\n", argv[0]);
-		fclose(tfp);
-		return 1;
+		goto bail;
 	}
 
 	if ((strchr(argv[2], ':')) != NULL) {
 		fprintf(stderr, "%s: username contains an illegal character\n", argv[0]);
-		fclose(tfp);
-		return 1;
+		goto bail;
 	}
 
 	if (!(f = fopen(argv[1], "r"))) {
 		fprintf(stderr, "Could not open passwd file %s for reading.\n", argv[1]);
 		fprintf(stderr, "Use -c option to create new one.\n");
+	bail:
 		fclose(tfp);
+		unlink(tmp);
 		return 1;
 	}
 	strncpy(user, argv[2], sizeof(user) - 1);
