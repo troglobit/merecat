@@ -1121,16 +1121,15 @@ static void handle_proxy_read(connecttab *c, struct timeval *tv)
 	struct http_conn *hc = c->hc;
 	ssize_t           sz;
 
-	/* Grow the response buffer if it is full */
+	/* Grow the response buffer if it is full, allowing one byte past
+	** the cap so an exactly-PROXY_RESP_MAX response can reach its EOF
+	*/
 	if (c->proxy_resp_len >= c->proxy_resp_size) {
 		size_t  new_size = c->proxy_resp_size * 2;
 		char   *new_buf;
 
-		if (new_size > PROXY_RESP_MAX) {
-			syslog(LOG_ERR, "proxy-pass: response exceeds %d bytes", PROXY_RESP_MAX);
-			proxy_error(c, tv);
-			return;
-		}
+		if (new_size > PROXY_RESP_MAX)
+			new_size = PROXY_RESP_MAX + 1;
 		new_buf = realloc(c->proxy_resp, new_size);
 		if (!new_buf) {
 			syslog(LOG_ERR, "proxy-pass: out of memory growing response buffer");
@@ -1202,6 +1201,11 @@ static void handle_proxy_read(connecttab *c, struct timeval *tv)
 
 	c->proxy_resp_len += sz;
 	c->active_at = tv->tv_sec;
+
+	if (c->proxy_resp_len > PROXY_RESP_MAX) {
+		syslog(LOG_ERR, "proxy-pass: response exceeds %d bytes", PROXY_RESP_MAX);
+		proxy_error(c, tv);
+	}
 }
 
 /* CNST_PROXY_SEND_RESP: stream the buffered backend response to the client */
