@@ -1341,6 +1341,30 @@ static int send_err_file(struct http_conn *hc, int status, char *title, const ch
 #endif /* ERR_DIR */
 
 #if defined(ACCESS_FILE) || defined(AUTH_FILE)
+/*
+** Open a .htaccess/.htpasswd style control file.  Returns an open fd,
+** -1 when the file does not exist, or -2 when it exists but cannot be
+** opened -- including a symlink with a missing target -- which callers
+** must fail closed on.  Checking existence before opening would be a
+** check/use race, hence open first and classify failures with lstat();
+** the errno from open() alone cannot be trusted, e.g. EMFILE says
+** nothing about whether the file exists.
+*/
+static int open_dotfile(char *path)
+{
+	struct stat sb;
+	int fd;
+
+	fd = open(path, O_RDONLY);
+	if (fd < 0) {
+		if (lstat(path, &sb) < 0)
+			return -1;
+		return -2;
+	}
+
+	return fd;
+}
+
 static char *find_htfile(char *topdir, char *dir, char *htfile)
 {
 	int found = 0;
@@ -1457,8 +1481,8 @@ static int access_check2(struct http_conn *hc, char *dir)
 {
 	struct in_addr ipv4_addr, ipv4_mask = { 0xffffffff };
 	FILE *fp;
+	int fd;
 	char line[500];
-	struct stat sb;
 	char *addr, *addr1, *addr2, *mask;
 	size_t l;
 
@@ -1467,15 +1491,17 @@ static int access_check2(struct http_conn *hc, char *dir)
 	snprintf(hc->accesspath, hc->maxaccesspath, "%s/%s", dir, ACCESS_FILE);
 
 	/* Does this directory have an access file? */
-	if (lstat(hc->accesspath, &sb) < 0) {
+	fd = open_dotfile(hc->accesspath);
+	if (fd == -1) {
 		/* Nope, let the request go through. */
 		return 0;
 	}
 
-	/* Open the access file. */
-	fp = fopen(hc->accesspath, "r");
+	fp = fd >= 0 ? fdopen(fd, "r") : NULL;
 	if (!fp) {
 		/* The file exists but we can't open it? Disallow access. */
+		if (fd >= 0)
+			close(fd);
 		syslog(LOG_ERR, "%.80s access file %.80s could not be opened: %s",
 		       httpd_client(hc), hc->accesspath, strerror(errno));
 
