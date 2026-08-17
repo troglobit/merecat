@@ -15,6 +15,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/stat.h>
 #include <sys/types.h>
 #include <termios.h>
 #include <time.h>
@@ -233,6 +234,7 @@ static void interrupted(int signo)
 int main(int argc, char *argv[])
 {
 	int found;
+	mode_t um;
 	FILE *tfp, *f;
 	char user[MAX_STRING_LEN];
 	char pwfilename[MAX_STRING_LEN];
@@ -291,7 +293,17 @@ int main(int argc, char *argv[])
 	if (argc != 3)
 		return usage(1);
 
+	/* Restrict temp file to owner; restore umask for the password
+	** file created later so it keeps its regular permissions
+	*/
+	um = umask(077);
 	tfd = mkstemp(tmp);
+	umask(um);
+	if (tfd < 0) {
+		fprintf(stderr, "Could not create temp file: %s\n", strerror(errno));
+		return 1;
+	}
+
 	tfp = fdopen(tfd, "w");
 	if (!tfp) {
 		fprintf(stderr, "Could not open temp file.\n");
