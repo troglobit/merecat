@@ -182,6 +182,9 @@ static void add_password(char *user, FILE *fp)
 		fprintf(fp, "%s:%s\n", user, cpw);
 	else
 		fprintf(stderr, "crypt() returned NULL, sorry\n");
+
+	if (pw != pass)
+		free(pw);
 }
 
 static int activate_template(char *template, char *file)
