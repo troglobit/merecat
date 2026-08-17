@@ -858,10 +858,7 @@ static void proxy_error(connecttab *c, struct timeval *tv)
 
 	proxy_release(c);
 
-	/*
-	 * Restore conn_fd and reset state so the normal finish/clear path
-	 * (which expects CNST_SENDING or similar) works correctly.
-	 */
+	/* Restore conn_fd and reset state for the normal finish/clear path */
 	fdwatch_add_fd(hc->conn_fd, c, FDW_WRITE);
 	c->conn_state = CNST_SENDING;
 
@@ -939,7 +936,6 @@ static int proxy_start(connecttab *c, struct timeval *tv)
 
 	c->proxy_fd = fd;
 
-	/* Stop watching the client fd; watch the backend fd for writability */
 	fdwatch_del_fd(hc->conn_fd);
 	fdwatch_add_fd(fd, c, FDW_WRITE);
 	c->conn_state = CNST_PROXY_CONNECTING;
@@ -949,49 +945,7 @@ static int proxy_start(connecttab *c, struct timeval *tv)
 	return 0;
 }
 
-/* CNST_PROXY_CONNECTING: connect() completed, start sending the request */
-static void handle_proxy_connect(connecttab *c, struct timeval *tv)
-{
-	int       err    = 0;
-	socklen_t errlen = sizeof(err);
-	ssize_t   sz;
-
-	if (getsockopt(c->proxy_fd, SOL_SOCKET, SO_ERROR, &err, &errlen) < 0 || err) {
-		syslog(LOG_ERR, "proxy-pass: connect failed: %s",
-		       err ? strerror(err) : strerror(errno));
-		proxy_error(c, tv);
-		return;
-	}
-
-	c->active_at = tv->tv_sec;
-
-	/* Connected — try to send the request right away */
-	sz = write(c->proxy_fd,
-		   c->proxy_req + c->proxy_req_sent,
-		   c->proxy_req_len - c->proxy_req_sent);
-
-	if (sz < 0) {
-		if (errno == EAGAIN || errno == EWOULDBLOCK) {
-			c->conn_state = CNST_PROXY_SENDING;
-			return;
-		}
-		syslog(LOG_ERR, "proxy-pass: write: %s", strerror(errno));
-		proxy_error(c, tv);
-		return;
-	}
-
-	c->proxy_req_sent += sz;
-	if (c->proxy_req_sent >= c->proxy_req_len) {
-		/* Request fully sent — switch to reading the response */
-		fdwatch_del_fd(c->proxy_fd);
-		fdwatch_add_fd(c->proxy_fd, c, FDW_READ);
-		c->conn_state = CNST_PROXY_READING;
-	} else {
-		c->conn_state = CNST_PROXY_SENDING;
-	}
-}
-
-/* CNST_PROXY_SENDING: continue draining the request buffer to the backend */
+/* CNST_PROXY_SENDING: drain the request buffer to the backend */
 static void handle_proxy_send(connecttab *c, struct timeval *tv)
 {
 	ssize_t sz;
@@ -1017,17 +971,29 @@ static void handle_proxy_send(connecttab *c, struct timeval *tv)
 	}
 }
 
+/* CNST_PROXY_CONNECTING: connect() completed, start sending the request */
+static void handle_proxy_connect(connecttab *c, struct timeval *tv)
+{
+	int       err    = 0;
+	socklen_t errlen = sizeof(err);
+
+	if (getsockopt(c->proxy_fd, SOL_SOCKET, SO_ERROR, &err, &errlen) < 0 || err) {
+		syslog(LOG_ERR, "proxy-pass: connect failed: %s",
+		       err ? strerror(err) : strerror(errno));
+		proxy_error(c, tv);
+		return;
+	}
+
+	c->active_at = tv->tv_sec;
+	c->conn_state = CNST_PROXY_SENDING;
+	handle_proxy_send(c, tv);
+}
+
 /*
- * Rewrite Location: and Refresh: response headers in the fully-buffered
- * backend response, replacing redirect_from with redirect_to.
- *
- * This corrects root-relative redirects when a backend is proxied under a
- * sub-path: e.g. backend sends "Location: /login", proxy-redirect rewrites
- * it to "Location: /app/login" so the browser stays inside the proxy prefix.
- *
- * Only the header region (before "\r\n\r\n") is modified.  If the replacement
- * would cause the buffer to exceed PROXY_RESP_MAX the rewrite is skipped and
- * a warning is logged.
+ * Rewrite Location: and Refresh: headers in the buffered response,
+ * replacing redirect_from with redirect_to, so backend redirects stay
+ * inside the proxied sub-path.  Only the header region is touched;
+ * a rewrite that would exceed PROXY_RESP_MAX is skipped with a warning.
  */
 static void proxy_rewrite_headers(connecttab *c)
 {
@@ -1185,9 +1151,7 @@ static void handle_proxy_read(connecttab *c, struct timeval *tv)
 	}
 
 	if (sz == 0) {
-		/* Backend closed without sending anything: 502, not an
-		** empty write that would spin on the always-writable fd
-		*/
+		/* Backend sent nothing: 502, never enter the send state empty */
 		if (c->proxy_resp_len == 0) {
 			syslog(LOG_ERR, "proxy-pass: empty response from %s for %s",
 			       c->proxy_rule->host, hc->encodedurl);
@@ -2568,9 +2532,7 @@ int main(int argc, char **argv)
 				if (ct->conn_state == CNST_PROXY_CONNECTING ||
 				    ct->conn_state == CNST_PROXY_SENDING    ||
 				    ct->conn_state == CNST_PROXY_READING) {
-					/* Backend error, e.g. connection refused:
-					** tell the client instead of hanging up
-					*/
+					/* Backend error, tell the client */
 					int       err = 0;
 					socklen_t len = sizeof(err);
 
