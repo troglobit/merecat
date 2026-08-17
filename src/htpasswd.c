@@ -141,12 +141,14 @@ static char *get_password(const char *prompt, char *password, size_t len)
 	pos = 0;
 	do {
 		c = fgetc(stdin);
+		if (c == EOF)
+			break;
 		if (isascii(c) && '\r' != c && '\n' != c)
 			password[pos++] = c;
-	} while (c != '\n' && pos < len);
+	} while (c != '\n' && pos < len - 1);
 	fputs("\n", stderr);
 	password[pos] = 0;
-	pwd = password;
+	pwd = c == EOF ? NULL : password;
 
 	/* Restore TTY */
 	tcsetattr(STDIN_FILENO, TCSANOW, &saved);
