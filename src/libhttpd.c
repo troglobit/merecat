@@ -869,6 +869,9 @@ static char *err404form = "The requested URL '%s' was not found on this server.\
 char *httpd_err408title = "Request Timeout";
 char *httpd_err408form = "No request appeared within a reasonable time period.\n";
 
+char *httpd_err413title = "Request Entity Too Large";
+char *httpd_err413form = "The request body for the URL '%s' is too large for this server.\n";
+
 static char *err500title = "Internal Error";
 static char *err500form = "There was an unusual problem serving the requested URL '%s'.\n";
 
@@ -4407,6 +4410,9 @@ static void cgi_interpose_output(struct http_conn *hc, int rfd)
 		break;
 	case 408:
 		title = httpd_err408title;
+		break;
+	case 413:
+		title = httpd_err413title;
 		break;
 	case 500:
 		title = err500title;

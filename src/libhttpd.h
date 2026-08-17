@@ -401,6 +401,9 @@ extern char *httpd_err400title;
 extern char *httpd_err400form;
 extern char *httpd_err408title;
 extern char *httpd_err408form;
+
+extern char *httpd_err413title;
+extern char *httpd_err413form;
 extern char *httpd_err502title;
 extern char *httpd_err502form;
 extern char *httpd_err503title;

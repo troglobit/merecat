@@ -177,6 +177,7 @@ static int httpd_conn_count;
 /* Response-forwarding state: conn_fd is back in fdwatch */
 #define CNST_PROXY_SEND_RESP  8  /* Forwarding buffered response to client */
 #define CNST_SSL_ACCEPTING    9  /* TLS handshake in progress */
+#define CNST_PROXY_BODY      10  /* Buffering request body, conn_fd in fdwatch */
 
 static struct httpd *server_list = NULL;
 int terminate = 0;
@@ -724,6 +725,7 @@ int handle_newconnect(struct httpd *hs, struct timeval *tv, int fd)
 
 #define PROXY_RESP_INITIAL  65536
 #define PROXY_RESP_MAX      (8 * 1024 * 1024)
+#define PROXY_BODY_MAX      (8 * 1024 * 1024)
 
 /*
 ** Build the HTTP/1.0 request to forward to the backend server.
@@ -1237,6 +1239,43 @@ static void handle_proxy_send_resp(connecttab *c, struct timeval *tv)
 	}
 }
 
+/* CNST_PROXY_BODY: buffer the client request body, then connect to backend */
+static void handle_proxy_body(connecttab *c, struct timeval *tv)
+{
+	struct http_conn *hc = c->hc;
+	size_t            left = hc->checked_idx + hc->contentlength - hc->read_idx;
+	ssize_t           sz;
+
+	/* Read no more than the body owed, pipelined data is not ours */
+	sz = httpd_read(hc, &hc->read_buf[hc->read_idx], left);
+	if (sz == 0) {
+		/* Client closed before sending the full body */
+		hc->do_keep_alive = 0;
+		clear_connection(c, tv);
+		return;
+	}
+
+	if (sz < 0) {
+		if (errno == EINTR || errno == EAGAIN || errno == EWOULDBLOCK)
+			return;
+		hc->do_keep_alive = 0;
+		clear_connection(c, tv);
+		return;
+	}
+
+	hc->read_idx += sz;
+	c->active_at  = tv->tv_sec;
+
+	if (hc->read_idx - hc->checked_idx < hc->contentlength)
+		return;
+
+	if (proxy_start(c, tv) < 0) {
+		httpd_send_err(hc, 502, httpd_err502title, "",
+			       httpd_err502form, hc->encodedurl);
+		finish_connection(c, tv);
+	}
+}
+
 /* -----------------------------------------------------------------------*/
 
 static void handle_read(connecttab *c, struct timeval *tv)
@@ -1321,6 +1360,23 @@ static void handle_read(connecttab *c, struct timeval *tv)
 
 		if (pr) {
 			c->proxy_rule = pr;
+
+			/* Buffer the full request body before connecting */
+			if (hc->contentlength > 0) {
+				if (hc->contentlength > PROXY_BODY_MAX) {
+					httpd_send_err(hc, 413, httpd_err413title, "",
+						       httpd_err413form, hc->encodedurl);
+					finish_connection(c, tv);
+					return;
+				}
+				if (hc->read_idx - hc->checked_idx < hc->contentlength) {
+					httpd_realloc_str(&hc->read_buf, &hc->read_size,
+							  hc->checked_idx + hc->contentlength);
+					c->conn_state = CNST_PROXY_BODY;
+					return;
+				}
+			}
+
 			if (proxy_start(c, tv) < 0) {
 				httpd_send_err(hc, 502, httpd_err502title, "",
 					       httpd_err502form, hc->encodedurl);
@@ -1722,6 +1778,16 @@ static void idle(arg_t arg, struct timeval *now)
 				syslog(LOG_INFO, "%.80s: connection timed out reading",
 				       httpd_client(c->hc));
 //				httpd_send_err(c->hc, 408, httpd_err408title, "", httpd_err408form, "");
+				finish_connection(c, now);
+			}
+			break;
+
+		case CNST_PROXY_BODY:
+			if (now->tv_sec - c->active_at >= IDLE_READ_TIMELIMIT) {
+				syslog(LOG_INFO, "%.80s: connection timed out reading",
+				       httpd_client(c->hc));
+				/* Mid-body, cannot recycle for keep-alive */
+				c->hc->do_keep_alive = 0;
 				finish_connection(c, now);
 			}
 			break;
@@ -2502,6 +2568,10 @@ int main(int argc, char **argv)
 
 				case CNST_SSL_ACCEPTING:
 					handle_ssl_accept(ct, &tv);
+					break;
+
+				case CNST_PROXY_BODY:
+					handle_proxy_body(ct, &tv);
 					break;
 				}
 			}
