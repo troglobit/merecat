@@ -456,8 +456,17 @@ int httpd_proxy_add(struct httpd *hs, char *pattern, char *vhost, char *backend,
 	if (strncasecmp(ptr, "http://", 7) == 0)
 		ptr += 7;
 
-	/* Extract hostname (up to ':' or '/' or end) */
-	n = (int)strcspn(ptr, ":/");
+	/* Extract hostname: [v6:literal] or up to ':' or '/' or end */
+	if (*ptr == '[') {
+		ptr++;
+		n = (int)strcspn(ptr, "]");
+		if (ptr[n] != ']') {
+			syslog(LOG_ERR, "proxy-pass: missing ']' in backend '%s'", backend);
+			goto err;
+		}
+	} else {
+		n = (int)strcspn(ptr, ":/");
+	}
 	if (n >= (int)sizeof(hostbuf))
 		n = (int)sizeof(hostbuf) - 1;
 	strncpy(hostbuf, ptr, n);
@@ -466,6 +475,8 @@ int httpd_proxy_add(struct httpd *hs, char *pattern, char *vhost, char *backend,
 	if (!pr->host)
 		goto err;
 	ptr += n;
+	if (*ptr == ']')
+		ptr++;
 
 	/* Extract port if present */
 	if (*ptr == ':') {
@@ -512,11 +523,27 @@ int httpd_proxy_add(struct httpd *hs, char *pattern, char *vhost, char *backend,
 
 	/* Pre-resolve the backend hostname to avoid blocking at request time */
 	memset(&hints, 0, sizeof(hints));
+#ifdef USE_IPV6
+	hints.ai_family   = AF_UNSPEC;
+#else
 	hints.ai_family   = AF_INET;
+#endif
 	hints.ai_socktype = SOCK_STREAM;
 	snprintf(portstr, sizeof(portstr), "%u", pr->port);
 	if (getaddrinfo(pr->host, portstr, &hints, &res) == 0) {
-		pr->addr     = ((struct sockaddr_in *)res->ai_addr)->sin_addr;
+		struct addrinfo *ai = res;
+
+		/* Prefer IPv4 on dual answers, e.g. localhost, so a
+		** backend bound to 127.0.0.1 keeps working
+		*/
+		for (struct addrinfo *a = res; a; a = a->ai_next) {
+			if (a->ai_family == AF_INET) {
+				ai = a;
+				break;
+			}
+		}
+		memcpy(&pr->sa, ai->ai_addr, ai->ai_addrlen);
+		pr->salen    = ai->ai_addrlen;
 		pr->resolved = 1;
 		freeaddrinfo(res);
 	} else {

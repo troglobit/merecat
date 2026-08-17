@@ -751,12 +751,20 @@ static char *proxy_build_request(connecttab *c)
 	const char        *client = httpd_client(hc);
 	const char        *proto  = hc->hs->ctx ? "https" : "http";
 	const char        *url    = hc->encodedurl;
+	const char        *host   = pr->host;
 	char               url_buf[4096];
+	char               host_buf[264];
 	char               cl_buf[64];
 	char              *req = NULL;
 	int                hlen;
 
 	cl_buf[0] = '\0';
+
+	/* IPv6 literals must be bracketed in Host:, RFC 7230 */
+	if (strchr(pr->host, ':')) {
+		snprintf(host_buf, sizeof(host_buf), "[%s]", pr->host);
+		host = host_buf;
+	}
 
 	/*
 	 * URL to forward:
@@ -799,7 +807,7 @@ static char *proxy_build_request(connecttab *c)
 		"\r\n",
 		method,
 		url,
-		pr->host,
+		host,
 		client, client, proto,
 		(hc->accept    && *hc->accept)    ? "Accept: "          : "",
 		(hc->accept    && *hc->accept)    ? hc->accept          : "",
@@ -874,7 +882,6 @@ static int proxy_start(connecttab *c, struct timeval *tv)
 {
 	struct http_conn  *hc = c->hc;
 	struct http_proxy *pr = c->proxy_rule;
-	struct sockaddr_in sa;
 	int                fd;
 
 	/* Allocate response buffer */
@@ -904,7 +911,7 @@ static int proxy_start(connecttab *c, struct timeval *tv)
 	}
 
 	/* Create a non-blocking TCP socket for the backend connection */
-	fd = socket(AF_INET, SOCK_STREAM, 0);
+	fd = socket(pr->sa.sa.sa_family, SOCK_STREAM, 0);
 	if (fd < 0) {
 		syslog(LOG_ERR, "proxy-pass: socket: %s", strerror(errno));
 		free(c->proxy_req);  c->proxy_req  = NULL;
@@ -919,12 +926,7 @@ static int proxy_start(connecttab *c, struct timeval *tv)
 		return -1;
 	}
 
-	memset(&sa, 0, sizeof(sa));
-	sa.sin_family = AF_INET;
-	sa.sin_port   = htons(pr->port);
-	sa.sin_addr   = pr->addr;
-
-	if (connect(fd, (struct sockaddr *)&sa, sizeof(sa)) < 0 &&
+	if (connect(fd, &pr->sa.sa, pr->salen) < 0 &&
 	    errno != EINPROGRESS) {
 		syslog(LOG_ERR, "proxy-pass: connect %s:%d: %s",
 		       pr->host, pr->port, strerror(errno));
