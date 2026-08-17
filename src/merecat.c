@@ -465,6 +465,15 @@ static void update_throttles(arg_t arg, struct timeval *now)
 }
 
 
+/* Proxy states where the backend fd, not conn_fd, is in fdwatch */
+static int proxy_backend_state(connecttab *c)
+{
+	return c->conn_state == CNST_PROXY_CONNECTING ||
+	       c->conn_state == CNST_PROXY_SENDING    ||
+	       c->conn_state == CNST_PROXY_READING;
+}
+
+
 /* Release proxy state, if any; safe to call for non-proxy connections */
 static void proxy_release(connecttab *c)
 {
@@ -489,10 +498,7 @@ static void really_clear_connection(connecttab *c, struct timeval *tv)
 	stats_bytes += c->hc->bytes_sent;
 
 	/* conn_fd is NOT in fdwatch during proxy backend states or PAUSING */
-	if (c->conn_state != CNST_PAUSING &&
-	    c->conn_state != CNST_PROXY_CONNECTING &&
-	    c->conn_state != CNST_PROXY_SENDING &&
-	    c->conn_state != CNST_PROXY_READING)
+	if (c->conn_state != CNST_PAUSING && !proxy_backend_state(c))
 		fdwatch_del_fd(c->hc->conn_fd);
 
 	proxy_release(c);
@@ -873,6 +879,20 @@ static void proxy_error(connecttab *c, struct timeval *tv)
 
 	httpd_send_err(hc, 502, httpd_err502title, "", httpd_err502form, hc->encodedurl);
 	finish_connection(c, tv);
+}
+
+/* Backend fd error, e.g. connection refused or RST: log why and 502 */
+static void proxy_backend_error(connecttab *c, struct timeval *tv)
+{
+	int       err = 0;
+	socklen_t len = sizeof(err);
+
+	if (getsockopt(c->proxy_fd, SOL_SOCKET, SO_ERROR, &err, &len) < 0)
+		err = errno;
+	syslog(LOG_ERR, "proxy-pass: backend %s:%d error for %s: %s",
+	       c->proxy_rule->host, c->proxy_rule->port,
+	       c->hc->encodedurl, err ? strerror(err) : "connection error");
+	proxy_error(c, tv);
 }
 
 /*
@@ -2521,9 +2541,7 @@ int main(int argc, char **argv)
 			 * one so we don't mistake a quiescent client fd for an
 			 * error and tear down a live proxy connection.
 			 */
-			if (ct->conn_state == CNST_PROXY_CONNECTING ||
-			    ct->conn_state == CNST_PROXY_SENDING    ||
-			    ct->conn_state == CNST_PROXY_READING)
+			if (proxy_backend_state(ct))
 				fd_ok = fdwatch_check_fd(ct->proxy_fd);
 			else
 				fd_ok = fdwatch_check_fd(hc->conn_fd);
@@ -2531,22 +2549,10 @@ int main(int argc, char **argv)
 			if (!fd_ok) {
 				/* Something went wrong. */
 				hc->do_keep_alive = 0;
-				if (ct->conn_state == CNST_PROXY_CONNECTING ||
-				    ct->conn_state == CNST_PROXY_SENDING    ||
-				    ct->conn_state == CNST_PROXY_READING) {
-					/* Backend error, tell the client */
-					int       err = 0;
-					socklen_t len = sizeof(err);
-
-					getsockopt(ct->proxy_fd, SOL_SOCKET, SO_ERROR, &err, &len);
-					syslog(LOG_ERR, "proxy-pass: backend %s:%d error for %s: %s",
-					       ct->proxy_rule->host, ct->proxy_rule->port,
-					       hc->encodedurl,
-					       err ? strerror(err) : "connection error");
-					proxy_error(ct, &tv);
-				} else {
+				if (proxy_backend_state(ct))
+					proxy_backend_error(ct, &tv);
+				else
 					clear_connection(ct, &tv);
-				}
 			} else {
 				switch (ct->conn_state) {
 				case CNST_READING:
