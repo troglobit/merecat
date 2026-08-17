@@ -1199,6 +1199,21 @@ static void handle_proxy_read(connecttab *c, struct timeval *tv)
 		syslog(LOG_DEBUG, "proxy-pass: %zu byte response from %s for %s",
 		       c->proxy_resp_len, c->proxy_rule->host, hc->encodedurl);
 
+		/* Pick up the backend status code so the completed request
+		** is access logged, see httpd_send_response()
+		*/
+		if (c->proxy_resp_len >= 12) {
+			char   status_line[16];
+			size_t n = c->proxy_resp_len < sizeof(status_line) - 1
+				   ? c->proxy_resp_len : sizeof(status_line) - 1;
+			int    code;
+
+			memcpy(status_line, c->proxy_resp, n);
+			status_line[n] = '\0';
+			if (sscanf(status_line, "HTTP/%*s %d", &code) == 1)
+				hc->status = code;
+		}
+
 		fdwatch_del_fd(c->proxy_fd);
 		close(c->proxy_fd);
 		c->proxy_fd = -1;
