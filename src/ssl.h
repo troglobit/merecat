@@ -34,6 +34,9 @@
 
 #ifdef ENABLE_SSL
 
+/* From merecat.c: -k, allow certificates outside their validity period */
+extern int ssl_noverify;
+
 /* Initialize SSL and load certificate and key file */
 void *httpd_ssl_init(char *cert, char *key, char *dhparm, char *proto, char *ciphers);
 

@@ -186,6 +186,78 @@ static int load_dh_params(SSL_CTX *ctx, FILE *fp)
 	return 0;
 }
 
+static void time_str(const ASN1_TIME *tm, char *buf, size_t len)
+{
+	BIO *bio;
+	int num;
+
+	buf[0] = 0;
+	bio = BIO_new(BIO_s_mem());
+	if (!bio)
+		return;
+
+	if (ASN1_TIME_print(bio, tm) > 0) {
+		num = BIO_read(bio, buf, len - 1);
+		if (num > 0)
+			buf[num] = 0;
+	}
+	BIO_free(bio);
+}
+
+static int check_one(X509 *crt, const char *fn, const char *whom)
+{
+	const ASN1_TIME *nb = X509_get0_notBefore(crt);
+	const ASN1_TIME *na = X509_get0_notAfter(crt);
+	int level = ssl_noverify ? LOG_WARNING : LOG_ERR;
+	const ASN1_TIME *tm;
+	char buf[64];
+	char *what;
+
+	if (X509_cmp_time(nb, NULL) > 0) {
+		what = "not valid until";
+		tm = nb;
+	} else if (X509_cmp_time(na, NULL) < 0) {
+		what = "expired";
+		tm = na;
+	} else
+		return 0;
+
+	time_str(tm, buf, sizeof(buf));
+	syslog(level, "SSL cert '%s'%s %s %s%s", fn, whom, what, buf,
+	       ssl_noverify ? "" : ", refusing to start (-k overrides)");
+
+	return !ssl_noverify;
+}
+
+/* Refuse to serve a certificate outside its validity period, unless -k
+ * was given.  Embedded systems without an RTC often boot with the clock
+ * at the epoch, and then a perfectly good certificate is "not yet
+ * valid".  That is what the override is for.  Intermediates from the
+ * chain file are checked too, an expired intermediate breaks clients
+ * just the same.
+ */
+static int check_validity(SSL_CTX *ctx, char *fn)
+{
+	STACK_OF(X509) *chain = NULL;
+	X509 *crt;
+	int i;
+
+	crt = SSL_CTX_get0_certificate(ctx);
+	if (!crt)
+		return 0;
+
+	if (check_one(crt, fn, ""))
+		return 1;
+
+	SSL_CTX_get0_chain_certs(ctx, &chain);
+	for (i = 0; i < sk_X509_num(chain); i++) {
+		if (check_one(sk_X509_value(chain, i), fn, ": intermediate"))
+			return 1;
+	}
+
+	return 0;
+}
+
 void *httpd_ssl_init(char *cert, char *key, char *dhparm, char *proto, char *ciphers)
 {
 	SSL_CTX *ctx;
@@ -247,6 +319,9 @@ void *httpd_ssl_init(char *cert, char *key, char *dhparm, char *proto, char *cip
 		syslog(LOG_ERR, "Invalid SSL cert '%s'", cert);
 		goto error;
 	}
+
+	if (check_validity(ctx, cert))
+		goto error;
 
 	if (SSL_CTX_use_PrivateKey_file(ctx, key, SSL_FILETYPE_PEM) != 1) {
 		syslog(LOG_ERR, "Invalid SSL key '%s'", key);

@@ -33,7 +33,7 @@
 .Nd Simple, small and fast HTTP server
 .Sh SYNOPSIS
 .Nm
-.Op Fl ghnrsSvV
+.Op Fl ghknrsSvV
 .Op Fl c Ar CGI
 .Op Fl d Ar PATH
 .Op Fl f Ar FILE
@@ -165,6 +165,15 @@ The
 identity to use for all log messages.  Useful when running multiple
 servers.  Defaults to use the program name, i.e.
 .Qq Nm .
+.It Fl k
+Allow expired, or not yet valid, HTTPS certificates.  By default
+.Nm
+refuses to start if a configured certificate, or an intermediate in its
+chain file, is outside its validity period.  The override is intended
+for embedded systems without a real-time clock, where the system time
+may not yet be set when
+.Nm
+starts.
 .It Fl l Ar LEVEL
 Set log level: none, err, info,
 .Ar notice ,

@@ -93,6 +93,7 @@ int          do_global_passwd  = 0;
 int          do_list_dotfiles  = 0;
 int          no_symlink_check  = 1;
 int          no_empty_referers = 0;
+int          ssl_noverify      = 0;
 int          cgi_enabled       = 0;
 int          cgi_limit         = CGI_LIMIT;
 char        *cgi_pattern       = CGI_PATTERN;
@@ -2047,6 +2048,9 @@ static int usage(int code)
 #endif
 	       "  -h         This help text\n"
 	       "  -I IDENT   Identity for syslog, .conf, and PID file, default: %s\n"
+#ifdef ENABLE_SSL
+	       "  -k         Allow expired, or not yet valid, HTTPS certificates\n"
+#endif
 	       "  -l LEVEL   Set log level: none, err, warning, notice*, info, debug\n"
 	       "  -n         Run in foreground, do not detach from controlling terminal\n"
 	       "  -p PORT    Port to listen to, default 80, or 443 if HTTPS is enabled\n"
@@ -2121,7 +2125,11 @@ int main(int argc, char **argv)
 	int c;
 
 	ident = prognm = progname(argv[0]);
-	while ((c = getopt(argc, argv, "c:d:f:ghI:l:np:P:rsSt:u:vV")) != EOF) {
+	while ((c = getopt(argc, argv, "c:d:f:ghI:"
+#ifdef ENABLE_SSL
+			   "k"
+#endif
+			   "l:np:P:rsSt:u:vV")) != EOF) {
 		switch (c) {
 #ifndef HAVE_LIBCONFUSE
 		case 'c':
@@ -2152,6 +2160,12 @@ int main(int argc, char **argv)
 		case 'I':
 			ident = optarg;
 			break;
+
+#ifdef ENABLE_SSL
+		case 'k':
+			ssl_noverify = 1;
+			break;
+#endif
 
 		case 'l':
 			loglevel = loglvl(optarg);
