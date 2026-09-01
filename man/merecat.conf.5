@@ -460,6 +460,34 @@ Merecat then rewrites
 to
 .Qq Location: http://localhost/grip/ .
 .Pp
+The keyword
+.Qq default
+derives the prefixes from the rule itself:
+.Ar FROM
+is the backend URL and
+.Ar TO
+is the URL pattern up to its first glob character, both normalized to
+end in a slash so the rewrite cannot match past a path boundary.  Use
+it when the backend is unaware of the frontend prefix and redirects
+relative to its own root:
+.Bd -unfilled -offset "" -compact
+proxy-pass "/app/**" {
+    backend        = "http://localhost:4000/"
+    proxy-redirect = "default"
+}
+.Ed
+.Pp
+Here a backend redirect to
+.Qq http://localhost:4000/login
+is rewritten to
+.Qq /app/login .
+When the backend URL has no path the request URI is preserved, so
+backend redirects already carry the frontend prefix; the derived
+.Ar TO
+is then just
+.Qq /
+and only the scheme, host, and port are dropped.
+.Pp
 Up to
 .Ar 8
 proxy-pass rules may be configured per server.

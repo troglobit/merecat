@@ -422,6 +422,22 @@ void httpd_location_free(struct httpd *hs)
 ** Initialize HTTP reverse proxy rules.  The backend URL is resolved at
 ** startup to avoid blocking DNS lookups during request handling.
 **/
+/* Copy the first n bytes of str into a fresh string ending in '/' */
+static char *slash_prefix(const char *str, size_t n)
+{
+	char *s = malloc(n + 2);
+
+	if (!s)
+		return NULL;
+
+	memcpy(s, str, n);
+	if (n == 0 || s[n - 1] != '/')
+		s[n++] = '/';
+	s[n] = 0;
+
+	return s;
+}
+
 int httpd_proxy_add(struct httpd *hs, char *pattern, char *vhost, char *backend, char *redirect)
 {
 	struct http_proxy *pr;
@@ -505,20 +521,33 @@ int httpd_proxy_add(struct httpd *hs, char *pattern, char *vhost, char *backend,
 		goto err;
 
 	/* Parse proxy-redirect: "FROM TO" rewrites Location/Refresh headers.
-	 * TODO: support "default" keyword to auto-derive FROM from backend path
-	 *       and TO from the pattern prefix (everything before the first glob).
+	 * The "default" keyword derives FROM from the backend URL and TO
+	 * from the URL pattern, like nginx proxy_redirect default.
 	 */
 	if (redirect && redirect[0] && strcmp(redirect, "off") != 0) {
-		const char *sp = strchr(redirect, ' ');
+		if (strcmp(redirect, "default") == 0) {
+			/* FROM is the backend URL, TO the pattern up to its
+			 * first glob.  Both end in '/' so the rewrite cannot
+			 * match past a path boundary, e.g. FROM ":4000"
+			 * matching a ":40001" redirect.  A backend without a
+			 * path preserves the request URI, so its redirects
+			 * already carry the frontend path: TO is then "/". */
+			pr->redirect_from = slash_prefix(backend, strlen(backend));
+			pr->redirect_to   = slash_prefix(pattern, pr->strip_prefix ? strcspn(pattern, "*?|") : 0);
+			if (!pr->redirect_from || !pr->redirect_to)
+				goto err;
+		} else {
+			const char *sp = strchr(redirect, ' ');
 
-		if (!sp || sp == redirect || !sp[1]) {
-			syslog(LOG_ERR, "proxy-pass: proxy-redirect must be \"FROM TO\", got: %s", redirect);
-			goto err;
+			if (!sp || sp == redirect || !sp[1]) {
+				syslog(LOG_ERR, "proxy-pass: proxy-redirect must be \"FROM TO\" or \"default\", got: %s", redirect);
+				goto err;
+			}
+			pr->redirect_from = strndup(redirect, sp - redirect);
+			pr->redirect_to   = strdup(sp + 1);
+			if (!pr->redirect_from || !pr->redirect_to)
+				goto err;
 		}
-		pr->redirect_from = strndup(redirect, sp - redirect);
-		pr->redirect_to   = strdup(sp + 1);
-		if (!pr->redirect_from || !pr->redirect_to)
-			goto err;
 	}
 
 	/* Pre-resolve the backend hostname to avoid blocking at request time */
