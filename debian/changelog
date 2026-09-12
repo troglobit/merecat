@@ -1,33 +1,39 @@
-merecat (3.00-rc1) unstable; urgency=medium
+merecat (3.00~rc2) unstable; urgency=medium
 
-  * New upstream release candidate:
+  * New upstream release candidate.  Notable changes since v2.31:
     - Support for HTTPS, self-signed certs and Let's Encrypt.  Works with
-      all features, including virtual hosts
-    - Support for running HTTP and HTTPS servers from one Merecat daemon
+      all features, including virtual hosts.  Requires OpenSSL >= 3.0
+    - Verify HTTPS certificate validity at startup, refuse to start if a
+      certificate has expired or is not yet valid; new -k option overrides
+    - Support for running multiple servers from one Merecat daemon,
+      e.g. HTTP and HTTPS, or different ports
+    - Reverse proxy support (proxy-pass) with path prefix rewriting and
+      Location/Refresh header rewriting (proxy-redirect), like nginx
+    - Support for HTTP redirect, e.g. from HTTP to HTTPS
+    - Support for server location directive, similar to nginx
+    - Support for HTTP/1.1 keep-alive
+    - Support for HTTP gzip compression, also serves .gz files
     - Support for SSI, pattern matching to .shtml files
     - Support for PHP, using php-cgi
-    - Support for HTTP/1.1 Keep-alive
-    - Support for HTTP redirect, to redirect from HTTP to HTTPS
-    - Support for server location directive, similar to nginx
-    - Added support for HTTP gzip compression, serves .gz files
-    - Skip .htpasswd (and .htaccess) in dir listings
-    - Allow SO_REUSEPORT, useful for load balancing
-    - Fix issue with leading double slash in URL, reported by Steve Kemp
-    - Fix issue with receiving a 403 page instead of 404 (no-symlink-check)
-    - Fix issue with HTML entities in directory listings
-    - Fix merecat.conf: commented out settings should be daemon defaults
-    - Built-in icons for FTP dir listings; folder, file, etc.
-    - Cute cat faviocon added
-    - Portability fixes
-    - Reverse proxy support with path prefix rewriting and proxy-redirect
-    - Cache-Control header fixes, no longer caches error responses
     - CGI setenv: inject custom environment variables into CGI programs
+    - Built-in icons for dir listings, and a cute cat favicon
+    - Allow SO_REUSEPORT, useful for load balancing
+    - Linux performance: epoll, sendfile, TCP_NODELAY
+  * Notable fixes:
+    - Fix TLS handshake blocking the event loop, could stall the server
     - Fix missing access log entries for successful (200) file responses
     - Fix empty POST body in CGI when running as daemon (fd 0-2 reuse)
+    - Fix issue with leading double slash in URL, reported by Steve Kemp
+    - Fix 403 instead of 404 for missing files and dot-file probes
+    - Fix HTML entities in directory listings
+    - Cache-Control header fixes, no longer caches error responses
+    - htpasswd tool hardening: overflow, EOF hang, temp file handling
     - IPv6 fallback: continue with IPv4 when IPv6 socket is unavailable
-    - OpenSSL 3 support, fix DH params loading (use SSL_CTX_set0_tmp_dh_pkey)
+  * Packaging: use ~rc versioning so the final 3.00 upgrades cleanly over
+    release candidates (3.00-rc1 sorted higher than 3.00-1)
 
- -- Joachim Wiberg <troglobit@gmail.com>  Sat, 15 Mar 2026 00:00:00 +0100
+ -- Joachim Wiberg <troglobit@gmail.com>  Sat, 12 Sep 2026 09:54:33 +0200
+
 
 merecat (2.31-3) unstable; urgency=low
 
