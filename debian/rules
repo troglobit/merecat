@@ -18,8 +18,6 @@ override_dh_auto_install:
 	dh_auto_install
 	rm -v debian/merecat/usr/share/doc/merecat/LICENSE
 	rm -v debian/merecat/usr/share/doc/merecat/ChangeLog.md
-	# Demo CGI needs the python cgi module, removed in Python 3.13
-	rm -rv debian/merecat/var/www/cgi-bin/onboard.py debian/merecat/var/www/onboard
 
 # Tests must not run in parallel, they share ports and a webroot
 override_dh_auto_test:
