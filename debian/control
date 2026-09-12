@@ -4,6 +4,7 @@ Priority: optional
 Maintainer: Joachim Wiberg <troglobit@gmail.com>
 Build-Depends: debhelper-compat (= 13), systemd-dev | systemd, pkg-config, libconfuse-dev, libssl-dev, zlib1g-dev, php-cgi <!nocheck>
 Standards-Version: 4.7.0
+Rules-Requires-Root: no
 Homepage: https://merecat.troglobit.com
 Vcs-Browser: https://github.com/troglobit/merecat
 Vcs-Git: https://github.com/troglobit/merecat.git
