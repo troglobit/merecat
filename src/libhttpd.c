@@ -422,6 +422,22 @@ void httpd_location_free(struct httpd *hs)
 ** Initialize HTTP reverse proxy rules.  The backend URL is resolved at
 ** startup to avoid blocking DNS lookups during request handling.
 **/
+/* Copy the first n bytes of str into a fresh string ending in '/' */
+static char *slash_prefix(const char *str, size_t n)
+{
+	char *s = malloc(n + 2);
+
+	if (!s)
+		return NULL;
+
+	memcpy(s, str, n);
+	if (n == 0 || s[n - 1] != '/')
+		s[n++] = '/';
+	s[n] = 0;
+
+	return s;
+}
+
 int httpd_proxy_add(struct httpd *hs, char *pattern, char *vhost, char *backend, char *redirect)
 {
 	struct http_proxy *pr;
@@ -456,8 +472,17 @@ int httpd_proxy_add(struct httpd *hs, char *pattern, char *vhost, char *backend,
 	if (strncasecmp(ptr, "http://", 7) == 0)
 		ptr += 7;
 
-	/* Extract hostname (up to ':' or '/' or end) */
-	n = (int)strcspn(ptr, ":/");
+	/* Extract hostname: [v6:literal] or up to ':' or '/' or end */
+	if (*ptr == '[') {
+		ptr++;
+		n = (int)strcspn(ptr, "]");
+		if (ptr[n] != ']') {
+			syslog(LOG_ERR, "proxy-pass: missing ']' in backend '%s'", backend);
+			goto err;
+		}
+	} else {
+		n = (int)strcspn(ptr, ":/");
+	}
 	if (n >= (int)sizeof(hostbuf))
 		n = (int)sizeof(hostbuf) - 1;
 	strncpy(hostbuf, ptr, n);
@@ -466,6 +491,8 @@ int httpd_proxy_add(struct httpd *hs, char *pattern, char *vhost, char *backend,
 	if (!pr->host)
 		goto err;
 	ptr += n;
+	if (*ptr == ']')
+		ptr++;
 
 	/* Extract port if present */
 	if (*ptr == ':') {
@@ -494,29 +521,58 @@ int httpd_proxy_add(struct httpd *hs, char *pattern, char *vhost, char *backend,
 		goto err;
 
 	/* Parse proxy-redirect: "FROM TO" rewrites Location/Refresh headers.
-	 * TODO: support "default" keyword to auto-derive FROM from backend path
-	 *       and TO from the pattern prefix (everything before the first glob).
+	 * The "default" keyword derives FROM from the backend URL and TO
+	 * from the URL pattern, like nginx proxy_redirect default.
 	 */
 	if (redirect && redirect[0] && strcmp(redirect, "off") != 0) {
-		const char *sp = strchr(redirect, ' ');
+		if (strcmp(redirect, "default") == 0) {
+			/* FROM is the backend URL, TO the pattern up to its
+			 * first glob.  Both end in '/' so the rewrite cannot
+			 * match past a path boundary, e.g. FROM ":4000"
+			 * matching a ":40001" redirect.  A backend without a
+			 * path preserves the request URI, so its redirects
+			 * already carry the frontend path: TO is then "/". */
+			pr->redirect_from = slash_prefix(backend, strlen(backend));
+			pr->redirect_to   = slash_prefix(pattern, pr->strip_prefix ? strcspn(pattern, "*?|") : 0);
+			if (!pr->redirect_from || !pr->redirect_to)
+				goto err;
+		} else {
+			const char *sp = strchr(redirect, ' ');
 
-		if (!sp || sp == redirect || !sp[1]) {
-			syslog(LOG_ERR, "proxy-pass: proxy-redirect must be \"FROM TO\", got: %s", redirect);
-			goto err;
+			if (!sp || sp == redirect || !sp[1]) {
+				syslog(LOG_ERR, "proxy-pass: proxy-redirect must be \"FROM TO\" or \"default\", got: %s", redirect);
+				goto err;
+			}
+			pr->redirect_from = strndup(redirect, sp - redirect);
+			pr->redirect_to   = strdup(sp + 1);
+			if (!pr->redirect_from || !pr->redirect_to)
+				goto err;
 		}
-		pr->redirect_from = strndup(redirect, sp - redirect);
-		pr->redirect_to   = strdup(sp + 1);
-		if (!pr->redirect_from || !pr->redirect_to)
-			goto err;
 	}
 
 	/* Pre-resolve the backend hostname to avoid blocking at request time */
 	memset(&hints, 0, sizeof(hints));
+#ifdef USE_IPV6
+	hints.ai_family   = AF_UNSPEC;
+#else
 	hints.ai_family   = AF_INET;
+#endif
 	hints.ai_socktype = SOCK_STREAM;
 	snprintf(portstr, sizeof(portstr), "%u", pr->port);
 	if (getaddrinfo(pr->host, portstr, &hints, &res) == 0) {
-		pr->addr     = ((struct sockaddr_in *)res->ai_addr)->sin_addr;
+		struct addrinfo *ai = res;
+
+		/* Prefer IPv4 on dual answers, e.g. localhost, so a
+		** backend bound to 127.0.0.1 keeps working
+		*/
+		for (struct addrinfo *a = res; a; a = a->ai_next) {
+			if (a->ai_family == AF_INET) {
+				ai = a;
+				break;
+			}
+		}
+		memcpy(&pr->sa, ai->ai_addr, ai->ai_addrlen);
+		pr->salen    = ai->ai_addrlen;
 		pr->resolved = 1;
 		freeaddrinfo(res);
 	} else {
@@ -868,6 +924,9 @@ static char *err404form = "The requested URL '%s' was not found on this server.\
 
 char *httpd_err408title = "Request Timeout";
 char *httpd_err408form = "No request appeared within a reasonable time period.\n";
+
+char *httpd_err413title = "Request Entity Too Large";
+char *httpd_err413form = "The request body for the URL '%s' is too large for this server.\n";
 
 static char *err500title = "Internal Error";
 static char *err500form = "There was an unusual problem serving the requested URL '%s'.\n";
@@ -1311,6 +1370,30 @@ static int send_err_file(struct http_conn *hc, int status, char *title, const ch
 #endif /* ERR_DIR */
 
 #if defined(ACCESS_FILE) || defined(AUTH_FILE)
+/*
+** Open a .htaccess/.htpasswd style control file.  Returns an open fd,
+** -1 when the file does not exist, or -2 when it exists but cannot be
+** opened -- including a symlink with a missing target -- which callers
+** must fail closed on.  Checking existence before opening would be a
+** check/use race, hence open first and classify failures with lstat();
+** the errno from open() alone cannot be trusted, e.g. EMFILE says
+** nothing about whether the file exists.
+*/
+static int open_dotfile(char *path)
+{
+	struct stat sb;
+	int fd;
+
+	fd = open(path, O_RDONLY);
+	if (fd < 0) {
+		if (lstat(path, &sb) < 0)
+			return -1;
+		return -2;
+	}
+
+	return fd;
+}
+
 static char *find_htfile(char *topdir, char *dir, char *htfile)
 {
 	int found = 0;
@@ -1427,8 +1510,8 @@ static int access_check2(struct http_conn *hc, char *dir)
 {
 	struct in_addr ipv4_addr, ipv4_mask = { 0xffffffff };
 	FILE *fp;
+	int fd;
 	char line[500];
-	struct stat sb;
 	char *addr, *addr1, *addr2, *mask;
 	size_t l;
 
@@ -1437,15 +1520,17 @@ static int access_check2(struct http_conn *hc, char *dir)
 	snprintf(hc->accesspath, hc->maxaccesspath, "%s/%s", dir, ACCESS_FILE);
 
 	/* Does this directory have an access file? */
-	if (lstat(hc->accesspath, &sb) < 0) {
+	fd = open_dotfile(hc->accesspath);
+	if (fd == -1) {
 		/* Nope, let the request go through. */
 		return 0;
 	}
 
-	/* Open the access file. */
-	fp = fopen(hc->accesspath, "r");
+	fp = fd >= 0 ? fdopen(fd, "r") : NULL;
 	if (!fp) {
 		/* The file exists but we can't open it? Disallow access. */
+		if (fd >= 0)
+			close(fd);
 		syslog(LOG_ERR, "%.80s access file %.80s could not be opened: %s",
 		       httpd_client(hc), hc->accesspath, strerror(errno));
 
@@ -1633,6 +1718,7 @@ static int auth_check2(struct http_conn *hc, char *dir)
 	char *authpass;
 	char *colon;
 	int l;
+	int fd;
 	FILE *fp;
 	char line[500];
 	char *cryp;
@@ -1644,17 +1730,21 @@ static int auth_check2(struct http_conn *hc, char *dir)
 	snprintf(hc->authpath, hc->maxauthpath, "%s/%s", dir, AUTH_FILE);
 
 	/* Does this directory have an auth file? */
-	if (lstat(hc->authpath, &sb) < 0)
+	fd = open_dotfile(hc->authpath);
+	if (fd == -1)
 		/* Nope, let the request go through. */
 		return 0;
+	if (fd < 0)
+		goto denied;
 
-	/* If it was a symlink, check that the target exists */
-	if (stat(hc->authpath, &sb) < 0)
-		goto enoent;
+	/* The mtime is used for the cached-credentials check below */
+	if (fstat(fd, &sb) < 0)
+		goto denied;
 
 	/* Does this request contain basic authorization info? */
 	if (hc->authorization[0] == '\0' || strncmp(hc->authorization, "Basic ", 6) != 0) {
 		/* Nope, return a 401 Unauthorized. */
+		close(fd);
 		send_authenticate(hc, dir);
 		return -1;
 	}
@@ -1666,6 +1756,7 @@ static int auth_check2(struct http_conn *hc, char *dir)
 	authpass = strchr(authinfo, ':');
 	if (!authpass) {
 		/* No colon?  Bogus auth info. */
+		close(fd);
 		send_authenticate(hc, dir);
 		return -1;
 	}
@@ -1680,6 +1771,7 @@ static int auth_check2(struct http_conn *hc, char *dir)
 	if (hc->maxprevauthpath != 0 &&
 	    strcmp(hc->authpath, hc->prevauthpath) == 0 && sb.st_mtime == prevmtime && strcmp(authinfo, hc->prevuser) == 0) {
 		/* Yes.  Check against the cached encrypted password. */
+		close(fd);
 		crypt_result = crypt(authpass, hc->prevcryp);
 		if (!crypt_result)
 			return -1;
@@ -1696,18 +1788,10 @@ static int auth_check2(struct http_conn *hc, char *dir)
 		return -1;
 	}
 
-	/* Open the password file. */
-	fp = fopen(hc->authpath, "r");
-	if (!fp) {
-	enoent:
-		/* The file exists but we can't open it?  Disallow access. */
-		syslog(LOG_ERR, "%.80s auth file %s could not be opened: %s",
-		       httpd_client(hc), hc->authpath, strerror(errno));
-		httpd_send_err(hc, 403, err403title, "",
-			       ERROR_FORM(err403form, "The requested URL '%s' is protected.\n"),
-			       hc->encodedurl);
-		return -1;
-	}
+	/* Open the password file for reading. */
+	fp = fdopen(fd, "r");
+	if (!fp)
+		goto denied;
 
 	/* Read it. */
 	while (fgets(line, sizeof(line), fp)) {
@@ -1762,6 +1846,17 @@ static int auth_check2(struct http_conn *hc, char *dir)
 	(void)fclose(fp);
 	send_authenticate(hc, dir);
 
+	return -1;
+
+denied:
+	/* The file exists but we can't open it?  Disallow access. */
+	if (fd >= 0)
+		close(fd);
+	syslog(LOG_ERR, "%.80s auth file %.80s could not be opened: %s",
+	       httpd_client(hc), hc->authpath, strerror(errno));
+	httpd_send_err(hc, 403, err403title, "",
+		       ERROR_FORM(err403form, "The requested URL '%s' is protected.\n"),
+		       hc->encodedurl);
 	return -1;
 }
 
@@ -2607,12 +2702,8 @@ int httpd_get_conn(struct httpd *hs, int listen_fd, struct http_conn *hc)
 	memset(hc->client.address, 0, sizeof(hc->client.address));
 	strlcpy(hc->client.address, address, sizeof(hc->client.address));
 
-	if (httpd_ssl_open(hc)) {
-		if (hc->errmsg)
-			syslog(LOG_INFO, "%.80s: failed HTTPS connection: %s.",
-			       httpd_client(hc), hc->errmsg);
+	if (httpd_ssl_open(hc))
 		goto error;
-	}
 	httpd_init_conn_content(hc);
 
 	return GC_OK;
@@ -4245,7 +4336,7 @@ static void post_post_garbage_hack(struct http_conn *hc)
 		(void)httpd_set_ndelay(hc->conn_fd);
 
 	/* And read up to 2 bytes. */
-	httpd_read(hc, buf, sizeof(buf));
+	(void)httpd_read(hc, buf, sizeof(buf));
 }
 
 /* Normalize newlines from CGI to RFC3875 \r\n format, for details see
@@ -4411,6 +4502,9 @@ static void cgi_interpose_output(struct http_conn *hc, int rfd)
 		break;
 	case 408:
 		title = httpd_err408title;
+		break;
+	case 413:
+		title = httpd_err413title;
 		break;
 	case 500:
 		title = err500title;

@@ -29,6 +29,7 @@
 #include <config.h>
 
 #include <errno.h>
+#include <fcntl.h>
 #include <getopt.h>
 #include <pwd.h>
 #ifdef HAVE_GRP_H
@@ -92,6 +93,7 @@ int          do_global_passwd  = 0;
 int          do_list_dotfiles  = 0;
 int          no_symlink_check  = 1;
 int          no_empty_referers = 0;
+int          ssl_noverify      = 0;
 int          cgi_enabled       = 0;
 int          cgi_limit         = CGI_LIMIT;
 char        *cgi_pattern       = CGI_PATTERN;
@@ -176,6 +178,8 @@ static int httpd_conn_count;
 #define CNST_PROXY_READING    7  /* Reading HTTP response from backend */
 /* Response-forwarding state: conn_fd is back in fdwatch */
 #define CNST_PROXY_SEND_RESP  8  /* Forwarding buffered response to client */
+#define CNST_SSL_ACCEPTING    9  /* TLS handshake in progress */
+#define CNST_PROXY_BODY      10  /* Buffering request body, conn_fd in fdwatch */
 
 static struct httpd *server_list = NULL;
 int terminate = 0;
@@ -462,18 +466,18 @@ static void update_throttles(arg_t arg, struct timeval *now)
 }
 
 
-static void really_clear_connection(connecttab *c, struct timeval *tv)
+/* Proxy states where the backend fd, not conn_fd, is in fdwatch */
+static int proxy_backend_state(connecttab *c)
 {
-	stats_bytes += c->hc->bytes_sent;
+	return c->conn_state == CNST_PROXY_CONNECTING ||
+	       c->conn_state == CNST_PROXY_SENDING    ||
+	       c->conn_state == CNST_PROXY_READING;
+}
 
-	/* conn_fd is NOT in fdwatch during proxy backend states or PAUSING */
-	if (c->conn_state != CNST_PAUSING &&
-	    c->conn_state != CNST_PROXY_CONNECTING &&
-	    c->conn_state != CNST_PROXY_SENDING &&
-	    c->conn_state != CNST_PROXY_READING)
-		fdwatch_del_fd(c->hc->conn_fd);
 
-	/* Close any open proxy backend connection */
+/* Release proxy state, if any; safe to call for non-proxy connections */
+static void proxy_release(connecttab *c)
+{
 	if (c->proxy_fd != -1) {
 		fdwatch_del_fd(c->proxy_fd);
 		close(c->proxy_fd);
@@ -481,8 +485,24 @@ static void really_clear_connection(connecttab *c, struct timeval *tv)
 	}
 	free(c->proxy_req);  c->proxy_req  = NULL;
 	free(c->proxy_resp); c->proxy_resp = NULL;
-	c->proxy_rule = NULL;
+	c->proxy_rule      = NULL;
+	c->proxy_req_len   = 0;
+	c->proxy_req_sent  = 0;
+	c->proxy_resp_size = 0;
+	c->proxy_resp_len  = 0;
+	c->proxy_resp_sent = 0;
+}
 
+
+static void really_clear_connection(connecttab *c, struct timeval *tv)
+{
+	stats_bytes += c->hc->bytes_sent;
+
+	/* conn_fd is NOT in fdwatch during proxy backend states or PAUSING */
+	if (c->conn_state != CNST_PAUSING && !proxy_backend_state(c))
+		fdwatch_del_fd(c->hc->conn_fd);
+
+	proxy_release(c);
 	httpd_close_conn(c->hc, tv);
 	clear_throttles(c, tv);
 	if (c->linger_timer) {
@@ -580,8 +600,9 @@ static void clear_connection(connecttab *c, struct timeval *tv)
 			c->hc->file_address = NULL;
 		}
 
-		/* release httpd_conn auxiliary memory */
+		/* release httpd_conn auxiliary memory and any proxy state */
 		httpd_destroy_conn(c->hc);
+		proxy_release(c);
 
 		/* reinitialize httpd_conn */
 		httpd_init_conn_mem(c->hc);
@@ -682,7 +703,10 @@ int handle_newconnect(struct httpd *hs, struct timeval *tv, int fd)
 			return 1;
 		}
 
-		c->conn_state = CNST_READING;
+		if (c->hc->ssl)
+			c->conn_state = CNST_SSL_ACCEPTING;
+		else
+			c->conn_state = CNST_READING;
 		/* Pop it off the free list. */
 		first_free_connect = c->next_free_connect;
 		c->next_free_connect = -1;
@@ -720,6 +744,7 @@ int handle_newconnect(struct httpd *hs, struct timeval *tv, int fd)
 
 #define PROXY_RESP_INITIAL  65536
 #define PROXY_RESP_MAX      (8 * 1024 * 1024)
+#define PROXY_BODY_MAX      (8 * 1024 * 1024)
 
 /*
 ** Build the HTTP/1.0 request to forward to the backend server.
@@ -734,12 +759,20 @@ static char *proxy_build_request(connecttab *c)
 	const char        *client = httpd_client(hc);
 	const char        *proto  = hc->hs->ctx ? "https" : "http";
 	const char        *url    = hc->encodedurl;
+	const char        *host   = pr->host;
 	char               url_buf[4096];
+	char               host_buf[264];
 	char               cl_buf[64];
 	char              *req = NULL;
 	int                hlen;
 
 	cl_buf[0] = '\0';
+
+	/* IPv6 literals must be bracketed in Host:, RFC 7230 */
+	if (strchr(pr->host, ':')) {
+		snprintf(host_buf, sizeof(host_buf), "[%s]", pr->host);
+		host = host_buf;
+	}
 
 	/*
 	 * URL to forward:
@@ -765,7 +798,7 @@ static char *proxy_build_request(connecttab *c)
 			 "Content-Length: %zu\r\n", (size_t)hc->contentlength);
 
 	hlen = asprintf(&req,
-		"%s %s%s%s HTTP/1.0\r\n"
+		"%s %s HTTP/1.0\r\n"
 		"Host: %s\r\n"
 		"Connection: close\r\n"
 		"X-Forwarded-For: %s\r\n"
@@ -782,9 +815,7 @@ static char *proxy_build_request(connecttab *c)
 		"\r\n",
 		method,
 		url,
-		(hc->query && hc->query[0]) ? "?" : "",
-		(hc->query && hc->query[0]) ? hc->query : "",
-		pr->host,
+		host,
 		client, client, proto,
 		(hc->accept    && *hc->accept)    ? "Accept: "          : "",
 		(hc->accept    && *hc->accept)    ? hc->accept          : "",
@@ -841,19 +872,9 @@ static void proxy_error(connecttab *c, struct timeval *tv)
 {
 	struct http_conn *hc = c->hc;
 
-	if (c->proxy_fd != -1) {
-		fdwatch_del_fd(c->proxy_fd);
-		close(c->proxy_fd);
-		c->proxy_fd = -1;
-	}
-	free(c->proxy_req);  c->proxy_req  = NULL;
-	free(c->proxy_resp); c->proxy_resp = NULL;
-	c->proxy_rule = NULL;
+	proxy_release(c);
 
-	/*
-	 * Restore conn_fd and reset state so the normal finish/clear path
-	 * (which expects CNST_SENDING or similar) works correctly.
-	 */
+	/* Restore conn_fd and reset state for the normal finish/clear path */
 	fdwatch_add_fd(hc->conn_fd, c, FDW_WRITE);
 	c->conn_state = CNST_SENDING;
 
@@ -861,22 +882,36 @@ static void proxy_error(connecttab *c, struct timeval *tv)
 	finish_connection(c, tv);
 }
 
+/* Backend fd error, e.g. connection refused or RST: log why and 502 */
+static void proxy_backend_error(connecttab *c, struct timeval *tv)
+{
+	int       err = 0;
+	socklen_t len = sizeof(err);
+
+	if (getsockopt(c->proxy_fd, SOL_SOCKET, SO_ERROR, &err, &len) < 0)
+		err = errno;
+	syslog(LOG_ERR, "proxy-pass: backend %s:%d error for %s: %s",
+	       c->proxy_rule->host, c->proxy_rule->port,
+	       c->hc->encodedurl, err ? strerror(err) : "connection error");
+	proxy_error(c, tv);
+}
+
 /*
 ** Initiate a non-blocking connection to the proxy backend and build the
-** request to forward.  Transitions to CNST_PROXY_CONNECTING.
+** request to forward.  Transitions to CNST_PROXY_CONNECTING, or sends
+** a 502 and finishes the connection on failure.
 */
-static int proxy_start(connecttab *c, struct timeval *tv)
+static void proxy_start(connecttab *c, struct timeval *tv)
 {
 	struct http_conn  *hc = c->hc;
 	struct http_proxy *pr = c->proxy_rule;
-	struct sockaddr_in sa;
-	int                fd;
+	int                fd = -1;
 
 	/* Allocate response buffer */
 	c->proxy_resp = malloc(PROXY_RESP_INITIAL);
 	if (!c->proxy_resp) {
 		syslog(LOG_ERR, "proxy-pass: out of memory for response buffer");
-		return -1;
+		goto err;
 	}
 	c->proxy_resp_size = PROXY_RESP_INITIAL;
 	c->proxy_resp_len  = 0;
@@ -886,102 +921,51 @@ static int proxy_start(connecttab *c, struct timeval *tv)
 	c->proxy_req = proxy_build_request(c);
 	if (!c->proxy_req) {
 		syslog(LOG_ERR, "proxy-pass: failed building request");
-		free(c->proxy_resp); c->proxy_resp = NULL;
-		return -1;
+		goto err;
 	}
 	c->proxy_req_sent = 0;
 
 	if (!pr->resolved) {
 		syslog(LOG_ERR, "proxy-pass: backend '%s' not resolved", pr->host);
-		free(c->proxy_req);  c->proxy_req  = NULL;
-		free(c->proxy_resp); c->proxy_resp = NULL;
-		return -1;
+		goto err;
 	}
 
 	/* Create a non-blocking TCP socket for the backend connection */
-	fd = socket(AF_INET, SOCK_STREAM, 0);
+	fd = socket(pr->sa.sa.sa_family, SOCK_STREAM, 0);
 	if (fd < 0) {
 		syslog(LOG_ERR, "proxy-pass: socket: %s", strerror(errno));
-		free(c->proxy_req);  c->proxy_req  = NULL;
-		free(c->proxy_resp); c->proxy_resp = NULL;
-		return -1;
+		goto err;
 	}
 	if (httpd_set_ndelay(fd) < 0) {
 		syslog(LOG_ERR, "proxy-pass: failed setting non-blocking on socket: %s", strerror(errno));
-		close(fd);
-		free(c->proxy_req);  c->proxy_req  = NULL;
-		free(c->proxy_resp); c->proxy_resp = NULL;
-		return -1;
+		goto err;
 	}
 
-	memset(&sa, 0, sizeof(sa));
-	sa.sin_family = AF_INET;
-	sa.sin_port   = htons(pr->port);
-	sa.sin_addr   = pr->addr;
-
-	if (connect(fd, (struct sockaddr *)&sa, sizeof(sa)) < 0 &&
+	if (connect(fd, &pr->sa.sa, pr->salen) < 0 &&
 	    errno != EINPROGRESS) {
 		syslog(LOG_ERR, "proxy-pass: connect %s:%d: %s",
 		       pr->host, pr->port, strerror(errno));
-		close(fd);
-		free(c->proxy_req);  c->proxy_req  = NULL;
-		free(c->proxy_resp); c->proxy_resp = NULL;
-		return -1;
+		goto err;
 	}
 
 	c->proxy_fd = fd;
 
-	/* Stop watching the client fd; watch the backend fd for writability */
 	fdwatch_del_fd(hc->conn_fd);
 	fdwatch_add_fd(fd, c, FDW_WRITE);
 	c->conn_state = CNST_PROXY_CONNECTING;
 
 	syslog(LOG_DEBUG, "proxy-pass: connecting to %s:%d for %s",
 	       pr->host, pr->port, hc->encodedurl);
-	return 0;
+	return;
+err:
+	if (fd >= 0)
+		close(fd);
+	proxy_release(c);
+	httpd_send_err(hc, 502, httpd_err502title, "", httpd_err502form, hc->encodedurl);
+	finish_connection(c, tv);
 }
 
-/* CNST_PROXY_CONNECTING: connect() completed, start sending the request */
-static void handle_proxy_connect(connecttab *c, struct timeval *tv)
-{
-	int       err    = 0;
-	socklen_t errlen = sizeof(err);
-	ssize_t   sz;
-
-	if (getsockopt(c->proxy_fd, SOL_SOCKET, SO_ERROR, &err, &errlen) < 0 || err) {
-		syslog(LOG_ERR, "proxy-pass: connect failed: %s",
-		       err ? strerror(err) : strerror(errno));
-		proxy_error(c, tv);
-		return;
-	}
-
-	/* Connected — try to send the request right away */
-	sz = write(c->proxy_fd,
-		   c->proxy_req + c->proxy_req_sent,
-		   c->proxy_req_len - c->proxy_req_sent);
-
-	if (sz < 0) {
-		if (errno == EAGAIN || errno == EWOULDBLOCK) {
-			c->conn_state = CNST_PROXY_SENDING;
-			return;
-		}
-		syslog(LOG_ERR, "proxy-pass: write: %s", strerror(errno));
-		proxy_error(c, tv);
-		return;
-	}
-
-	c->proxy_req_sent += sz;
-	if (c->proxy_req_sent >= c->proxy_req_len) {
-		/* Request fully sent — switch to reading the response */
-		fdwatch_del_fd(c->proxy_fd);
-		fdwatch_add_fd(c->proxy_fd, c, FDW_READ);
-		c->conn_state = CNST_PROXY_READING;
-	} else {
-		c->conn_state = CNST_PROXY_SENDING;
-	}
-}
-
-/* CNST_PROXY_SENDING: continue draining the request buffer to the backend */
+/* CNST_PROXY_SENDING: drain the request buffer to the backend */
 static void handle_proxy_send(connecttab *c, struct timeval *tv)
 {
 	ssize_t sz;
@@ -999,6 +983,7 @@ static void handle_proxy_send(connecttab *c, struct timeval *tv)
 	}
 
 	c->proxy_req_sent += sz;
+	c->active_at = tv->tv_sec;
 	if (c->proxy_req_sent >= c->proxy_req_len) {
 		fdwatch_del_fd(c->proxy_fd);
 		fdwatch_add_fd(c->proxy_fd, c, FDW_READ);
@@ -1006,17 +991,29 @@ static void handle_proxy_send(connecttab *c, struct timeval *tv)
 	}
 }
 
+/* CNST_PROXY_CONNECTING: connect() completed, start sending the request */
+static void handle_proxy_connect(connecttab *c, struct timeval *tv)
+{
+	int       err    = 0;
+	socklen_t errlen = sizeof(err);
+
+	if (getsockopt(c->proxy_fd, SOL_SOCKET, SO_ERROR, &err, &errlen) < 0 || err) {
+		syslog(LOG_ERR, "proxy-pass: connect failed: %s",
+		       err ? strerror(err) : strerror(errno));
+		proxy_error(c, tv);
+		return;
+	}
+
+	c->active_at = tv->tv_sec;
+	c->conn_state = CNST_PROXY_SENDING;
+	handle_proxy_send(c, tv);
+}
+
 /*
- * Rewrite Location: and Refresh: response headers in the fully-buffered
- * backend response, replacing redirect_from with redirect_to.
- *
- * This corrects root-relative redirects when a backend is proxied under a
- * sub-path: e.g. backend sends "Location: /login", proxy-redirect rewrites
- * it to "Location: /app/login" so the browser stays inside the proxy prefix.
- *
- * Only the header region (before "\r\n\r\n") is modified.  If the replacement
- * would cause the buffer to exceed PROXY_RESP_MAX the rewrite is skipped and
- * a warning is logged.
+ * Rewrite Location: and Refresh: headers in the buffered response,
+ * replacing redirect_from with redirect_to, so backend redirects stay
+ * inside the proxied sub-path.  Only the header region is touched;
+ * a rewrite that would exceed PROXY_RESP_MAX is skipped with a warning.
  */
 static void proxy_rewrite_headers(connecttab *c)
 {
@@ -1141,16 +1138,15 @@ static void handle_proxy_read(connecttab *c, struct timeval *tv)
 	struct http_conn *hc = c->hc;
 	ssize_t           sz;
 
-	/* Grow the response buffer if it is full */
+	/* Grow the response buffer if it is full, allowing one byte past
+	** the cap so an exactly-PROXY_RESP_MAX response can reach its EOF
+	*/
 	if (c->proxy_resp_len >= c->proxy_resp_size) {
 		size_t  new_size = c->proxy_resp_size * 2;
 		char   *new_buf;
 
-		if (new_size > PROXY_RESP_MAX) {
-			syslog(LOG_ERR, "proxy-pass: response exceeds %d bytes", PROXY_RESP_MAX);
-			proxy_error(c, tv);
-			return;
-		}
+		if (new_size > PROXY_RESP_MAX)
+			new_size = PROXY_RESP_MAX + 1;
 		new_buf = realloc(c->proxy_resp, new_size);
 		if (!new_buf) {
 			syslog(LOG_ERR, "proxy-pass: out of memory growing response buffer");
@@ -1174,9 +1170,32 @@ static void handle_proxy_read(connecttab *c, struct timeval *tv)
 	}
 
 	if (sz == 0) {
+		/* Backend sent nothing: 502, never enter the send state empty */
+		if (c->proxy_resp_len == 0) {
+			syslog(LOG_ERR, "proxy-pass: empty response from %s for %s",
+			       c->proxy_rule->host, hc->encodedurl);
+			proxy_error(c, tv);
+			return;
+		}
+
 		/* Backend closed the connection — full response is buffered */
 		syslog(LOG_DEBUG, "proxy-pass: %zu byte response from %s for %s",
 		       c->proxy_resp_len, c->proxy_rule->host, hc->encodedurl);
+
+		/* Pick up the backend status code so the completed request
+		** is access logged, see httpd_send_response()
+		*/
+		if (c->proxy_resp_len >= 12) {
+			char   status_line[16];
+			size_t n = c->proxy_resp_len < sizeof(status_line) - 1
+				   ? c->proxy_resp_len : sizeof(status_line) - 1;
+			int    code;
+
+			memcpy(status_line, c->proxy_resp, n);
+			status_line[n] = '\0';
+			if (sscanf(status_line, "HTTP/%*s %d", &code) == 1)
+				hc->status = code;
+		}
 
 		fdwatch_del_fd(c->proxy_fd);
 		close(c->proxy_fd);
@@ -1191,12 +1210,19 @@ static void handle_proxy_read(connecttab *c, struct timeval *tv)
 
 		/* Hand the buffered response back to the client */
 		hc->bytes_sent = 0;
+		c->active_at = tv->tv_sec;
 		fdwatch_add_fd(hc->conn_fd, c, FDW_WRITE);
 		c->conn_state = CNST_PROXY_SEND_RESP;
 		return;
 	}
 
 	c->proxy_resp_len += sz;
+	c->active_at = tv->tv_sec;
+
+	if (c->proxy_resp_len > PROXY_RESP_MAX) {
+		syslog(LOG_ERR, "proxy-pass: response exceeds %d bytes", PROXY_RESP_MAX);
+		proxy_error(c, tv);
+	}
 }
 
 /* CNST_PROXY_SEND_RESP: stream the buffered backend response to the client */
@@ -1215,18 +1241,53 @@ static void handle_proxy_send_resp(connecttab *c, struct timeval *tv)
 	if (sz < 0) {
 		if (errno != EPIPE && errno != ECONNRESET)
 			syslog(LOG_ERR, "proxy-pass: write client: %s", strerror(errno));
+		hc->do_keep_alive = 0;
 		clear_connection(c, tv);
 		return;
 	}
 
 	c->proxy_resp_sent += sz;
 	hc->bytes_sent     += sz;
+	c->active_at        = tv->tv_sec;
 
 	if (c->proxy_resp_sent >= c->proxy_resp_len) {
 		/* Proxy response fully delivered — close gracefully */
 		hc->do_keep_alive = 0;
 		finish_connection(c, tv);
 	}
+}
+
+/* CNST_PROXY_BODY: buffer the client request body, then connect to backend */
+static void handle_proxy_body(connecttab *c, struct timeval *tv)
+{
+	struct http_conn *hc = c->hc;
+	size_t            left = hc->checked_idx + hc->contentlength - hc->read_idx;
+	ssize_t           sz;
+
+	/* Read no more than the body owed, pipelined data is not ours */
+	sz = httpd_read(hc, &hc->read_buf[hc->read_idx], left);
+	if (sz == 0) {
+		/* Client closed before sending the full body */
+		hc->do_keep_alive = 0;
+		clear_connection(c, tv);
+		return;
+	}
+
+	if (sz < 0) {
+		if (errno == EINTR || errno == EAGAIN || errno == EWOULDBLOCK)
+			return;
+		hc->do_keep_alive = 0;
+		clear_connection(c, tv);
+		return;
+	}
+
+	hc->read_idx += sz;
+	c->active_at  = tv->tv_sec;
+
+	if (hc->read_idx - hc->checked_idx < hc->contentlength)
+		return;
+
+	proxy_start(c, tv);
 }
 
 /* -----------------------------------------------------------------------*/
@@ -1236,6 +1297,7 @@ static void handle_read(connecttab *c, struct timeval *tv)
 	int sz;
 	struct http_conn *hc = c->hc;
 
+again:
 	/* Is there room in our buffer to read more bytes? */
 	if (hc->read_idx >= hc->read_size) {
 		if (hc->read_size > 5000) {
@@ -1279,6 +1341,9 @@ static void handle_read(connecttab *c, struct timeval *tv)
 	/* Do we have a complete request yet? */
 	switch (httpd_got_request(hc)) {
 	case GR_NO_REQUEST:
+		/* Data buffered in the SSL object never signals the fd */
+		if (httpd_ssl_pending(hc))
+			goto again;
 		return;
 
 	case GR_BAD_REQUEST:
@@ -1313,11 +1378,24 @@ static void handle_read(connecttab *c, struct timeval *tv)
 
 		if (pr) {
 			c->proxy_rule = pr;
-			if (proxy_start(c, tv) < 0) {
-				httpd_send_err(hc, 502, httpd_err502title, "",
-					       httpd_err502form, hc->encodedurl);
-				finish_connection(c, tv);
+
+			/* Buffer the full request body before connecting */
+			if (hc->contentlength > 0) {
+				if (hc->contentlength > PROXY_BODY_MAX) {
+					httpd_send_err(hc, 413, httpd_err413title, "",
+						       httpd_err413form, hc->encodedurl);
+					finish_connection(c, tv);
+					return;
+				}
+				if (hc->read_idx - hc->checked_idx < hc->contentlength) {
+					httpd_realloc_str(&hc->read_buf, &hc->read_size,
+							  hc->checked_idx + hc->contentlength);
+					c->conn_state = CNST_PROXY_BODY;
+					return;
+				}
 			}
+
+			proxy_start(c, tv);
 			return;
 		}
 	}
@@ -1417,6 +1495,42 @@ static void handle_read(connecttab *c, struct timeval *tv)
 
 	fdwatch_del_fd(hc->conn_fd);
 	fdwatch_add_fd(hc->conn_fd, c, FDW_WRITE);
+}
+
+
+/* CNST_SSL_ACCEPTING: drive the TLS handshake on fd events.  Note,
+** active_at is deliberately not refreshed while handshaking, giving
+** the whole handshake one IDLE_READ_TIMELIMIT budget so a trickled
+** handshake cannot hold a connection slot indefinitely.
+*/
+static void handle_ssl_accept(connecttab *c, struct timeval *tv)
+{
+	struct http_conn *hc = c->hc;
+	int rc;
+
+	rc = httpd_ssl_accept(hc);
+	if (rc < 0) {
+		clear_connection(c, tv);
+		return;
+	}
+
+	if (rc > 0) {
+		/* Still handshaking, OpenSSL may have flipped direction */
+		fdwatch_del_fd(hc->conn_fd);
+		fdwatch_add_fd(hc->conn_fd, c,
+			       httpd_ssl_want_write(hc) ? FDW_WRITE : FDW_READ);
+		return;
+	}
+
+	c->conn_state = CNST_READING;
+	c->active_at = tv->tv_sec;
+	fdwatch_del_fd(hc->conn_fd);
+	fdwatch_add_fd(hc->conn_fd, c, FDW_READ);
+
+	/* The request may already sit decrypted in the SSL buffer, in
+	** which case the fd never signals readable again.
+	*/
+	handle_read(c, tv);
 }
 
 
@@ -1682,11 +1796,50 @@ static void idle(arg_t arg, struct timeval *now)
 			}
 			break;
 
+		case CNST_PROXY_BODY:
+			if (now->tv_sec - c->active_at >= IDLE_READ_TIMELIMIT) {
+				syslog(LOG_INFO, "%.80s: connection timed out reading",
+				       httpd_client(c->hc));
+				/* Mid-body, cannot recycle for keep-alive */
+				c->hc->do_keep_alive = 0;
+				finish_connection(c, now);
+			}
+			break;
+
 		case CNST_SENDING:
 		case CNST_PAUSING:
 			if (now->tv_sec - c->active_at >= IDLE_SEND_TIMELIMIT) {
 				syslog(LOG_INFO, "%.80s: connection timed out sending",
 				       httpd_client(c->hc));
+				clear_connection(c, now);
+			}
+			break;
+
+		case CNST_SSL_ACCEPTING:
+			if (now->tv_sec - c->active_at >= IDLE_READ_TIMELIMIT) {
+				syslog(LOG_INFO, "%.80s: connection timed out in SSL handshake",
+				       httpd_client(c->hc));
+				clear_connection(c, now);
+			}
+			break;
+
+		case CNST_PROXY_CONNECTING:
+		case CNST_PROXY_SENDING:
+		case CNST_PROXY_READING:
+			if (now->tv_sec - c->active_at >= IDLE_READ_TIMELIMIT) {
+				syslog(LOG_ERR, "proxy-pass: backend %s:%d timed out for %s",
+				       c->proxy_rule->host, c->proxy_rule->port,
+				       c->hc->encodedurl);
+				proxy_error(c, now);
+			}
+			break;
+
+		case CNST_PROXY_SEND_RESP:
+			if (now->tv_sec - c->active_at >= IDLE_SEND_TIMELIMIT) {
+				syslog(LOG_INFO, "%.80s: connection timed out sending proxy response",
+				       httpd_client(c->hc));
+				/* Mid-response, cannot recycle for keep-alive */
+				c->hc->do_keep_alive = 0;
 				clear_connection(c, now);
 			}
 			break;
@@ -1895,6 +2048,9 @@ static int usage(int code)
 #endif
 	       "  -h         This help text\n"
 	       "  -I IDENT   Identity for syslog, .conf, and PID file, default: %s\n"
+#ifdef ENABLE_SSL
+	       "  -k         Allow expired, or not yet valid, HTTPS certificates\n"
+#endif
 	       "  -l LEVEL   Set log level: none, err, warning, notice*, info, debug\n"
 	       "  -n         Run in foreground, do not detach from controlling terminal\n"
 	       "  -p PORT    Port to listen to, default 80, or 443 if HTTPS is enabled\n"
@@ -1969,7 +2125,11 @@ int main(int argc, char **argv)
 	int c;
 
 	ident = prognm = progname(argv[0]);
-	while ((c = getopt(argc, argv, "c:d:f:ghI:l:np:P:rsSt:u:vV")) != EOF) {
+	while ((c = getopt(argc, argv, "c:d:f:ghI:"
+#ifdef ENABLE_SSL
+			   "k"
+#endif
+			   "l:np:P:rsSt:u:vV")) != EOF) {
 		switch (c) {
 #ifndef HAVE_LIBCONFUSE
 		case 'c':
@@ -2000,6 +2160,12 @@ int main(int argc, char **argv)
 		case 'I':
 			ident = optarg;
 			break;
+
+#ifdef ENABLE_SSL
+		case 'k':
+			ssl_noverify = 1;
+			break;
+#endif
 
 		case 'l':
 			loglevel = loglvl(optarg);
@@ -2123,51 +2289,12 @@ int main(int argc, char **argv)
 	if (path[strlen(path) - 1] != '/')
 		strlcat(path, "/", sizeof(path));
 
-	if (background) {
-		/* Daemonize - make ourselves a subprocess.  Let daemon()/the
-		** manual fork path redirect stdin/stdout/stderr to /dev/null
-		** rather than closing them manually first.  Closing them before
-		** the redirect leaves fds 0-2 free for reuse by the next socket()
-		** or accept() call, which can corrupt CGI POST body handling.
-		*/
-#ifdef HAVE_DAEMON
-		if (daemon(1, 0) < 0) {
-			syslog(LOG_CRIT, "daemon: %s", strerror(errno));
-			exit(1);
-		}
-#else /* HAVE_DAEMON */
-		switch (fork()) {
-		case 0:
-			break;
-		case -1:
-			syslog(LOG_CRIT, "fork: %s", strerror(errno));
-			exit(1);
-		default:
-			exit(0);
-		}
-#ifdef HAVE_SETSID
-		setsid();
-#endif
-		/* Redirect stdio to /dev/null to prevent fd 0-2 reuse. */
-		{
-			int devnull = open("/dev/null", O_RDWR);
-			if (devnull >= 0) {
-				dup2(devnull, STDIN_FILENO);
-				dup2(devnull, STDOUT_FILENO);
-				dup2(devnull, STDERR_FILENO);
-				if (devnull > STDERR_FILENO)
-					close(devnull);
-			}
-		}
-#endif /* HAVE_DAEMON */
-	} else {
-		/* Even if we don't daemonize, we still want to disown our
-		** parent process.
-		*/
-#ifdef HAVE_SETSID
-		setsid();
-#endif
-	}
+	/* Daemonizing is delayed until all config is validated and the
+	** listen sockets are bound, so startup errors reach the caller as
+	** a non-zero exit code.  Open /dev/null for the stdio redirect
+	** now, before a possible chroot() hides it.
+	*/
+	int devnull = open("/dev/null", O_RDWR);
 
 	/* Initialize the fdwatch package.  We have to do this before
 	** chrooting, if /dev/poll is used.
@@ -2273,11 +2400,6 @@ int main(int argc, char **argv)
 	num_connects = 0;
 	httpd_conn_count = 0;
 
-	/* Create PID file */
-	if (!pidfn)
-		pidfn = ident;
-	pidfile(pidfn);
-
 	/* Get servers from .conf file */
 	num = conf_srv(srvtab, NELEMS(srvtab));
 	if (num == -1) {
@@ -2297,6 +2419,53 @@ int main(int argc, char **argv)
 	/* Start socket watchers for all servers */
 	LIST_FOREACH(server, server_list)
 		srv_start(server);
+
+	if (background) {
+		/* Redirect stdin/stdout/stderr to /dev/null rather than
+		** closing them.  Closing leaves fds 0-2 free for reuse by
+		** the next socket() or accept() call, which can corrupt CGI
+		** POST body handling.
+		*/
+#ifdef HAVE_DAEMON
+		if (daemon(1, 1) < 0) {
+			syslog(LOG_CRIT, "daemon: %s", strerror(errno));
+			exit(1);
+		}
+#else /* HAVE_DAEMON */
+		switch (fork()) {
+		case 0:
+			break;
+		case -1:
+			syslog(LOG_CRIT, "fork: %s", strerror(errno));
+			exit(1);
+		default:
+			exit(0);
+		}
+#ifdef HAVE_SETSID
+		setsid();
+#endif
+#endif /* HAVE_DAEMON */
+		if (devnull >= 0) {
+			dup2(devnull, STDIN_FILENO);
+			dup2(devnull, STDOUT_FILENO);
+			dup2(devnull, STDERR_FILENO);
+		}
+	} else {
+		/* Even if we don't daemonize, we still want to disown our
+		** parent process.
+		*/
+#ifdef HAVE_SETSID
+		setsid();
+#endif
+	}
+
+	if (devnull > STDERR_FILENO)
+		close(devnull);
+
+	/* Create PID file, after daemon() so it holds the child PID */
+	if (!pidfn)
+		pidfn = ident;
+	pidfile(pidfn);
 
 	/* If we're root, try to become someone else. */
 	if (getuid() == 0) {
@@ -2386,9 +2555,7 @@ int main(int argc, char **argv)
 			 * one so we don't mistake a quiescent client fd for an
 			 * error and tear down a live proxy connection.
 			 */
-			if (ct->conn_state == CNST_PROXY_CONNECTING ||
-			    ct->conn_state == CNST_PROXY_SENDING    ||
-			    ct->conn_state == CNST_PROXY_READING)
+			if (proxy_backend_state(ct))
 				fd_ok = fdwatch_check_fd(ct->proxy_fd);
 			else
 				fd_ok = fdwatch_check_fd(hc->conn_fd);
@@ -2396,7 +2563,10 @@ int main(int argc, char **argv)
 			if (!fd_ok) {
 				/* Something went wrong. */
 				hc->do_keep_alive = 0;
-				clear_connection(ct, &tv);
+				if (proxy_backend_state(ct))
+					proxy_backend_error(ct, &tv);
+				else
+					clear_connection(ct, &tv);
 			} else {
 				switch (ct->conn_state) {
 				case CNST_READING:
@@ -2425,6 +2595,14 @@ int main(int argc, char **argv)
 
 				case CNST_PROXY_SEND_RESP:
 					handle_proxy_send_resp(ct, &tv);
+					break;
+
+				case CNST_SSL_ACCEPTING:
+					handle_ssl_accept(ct, &tv);
+					break;
+
+				case CNST_PROXY_BODY:
+					handle_proxy_body(ct, &tv);
 					break;
 				}
 			}

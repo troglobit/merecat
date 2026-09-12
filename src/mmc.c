@@ -317,7 +317,8 @@ void *mmc_map(char *filename, struct stat *st, struct timeval *tv)
 			return NULL;
 		}
 	}
-	close(fd);
+	if (fd >= 0)
+		close(fd);
 cont:
 	/* Put the map into the hash table. */
 	if (add_hash(m) < 0) {

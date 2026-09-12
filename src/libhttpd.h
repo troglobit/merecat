@@ -136,8 +136,9 @@ struct http_proxy {
 	int            strip_prefix; /* Strip matched URL prefix before forwarding */
 	char          *redirect_from;/* Rewrite Location/Refresh: replace this prefix ... */
 	char          *redirect_to;  /* ... with this prefix (both NULL = disabled) */
-	struct in_addr addr;         /* Pre-resolved backend IPv4 address */
-	int            resolved;     /* Whether addr is valid */
+	sockaddr_t     sa;           /* Pre-resolved backend address */
+	socklen_t      salen;        /* Length of sa */
+	int            resolved;     /* Whether sa is valid */
 };
 
 /* A server. */
@@ -401,6 +402,9 @@ extern char *httpd_err400title;
 extern char *httpd_err400form;
 extern char *httpd_err408title;
 extern char *httpd_err408form;
+
+extern char *httpd_err413title;
+extern char *httpd_err413form;
 extern char *httpd_err502title;
 extern char *httpd_err502form;
 extern char *httpd_err503title;

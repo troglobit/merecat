@@ -205,9 +205,20 @@ struct httpd *srv_init(struct srv *srv)
 	for (i = 0; i < NELEMS(srv->location); i++)
 		httpd_location_add(hs, srv->location[i].pattern, srv->location[i].path);
 
-	for (i = 0; i < NELEMS(srv->proxy); i++)
-		httpd_proxy_add(hs, srv->proxy[i].pattern, srv->proxy[i].vhost,
-				srv->proxy[i].backend, srv->proxy[i].redirect);
+	for (i = 0; i < NELEMS(srv->proxy); i++) {
+		if (!srv->proxy[i].pattern)
+			continue;
+
+		/* Better to refuse to start than to serve proxied paths
+		** from the local document root, see httpd_proxy_add()
+		*/
+		if (httpd_proxy_add(hs, srv->proxy[i].pattern, srv->proxy[i].vhost,
+				    srv->proxy[i].backend, srv->proxy[i].redirect)) {
+			syslog(LOG_ERR, "Invalid proxy-pass \"%s\" in server %s",
+			       srv->proxy[i].pattern, srv->title);
+			exit(1);
+		}
+	}
 
 	if (httpd_listen(hs, gotv4 ? &sa4 : NULL, gotv6 ? &sa6 : NULL))
 		goto err;

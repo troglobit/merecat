@@ -26,7 +26,6 @@
 */
 
 #include <config.h>
-#include <poll.h>
 #include <string.h>
 #include <syslog.h>
 #include <sys/stat.h>
@@ -187,6 +186,78 @@ static int load_dh_params(SSL_CTX *ctx, FILE *fp)
 	return 0;
 }
 
+static void time_str(const ASN1_TIME *tm, char *buf, size_t len)
+{
+	BIO *bio;
+	int num;
+
+	buf[0] = 0;
+	bio = BIO_new(BIO_s_mem());
+	if (!bio)
+		return;
+
+	if (ASN1_TIME_print(bio, tm) > 0) {
+		num = BIO_read(bio, buf, len - 1);
+		if (num > 0)
+			buf[num] = 0;
+	}
+	BIO_free(bio);
+}
+
+static int check_one(X509 *crt, const char *fn, const char *whom)
+{
+	const ASN1_TIME *nb = X509_get0_notBefore(crt);
+	const ASN1_TIME *na = X509_get0_notAfter(crt);
+	int level = ssl_noverify ? LOG_WARNING : LOG_ERR;
+	const ASN1_TIME *tm;
+	char buf[64];
+	char *what;
+
+	if (X509_cmp_time(nb, NULL) > 0) {
+		what = "not valid until";
+		tm = nb;
+	} else if (X509_cmp_time(na, NULL) < 0) {
+		what = "expired";
+		tm = na;
+	} else
+		return 0;
+
+	time_str(tm, buf, sizeof(buf));
+	syslog(level, "SSL cert '%s'%s %s %s%s", fn, whom, what, buf,
+	       ssl_noverify ? "" : ", refusing to start (-k overrides)");
+
+	return !ssl_noverify;
+}
+
+/* Refuse to serve a certificate outside its validity period, unless -k
+ * was given.  Embedded systems without an RTC often boot with the clock
+ * at the epoch, and then a perfectly good certificate is "not yet
+ * valid".  That is what the override is for.  Intermediates from the
+ * chain file are checked too, an expired intermediate breaks clients
+ * just the same.
+ */
+static int check_validity(SSL_CTX *ctx, char *fn)
+{
+	STACK_OF(X509) *chain = NULL;
+	X509 *crt;
+	int i;
+
+	crt = SSL_CTX_get0_certificate(ctx);
+	if (!crt)
+		return 0;
+
+	if (check_one(crt, fn, ""))
+		return 1;
+
+	SSL_CTX_get0_chain_certs(ctx, &chain);
+	for (i = 0; i < sk_X509_num(chain); i++) {
+		if (check_one(sk_X509_value(chain, i), fn, ": intermediate"))
+			return 1;
+	}
+
+	return 0;
+}
+
 void *httpd_ssl_init(char *cert, char *key, char *dhparm, char *proto, char *ciphers)
 {
 	SSL_CTX *ctx;
@@ -248,6 +319,9 @@ void *httpd_ssl_init(char *cert, char *key, char *dhparm, char *proto, char *cip
 		syslog(LOG_ERR, "Invalid SSL cert '%s'", cert);
 		goto error;
 	}
+
+	if (check_validity(ctx, cert))
+		goto error;
 
 	if (SSL_CTX_use_PrivateKey_file(ctx, key, SSL_FILETYPE_PEM) != 1) {
 		syslog(LOG_ERR, "Invalid SSL key '%s'", key);
@@ -344,38 +418,36 @@ leave:
 }
 
 /*
-** Poll underlying fd and call SSL_accept() as long as it
-** wants more ... or until our patience runs out.
+** Drive the handshake whenever the fd signals readiness, see
+** CNST_SSL_ACCEPTING in merecat.c.  Returns 0 when the handshake is
+** complete, 1 to wait for another fd event, and -1 on fatal error.
 */
-static int accept_connection(struct http_conn *hc)
+int httpd_ssl_accept(struct http_conn *hc)
 {
-	struct pollfd pfd = {
-		.events = POLLIN,
-		.fd     = hc->conn_fd,
-	};
-	int rc, retries = 5;
+	if (status(hc, SSL_accept(hc->ssl))) {
+		if (EAGAIN == errno)
+			return 1;
 
-retry:
-	rc = poll(&pfd, 1, 100);
-	if (rc > 0) {
-		rc = status(hc, SSL_accept(hc->ssl));
-		if (-1 == rc && EAGAIN == errno)
-			goto retry;
+		if (hc->errmsg)
+			syslog(LOG_INFO, "%.80s: failed HTTPS connection: %s.",
+			       httpd_client(hc), hc->errmsg);
+		ERR_clear_error();
+		httpd_ssl_close(hc);
 
-		return rc;
-	}
-
-	if (rc < 0) {
-		hc->errmsg = strerror(errno);
 		return -1;
 	}
 
-	if (--retries > 0)
-		goto retry;
+	return 0;
+}
 
-	hc->errmsg = "client timeout";
+int httpd_ssl_want_write(struct http_conn *hc)
+{
+	return hc->ssl && SSL_want_write(hc->ssl);
+}
 
-	return -1;
+int httpd_ssl_pending(struct http_conn *hc)
+{
+	return hc->ssl && SSL_has_pending(hc->ssl);
 }
 
 int httpd_ssl_open(struct http_conn *hc)
@@ -390,26 +462,18 @@ int httpd_ssl_open(struct http_conn *hc)
 	hc->ssl = NULL;
 	if (hc->hs)
 		ctx = hc->hs->ctx;
+	if (!ctx)
+		return 0;
 
-	if (ctx) {
-		hc->ssl = SSL_new(ctx);
-		if (!hc->ssl) {
-			hc->errmsg = "creating connection";
-			return 1;
-		}
-
-		if (-1 == httpd_set_ndelay(hc->conn_fd))
-			syslog(LOG_ERR, "Failed setting SSL non-blocking: %s",
-			       strerror(errno));
-
-		SSL_set_fd(hc->ssl, hc->conn_fd);
-		if (-1 == accept_connection(hc)) {
-			ERR_clear_error();
-			SSL_free(hc->ssl);
-
-			return 1;
-		}
+	hc->ssl = SSL_new(ctx);
+	if (!hc->ssl) {
+		hc->errmsg = "creating connection";
+		syslog(LOG_INFO, "%.80s: failed HTTPS connection: %s.",
+		       httpd_client(hc), hc->errmsg);
+		return -1;
 	}
+
+	SSL_set_fd(hc->ssl, hc->conn_fd);
 
 	return 0;
 }
@@ -449,8 +513,21 @@ void httpd_ssl_log_errors(void)
 ssize_t httpd_ssl_read(struct http_conn *hc, void *buf, size_t len)
 {
 	int rc = SSL_read(hc->ssl, buf, len);
+
 	if (status(hc, rc))
 		return -1;
+
+	/* SSL_read() returns at most one TLS record, but OpenSSL has
+	** already drained the fd, which therefore never signals readable
+	** for data still buffered in the SSL object.  Return it all.
+	*/
+	while ((size_t)rc < len && SSL_has_pending(hc->ssl)) {
+		int n = SSL_read(hc->ssl, (char *)buf + rc, len - rc);
+
+		if (status(hc, n))
+			break;
+		rc += n;
+	}
 
 	return rc;
 }

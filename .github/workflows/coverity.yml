@@ -57,7 +57,9 @@ jobs:
       - name: Configure
         run: |
           ./autogen.sh
-          ./configure
+          ./configure --enable-builtin-icons --enable-public-html \
+                      --enable-htaccess --enable-htpasswd         \
+                      --enable-msie-padding
       - name: Build
         run: |
           export PATH=`pwd`/coverity/bin:$PATH

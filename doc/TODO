@@ -26,7 +26,9 @@ Lower priority (more setup required):
   a transfer and verify it is rate-limited accordingly.
 
 - ssl.sh: generate a self-signed cert; verify curl --insecure gets 200
-  over HTTPS and that HTTP->HTTPS redirect works.
+  over HTTPS and that HTTP->HTTPS redirect works.  Also cover the
+  startup cert validity check: expired/future certs refuse to start,
+  -k overrides.
 
 - symlink.sh: create a symlink pointing outside the webroot with
   check-symlinks = true; verify the request returns 403.
@@ -38,69 +40,28 @@ Skip / manual only:
 - compression-level.sh: zlib level tuning; low regression risk.
 - signal.sh: USR1/USR2 (log reopen / graceful restart); manual only.
 
-- - - - - - - - - - before release - - - - - - - - - -
+- - - - - - - - - - later - - - - - - - - - -
 
-- Add 'server' section to config file,
+Let command line options override port/host etc. that are in the global
+section of the config file.  Today the config file wins over -p.
 
-  server title {
-       host = virual-host.name
-       port = PORT
-       ssl  = BOOL
-       redirect = site.tla:port
-  }
-
-- Let 'server' directives slowly replace vhost matching
-
-  When virtual-host=false we can use either the title of the server
-  directive or a separate host/server-name setting for matching the
-  incoming requests.
-
-- Add 'location' section to config file
-
-  This to be able to set max-age per PATTERN rather than for all files,
-  which may otherwise mess up reloading, e.g. a blog.
+Extend the location directive with per-PATTERN settings, so max-age can
+be set for parts of a site rather than for all files, which may
+otherwise mess up reloading, e.g. a blog:
 
   location "PATTERN" {
        max-age = 2d
        add-header {
            key   = "Cache-Control"
-  	 value = "public, no-transform"
+           value = "public, no-transform"
        }
        gzip = true
   }
 
-- Add proxy-pass to location directive
-
-- Let command line options override port/host etc. that
-  are in the global section of the config file.
-
-- Verify cert at startup, abort if cert is too old or new
-  add command line option to override (embedded systems)
-
-- - - - - - - - - - high priority - - - - - - - - - -
-
-Look into compressing CGI and ls() output using fmemopen()
-
-IPv6 not working right.
-
-Problem with ACME News downloads.  PATH_INFO interferes with the authorization.
-
-Why is the client's IP address showing up in paths?
-
-Fetches with numeric IP addresses and no Host: header are screwing up the
-vhost code?
-143.90.193.229 - - [06/Apr/2000:09:21:34 -0700] "GET /209.133.38.22/software/thttpd/ HTTP/1.0" 200 12093 "http://www.dbphotography.demon.co.uk/index.html" "Mozilla/1.22 (compatible; MSIE 2.0; Windows 95)"
-143.90.193.229 - - [06/Apr/2000:09:21:37 -0700] "GET /143.90.193.229/software/thttpd/anvil_thttpd.gif HTTP/1.0" 403 - "http://www.acme.com/software/thttpd/" "Mozilla/1.22 (compatible; MSIE 2.0; Windows 95)"
-
-Add comment on INDEX_NAMES that it should be simple filenames only.
-
-The error page generated for non-local referers should include the
-original URL as an active link.
+Look into compressing CGI and ls() output using fmemopen().
 
 Make open in mmc.c use O_NONBLOCK flag, to prevent DOS attack via
 a named pipe?
-
-- - - - - - - - - - later - - - - - - - - - -
 
 Document how symlinks interact with .htpasswd - authorization is checked
 on the result of the symlink, and not the origin.
@@ -113,8 +74,6 @@ Add TCP_NODELAY, but after CGIs get spawned.
 Add stat cache?  1 minute expiry?
 
 Ifdef the un-close-on-exec CGI thing for Linux only.
-
-Add keep-alives, via a new state in thttpd.c.
 
 - - - - - - - - - - someday - - - - - - - - - -
 
@@ -139,15 +98,6 @@ Config web page.
 
 Tasklets re-write.
 
-- - - - - - - - - - general - - - - - - - - - -
-
-Release process:
-  - update version number in version.h README INSTALL and
-    contrib/redhat-rpm/thttpd.spec
-  - do a tdiff and update the local installation
-  - do an rcstreeinfo, and check in all files
-  - make tar
-  - mv it to ..
-  - update version number in ../thttpd.html
-  - update ~acmeweb/updates.html
-  - mail announcement to thttpd-announce
+Let server directives replace vhost matching.  When virtual-host=false
+we can use either the title of the server directive or a separate
+host/server-name setting for matching the incoming requests.
