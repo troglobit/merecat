@@ -9,29 +9,22 @@ permissions:
   contents: write
 
 jobs:
-  release:
-    name: Build and upload release tarball
+  tarball:
+    name: Release tarball
     if: startsWith(github.ref, 'refs/tags/')
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v6
-      - name: Setting release variables ...
-        id: build
+        with:
+          fetch-depth: 0
+      - name: Installing dependencies ...
         run: |
-          ver=${GITHUB_REF#refs/tags/}
-          echo "ver=${ver}" >> $GITHUB_OUTPUT
-          if echo $ver | grep -qE '^v[0-9]+\.[0-9]+(\.[0-9]+)?(-alpha|-beta|-rc)[0-9]*$'; then
-            echo "pre=true"  >> $GITHUB_OUTPUT
-          else
-            echo "pre=false" >> $GITHUB_OUTPUT
-          fi
-          if echo $ver | grep -qE '^v[0-9]+\.[0-9]+(\.[0-9]+)?$'; then
-            echo "latest=true"  >> $GITHUB_OUTPUT
-          else
-            echo "latest=false" >> $GITHUB_OUTPUT
-          fi
-      - name: Install dependencies ...
-        run: |
+          # The runners' azure.archive.ubuntu.com mirror intermittently
+          # stalls.  Fail over to the fallback mirror in seconds instead
+          # of grinding through apt's two-minute default timeouts.
+          printf 'Acquire::Retries "3";\nAcquire::http::Timeout "15";\nAcquire::https::Timeout "15";\n' \
+              | sudo tee /etc/apt/apt.conf.d/99-timeout >/dev/null
           sudo apt-get -y update
           sudo apt-get -y install tree libconfuse-dev libssl-dev zlib1g-dev php-cgi
       - name: Creating Makefiles ...
@@ -43,6 +36,83 @@ jobs:
           make release
           mkdir -p artifacts/
           mv ../*.tar.* artifacts/
+          ls -lF artifacts/
+      - name: Upload tarball
+        uses: actions/upload-artifact@v7
+        with:
+          name: release-tarball
+          path: artifacts/*
+          if-no-files-found: error
+          retention-days: 1
+
+  debian:
+    name: Debian package
+    if: startsWith(github.ref, 'refs/tags/')
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v6
+      - name: Installing dependencies ...
+        run: |
+          printf 'Acquire::Retries "3";\nAcquire::http::Timeout "15";\nAcquire::https::Timeout "15";\n' \
+              | sudo tee /etc/apt/apt.conf.d/99-timeout >/dev/null
+          sudo apt-get -y update
+          sudo apt-get -y install build-essential pkgconf libconfuse-dev libssl-dev \
+                                  zlib1g-dev systemd-dev devscripts debhelper lintian
+      - name: Build Debian package ...
+        run: |
+          # A native package version cannot carry a hyphen, so the vX.Y-rcN
+          # tag is X.Y~rcN in debian/changelog.
+          ver=$(echo "${GITHUB_REF_NAME#v}" | tr '-' '~')
+          deb=$(dpkg-parsechangelog -S Version)
+          if [ "$deb" != "$ver" ]; then
+              echo "debian/changelog is at $deb, tag says $ver"
+              exit 1
+          fi
+          ./autogen.sh
+          ./configure
+          # The tarball job runs the suite via distcheck.
+          DEB_BUILD_OPTIONS=nocheck make package
+          mkdir -p artifacts/
+          mv ../merecat_*.deb artifacts/
+          dpkg -I artifacts/*.deb
+          dpkg -c artifacts/*.deb
+      - name: Upload package
+        uses: actions/upload-artifact@v7
+        with:
+          name: release-debian
+          path: artifacts/*
+          if-no-files-found: error
+          retention-days: 1
+
+  release:
+    name: Publish release
+    if: startsWith(github.ref, 'refs/tags/')
+    needs: [ tarball, debian ]
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v6
+      - name: Setting release variables ...
+        id: build
+        run: |
+          ver=${GITHUB_REF#refs/tags/}
+          if echo $ver | grep -qE '^v[0-9]+\.[0-9]+(\.[0-9]+)?(-alpha|-beta|-rc)[0-9]*$'; then
+            echo "pre=true"  >> $GITHUB_OUTPUT
+          else
+            echo "pre=false" >> $GITHUB_OUTPUT
+          fi
+          if echo $ver | grep -qE '^v[0-9]+\.[0-9]+(\.[0-9]+)?$'; then
+            echo "latest=true"  >> $GITHUB_OUTPUT
+          else
+            echo "latest=false" >> $GITHUB_OUTPUT
+          fi
+      - name: Download artifacts ...
+        uses: actions/download-artifact@v7
+        with:
+          pattern: release-*
+          path: artifacts
+          merge-multiple: true
       - name: Extract ChangeLog entry ...
         run: |
           awk '/-----*/{if (x == 1) exit; x=1;next}x' ChangeLog.md \
