@@ -1,6 +1,7 @@
 EXTRA_DIST       = merecat.conf start.sh stop.sh
 EXTRA_DIST      += cgi.sh gzip.sh redirect.sh location.sh php.sh proxy.sh setenv.sh
 EXTRA_DIST      += dirlisting.sh htpasswd.sh htaccess.sh ssi.sh index-order.sh
+EXTRA_DIST      += memory.sh
 CLEANFILES       = *~ *.trs *.log
 TEST_EXTENSIONS  = .sh
 
@@ -17,4 +18,5 @@ TESTS           += htpasswd.sh
 TESTS           += htaccess.sh
 TESTS           += ssi.sh
 TESTS           += index-order.sh
+TESTS           += memory.sh
 TESTS           += stop.sh

@@ -392,6 +392,12 @@
 */
 #define SPARE_FDS 10
 
+/* Simultaneous client connections.  Sizes the connection table, and with
+** it the descriptor budget we ask the kernel for, so keep it sane.
+*/
+#define DEFAULT_MAX_CONNECTIONS 1024
+#define MAX_CONNECTIONS_LIMIT   1000000
+
 /* CONFIGURE: How many milliseconds to leave a connection open while doing a
 ** lingering close.
 */
@@ -453,6 +459,7 @@ extern int       no_symlink_check;
 extern int       no_empty_referers;
 extern int       cgi_enabled;
 extern int       cgi_limit;
+extern int       max_connections;
 extern char     *cgi_pattern;
 extern char    **cgi_setenv;
 extern int       cgi_setenv_len;

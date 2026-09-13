@@ -81,6 +81,23 @@ is given as argument.  Chrooting is a security measure and means that
 .Nm
 cannot access files outside it, unless files are bind mounted, or
 similar into the chroot.  Disabled by default.
+.It Cm max-connections = Ar NUM
+Maximum number of simultaneous client connections, default
+.Ar 1024 .
+Each connection costs one file descriptor, two while it is proxied to a
+backend, and at startup
+.Nm
+raises its own
+.Cm RLIMIT_NOFILE
+to match rather than claiming every descriptor the hard limit allows.
+Sizing the connection table this way keeps the resident memory of an
+idle server at a few MiB.
+.Pp
+When the hard limit cannot cover the request, the number of connections
+is reduced to fit and a warning is logged at startup.  Running under
+systemd the ceiling comes from
+.Cm LimitNOFILE
+in the unit file.
 .It Cm compression-level = Ar -1..9
 Control the compression level of the built-in Apache-like mod_deflate.
 The default value is -1, which gives a reasonable compromize between

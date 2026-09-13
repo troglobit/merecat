@@ -117,6 +117,13 @@ compression using zlib.
   `merecat.conf` if you need the `STATS_TIME` feature
 - New `merecat.conf` settings: `user-agent-deny` for blocking bad bots,
   `setenv` in the `cgi` section, and `compression-level` for gzip
+- Add `max-connections` to set the number of simultaneous client
+  connections, default 1024.  The connection table was previously sized
+  from `RLIMIT_NOFILE`, which on a systemd system, where services get a
+  hard limit of 524288, left an idle server holding 190 MiB.  The
+  descriptor limit is now raised to match the configured number instead,
+  and an idle server stays at a few MiB.  The bundled systemd unit caps
+  this with `LimitNOFILE=16384`, raise both to serve more connections
 - Incompatible `merecat.conf` changes: `cgi-pattern` and `cgi-limit`
   are replaced by `cgi "PATTERN" {}` sections, and `check-symlink` is
   renamed `check-symlinks`
