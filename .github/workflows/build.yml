@@ -52,3 +52,53 @@ jobs:
         run: |
           # Tests must currently not run in parallel
           make -j1 check || (cat tests/test-suite.log; false)
+
+  package:
+    # Verify the Debian packaging still builds and passes lintian.  The
+    # release job runs the same target, but only after the tag is pushed
+    # and immutable, so catch a broken debian/ here instead.
+    name: debian
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Install dependencies
+        run: |
+          # The runners' azure.archive.ubuntu.com mirror intermittently
+          # stalls.  Fail over to the fallback mirror in seconds instead
+          # of grinding through apt's two-minute default timeouts.
+          printf 'Acquire::Retries "3";\nAcquire::http::Timeout "15";\nAcquire::https::Timeout "15";\n' \
+              | sudo tee /etc/apt/apt.conf.d/99-timeout >/dev/null
+          sudo apt-get -y update
+          sudo apt-get -y install build-essential pkgconf libconfuse-dev libssl-dev \
+                                  zlib1g-dev systemd-dev devscripts debhelper lintian
+      - uses: actions/checkout@v6
+      - name: Configure
+        run: |
+          ./autogen.sh
+          ./configure
+      - name: Build package
+        run: |
+          # The suite already ran in the build job, and dh_auto_test
+          # honours nocheck, so skip it here rather than run it twice.
+          DEB_BUILD_OPTIONS=nocheck make package
+      - name: Collect package
+        if: always()
+        run: |
+          # debuild drops its output next to the source tree; artifacts
+          # must live inside the workspace to be uploadable.
+          mkdir -p dist
+          mv ../merecat_*.deb ../merecat-dbgsym_*.ddeb dist/ 2>/dev/null || true
+          mv ../merecat_*.changes ../merecat_*.buildinfo dist/ 2>/dev/null || true
+          ls -lF dist/
+      - name: Inspect package
+        run: |
+          dpkg -I dist/merecat_*_amd64.deb
+          dpkg -c dist/merecat_*_amd64.deb
+      - name: Archive package
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: merecat-deb
+          path: dist/
+          if-no-files-found: warn
+          retention-days: 14
