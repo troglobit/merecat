@@ -19,6 +19,10 @@ merecat (3.00~rc2) unstable; urgency=medium
     - Built-in icons for dir listings, and a cute cat favicon
     - Allow SO_REUSEPORT, useful for load balancing
     - Linux performance: epoll, sendfile, TCP_NODELAY
+    - New max-connections setting, default 1024.  The connection table
+      was sized from RLIMIT_NOFILE, so under systemd, which grants a
+      hard limit of 524288, an idle server held 190 MiB.  It now stays
+      at a few MiB.  The systemd unit caps this with LimitNOFILE=16384
   * Notable fixes:
     - Fix TLS handshake blocking the event loop, could stall the server
     - Fix missing access log entries for successful (200) file responses
@@ -32,7 +36,7 @@ merecat (3.00~rc2) unstable; urgency=medium
   * Packaging: use ~rc versioning so the final 3.00 upgrades cleanly over
     release candidates (3.00-rc1 sorted higher than 3.00-1)
 
- -- Joachim Wiberg <troglobit@gmail.com>  Sat, 12 Sep 2026 09:54:33 +0200
+ -- Joachim Wiberg <troglobit@gmail.com>  Sun, 13 Sep 2026 09:22:44 +0200
 
 
 merecat (2.31-3) unstable; urgency=low
