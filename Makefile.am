@@ -25,6 +25,10 @@ doc:
 		cat www/footer.html >> $$out;				\
 	done
 
+## Generate .deb package
+package build-deb:
+	@debuild -uc -us -B --lintian-opts --profile debian -i -I --show-overrides
+
 ## Check if tagged in git, generate sha256 checksums, and move release files
 release-hook:
 	if [ ! `git tag | grep $(PACKAGE_VERSION)` ]; then				\

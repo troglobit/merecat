@@ -1,0 +1,27 @@
+Source: merecat
+Section: web
+Priority: optional
+Maintainer: Joachim Wiberg <troglobit@gmail.com>
+Build-Depends: debhelper-compat (= 13), systemd-dev | systemd, pkg-config, libconfuse-dev, libssl-dev, zlib1g-dev, php-cgi <!nocheck>
+Standards-Version: 4.7.0
+Rules-Requires-Root: no
+Homepage: https://merecat.troglobit.com
+Vcs-Browser: https://github.com/troglobit/merecat
+Vcs-Git: https://github.com/troglobit/merecat.git
+
+Package: merecat
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}
+Provides: httpd, httpd-cgi
+Conflicts: apache2-utils
+Recommends: libcgi-pm-perl, php-cgi
+Suggests: libcgi-fast-perl
+Description: Embedded web server
+ Merecat is a simple web server based on Jef Poskanzer's thttpd.
+ It supports all basic features required for most use-cases.  Key
+ features include HTTPS (OpenSSL 3), reverse proxy with path rewriting,
+ PHP and SSI via CGI, multiple virtual servers, HTTP redirect, URL
+ pattern-based traffic throttling, gzip compression, and HTTP/1.1
+ keep-alive.
+ .
+ Its small footprint makes it suitable for small and embedded systems.

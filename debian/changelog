@@ -1,0 +1,66 @@
+merecat (3.00~rc2) unstable; urgency=medium
+
+  * New upstream release candidate.  Notable changes since v2.31:
+    - Support for HTTPS, self-signed certs and Let's Encrypt.  Works with
+      all features, including virtual hosts.  Requires OpenSSL >= 3.0
+    - Verify HTTPS certificate validity at startup, refuse to start if a
+      certificate has expired or is not yet valid; new -k option overrides
+    - Support for running multiple servers from one Merecat daemon,
+      e.g. HTTP and HTTPS, or different ports
+    - Reverse proxy support (proxy-pass) with path prefix rewriting and
+      Location/Refresh header rewriting (proxy-redirect), like nginx
+    - Support for HTTP redirect, e.g. from HTTP to HTTPS
+    - Support for server location directive, similar to nginx
+    - Support for HTTP/1.1 keep-alive
+    - Support for HTTP gzip compression, also serves .gz files
+    - Support for SSI, pattern matching to .shtml files
+    - Support for PHP, using php-cgi
+    - CGI setenv: inject custom environment variables into CGI programs
+    - Built-in icons for dir listings, and a cute cat favicon
+    - Allow SO_REUSEPORT, useful for load balancing
+    - Linux performance: epoll, sendfile, TCP_NODELAY
+    - New max-connections setting, default 1024.  The connection table
+      was sized from RLIMIT_NOFILE, so under systemd, which grants a
+      hard limit of 524288, an idle server held 190 MiB.  It now stays
+      at a few MiB.  The systemd unit caps this with LimitNOFILE=16384
+  * Notable fixes:
+    - Fix TLS handshake blocking the event loop, could stall the server
+    - Fix missing access log entries for successful (200) file responses
+    - Fix empty POST body in CGI when running as daemon (fd 0-2 reuse)
+    - Fix issue with leading double slash in URL, reported by Steve Kemp
+    - Fix 403 instead of 404 for missing files and dot-file probes
+    - Fix HTML entities in directory listings
+    - Cache-Control header fixes, no longer caches error responses
+    - htpasswd tool hardening: overflow, EOF hang, temp file handling
+    - IPv6 fallback: continue with IPv4 when IPv6 socket is unavailable
+  * Packaging: use ~rc versioning so the final 3.00 upgrades cleanly over
+    release candidates (3.00-rc1 sorted higher than 3.00-1)
+
+ -- Joachim Wiberg <troglobit@gmail.com>  Sun, 13 Sep 2026 09:22:44 +0200
+
+
+merecat (2.31-3) unstable; urgency=low
+
+  * Fixes to landing page: layout, spelling, grammar, and helpful pointers
+    by Martin Olsson.
+
+ -- Joachim Nilsson <troglobit@gmail.com>  Mon,  6 Nov 2016 03:49:42 +0100
+
+merecat (2.31-2) unstable; urgency=low
+
+  * Fix spelling: Meerekat --> Meerkat, reported by Anders Bornäs.
+
+ -- Joachim Nilsson <troglobit@gmail.com>  Mon,  6 Nov 2016 01:03:42 +0100
+
+merecat (2.31-1) unstable; urgency=low
+
+  * New upstream release, for details see the ChangeLog at GitHub
+    https://github.com/troglobit/merecat/releases/tag/v2.31
+
+ -- Joachim Nilsson <troglobit@gmail.com>  Mon,  6 Nov 2016 00:56:42 +0100
+
+merecat (2.30-1) unstable; urgency=low
+
+  * Initial release.
+
+ -- Joachim Nilsson <troglobit@gmail.com>  Mon,  3 Nov 2016 06:59:42 +0100
