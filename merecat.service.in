@@ -10,6 +10,8 @@ Type=simple
 Restart=always
 RestartSec=3
 ExecStart=@SBINDIR@/merecat -sn @WWWDIR@
+# Ceiling for max-connections in merecat.conf, raise both to go higher
+LimitNOFILE=16384
 
 [Install]
 WantedBy=multi-user.target
