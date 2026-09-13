@@ -666,7 +666,7 @@ int handle_newconnect(struct httpd *hs, struct timeval *tv, int fd)
 			** existing connections, and maybe we'll free up a slot
 			** by the time we get back here.
 			*/
-			syslog(LOG_WARNING, "Too many connections (%d >) %d)!", num_connects, max_connects);
+			syslog(LOG_WARNING, "Too many connections (%d > %d)!", num_connects, max_connects);
 			tmr_run(tv);
 			return 0;
 		}
