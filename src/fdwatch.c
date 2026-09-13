@@ -195,7 +195,7 @@ static int select_get_fd(int ridx);
 /* Figure out how many file descriptors the system allows, and
 ** initialize the fdwatch data structures.  Returns -1 on failure.
 */
-int fdwatch_get_nfiles(void)
+int fdwatch_get_nfiles(int want)
 {
 	int i;
 #ifdef RLIMIT_NOFILE
@@ -209,15 +209,23 @@ int fdwatch_get_nfiles(void)
 		nfiles = 1024;
 	}
 #ifdef RLIMIT_NOFILE
-	/* If we have getrlimit(), use that, and attempt to raise the limit. */
+	/* Match the soft limit to what the caller asked for, never above
+	** the hard limit.  The tables below, and the connection table in
+	** merecat.c, are all sized from the result, so claiming every
+	** descriptor the hard limit allows costs a lot of memory and buys
+	** nothing.  systemd hands services a hard limit of 524288.
+	*/
 	if (getrlimit(RLIMIT_NOFILE, &rl) == 0) {
-		nfiles = rl.rlim_cur;
-		if (rl.rlim_max == RLIM_INFINITY)
-			rl.rlim_cur = 8192;	/* arbitrary */
-		else if (rl.rlim_max > rl.rlim_cur)
-			rl.rlim_cur = rl.rlim_max;
+		rlim_t need = (rlim_t)want;
+
+		if (rl.rlim_max != RLIM_INFINITY && need > rl.rlim_max)
+			need = rl.rlim_max;
+
+		rl.rlim_cur = need;
 		if (setrlimit(RLIMIT_NOFILE, &rl) == 0)
-			nfiles = rl.rlim_cur;
+			nfiles = (int)need;
+		else if (getrlimit(RLIMIT_NOFILE, &rl) == 0)
+			nfiles = (int)rl.rlim_cur;
 	}
 #endif
 

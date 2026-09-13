@@ -96,6 +96,7 @@ int          no_empty_referers = 0;
 int          ssl_noverify      = 0;
 int          cgi_enabled       = 0;
 int          cgi_limit         = CGI_LIMIT;
+int          max_connections   = DEFAULT_MAX_CONNECTIONS;
 char        *cgi_pattern       = CGI_PATTERN;
 char       **cgi_setenv        = NULL;
 int          cgi_setenv_len    = 0;
@@ -2122,6 +2123,7 @@ int main(int argc, char **argv)
 	int do_syslog  = 1;
 	int num_ready;
 	int num, cnum;
+	int nfiles, want;
 	int c;
 
 	ident = prognm = progname(argv[0]);
@@ -2299,15 +2301,33 @@ int main(int argc, char **argv)
 	/* Initialize the fdwatch package.  We have to do this before
 	** chrooting, if /dev/poll is used.
 	*/
-	max_connects = fdwatch_get_nfiles();
-	if (max_connects < 0) {
+	if (max_connections <= 0) {
+		syslog(LOG_WARNING, "Invalid max-connections %d, using %d instead",
+		       max_connections, DEFAULT_MAX_CONNECTIONS);
+		max_connections = DEFAULT_MAX_CONNECTIONS;
+	} else if (max_connections > MAX_CONNECTIONS_LIMIT) {
+		syslog(LOG_WARNING, "max-connections %d out of range, using %d instead",
+		       max_connections, MAX_CONNECTIONS_LIMIT);
+		max_connections = MAX_CONNECTIONS_LIMIT;
+	}
+
+	max_connects = max_connections;
+	want = max_connects * 2 + cgi_limit * 2 + SPARE_FDS;
+
+	nfiles = fdwatch_get_nfiles(want);
+	if (nfiles < 0) {
 		syslog(LOG_CRIT, "fdwatch initialization failure");
 		exit(1);
 	}
-	max_connects -= SPARE_FDS;
-	if (max_connects <= 0) {
-		syslog(LOG_CRIT, "Not enough file descriptors (%d) to run", max_connects + SPARE_FDS);
-		exit(1);
+
+	if (nfiles < want) {
+		max_connects = (nfiles - SPARE_FDS - cgi_limit * 2) / 2;
+		if (max_connects <= 0) {
+			syslog(LOG_CRIT, "Not enough file descriptors (%d) to run", nfiles);
+			exit(1);
+		}
+		syslog(LOG_WARNING, "Only %d file descriptors available, serving at most"
+		       " %d connections instead of %d", nfiles, max_connects, max_connections);
 	}
 
 	/* Chroot if requested. */

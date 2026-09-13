@@ -292,6 +292,7 @@ static int read_config(char *fn)
 		CFG_INT ("port", port, CFGF_NONE),
 		CFG_BOOL("chroot", do_chroot, CFGF_NONE),
 		CFG_INT ("compression-level", compression_level, CFGF_NONE),
+		CFG_INT ("max-connections", max_connections, CFGF_NONE),
 		CFG_STR ("directory", dir, CFGF_NONE),
 		CFG_STR ("data-directory", data_dir, CFGF_NONE),
 		CFG_BOOL("global-passwd", do_global_passwd, CFGF_NONE),
@@ -340,6 +341,7 @@ static int read_config(char *fn)
 	}
 
 	port = cfg_getint(cfg, "port");
+	max_connections = cfg_getint(cfg, "max-connections");
 	do_chroot = cfg_getbool(cfg, "chroot");
 	if (do_chroot)
 		no_symlink_check = 1;

@@ -57,7 +57,7 @@
 /* Figure out how many file descriptors the system allows, and
 ** initialize the fdwatch data structures.  Returns -1 on failure.
 */
-extern int fdwatch_get_nfiles(void);
+extern int fdwatch_get_nfiles(int want);
 
 /* Free initialized fdwatch data structues at exit */
 extern void fdwatch_put_nfiles(void);
