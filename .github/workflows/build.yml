@@ -16,18 +16,25 @@ jobs:
     # Verify we can build on latest Ubuntu with both gcc and clang
     name: ${{ matrix.compiler }}
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     strategy:
       matrix:
         compiler: [gcc, clang]
       fail-fast: false
     env:
-      MAKEFLAGS: -j3
       CC: ${{ matrix.compiler }}
     steps:
       - name: Install dependencies
         run: |
+          # The runners' azure.archive.ubuntu.com mirror intermittently
+          # stalls.  Fail over to the fallback mirror in seconds instead
+          # of grinding through apt's two-minute default timeouts.
+          printf 'Acquire::Retries "3";\nAcquire::http::Timeout "15";\nAcquire::https::Timeout "15";\n' \
+              | sudo tee /etc/apt/apt.conf.d/99-timeout >/dev/null
           sudo apt-get -y update
           sudo apt-get -y install tree libconfuse-dev libssl-dev zlib1g-dev php-cgi
+          # Build on all cores, the test step pins itself to -j1
+          echo "MAKEFLAGS=-j$(nproc)" >> "$GITHUB_ENV"
       - uses: actions/checkout@v6
       - name: Create configure script
         run: |
@@ -52,6 +59,16 @@ jobs:
         run: |
           # Tests must currently not run in parallel
           make -j1 check || (cat tests/test-suite.log; false)
+      - name: Archive test logs
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: test-logs-${{ matrix.compiler }}
+          path: |
+            tests/*.log
+            tests/*.trs
+          if-no-files-found: warn
+          retention-days: 14
 
   package:
     # Verify the Debian packaging still builds and passes lintian.  The
