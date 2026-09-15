@@ -61,6 +61,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
+      - uses: actions/checkout@v6
       - name: Install dependencies
         run: |
           # The runners' azure.archive.ubuntu.com mirror intermittently
@@ -69,9 +70,11 @@ jobs:
           printf 'Acquire::Retries "3";\nAcquire::http::Timeout "15";\nAcquire::https::Timeout "15";\n' \
               | sudo tee /etc/apt/apt.conf.d/99-timeout >/dev/null
           sudo apt-get -y update
-          sudo apt-get -y install build-essential pkgconf libconfuse-dev libssl-dev \
-                                  zlib1g-dev systemd-dev devscripts debhelper lintian
-      - uses: actions/checkout@v6
+          sudo apt-get -y install build-essential devscripts equivs lintian
+          # Install Build-Depends from debian/control rather than a copy
+          # of the list here, so a missing dependency fails this job.
+          sudo mk-build-deps --install --remove \
+               --tool "apt-get -y --no-install-recommends" debian/control
       - name: Configure
         run: |
           ./autogen.sh
