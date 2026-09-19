@@ -1,5 +1,7 @@
 if ENABLE_HTPASSWD
 dist_man1_MANS = htpasswd.1
+else
+EXTRA_DIST     = htpasswd.1
 endif
 if HAVE_CONFUSE
 dist_man5_MANS = merecat.conf.5
