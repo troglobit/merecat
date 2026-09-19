@@ -11,8 +11,12 @@ for file in $srvfiles; do
     gzip -c srv/$file   > srv/$file.gz
 done
 cp ${srcdir}/../www/cgi-bin/printenv srv/cgi-bin/
-if [ -x ${srcdir}/../www/cgi-bin/ssi ]; then
-    cp ${srcdir}/../www/cgi-bin/ssi srv/cgi-bin/
+# The ssi helper is built, so it lives in the build tree, unlike the
+# files above which are distributed.  In a VPATH build, as distcheck
+# does, looking for it under $srcdir silently finds nothing and merecat
+# then starts with SSI disabled.
+if [ -x ../www/cgi-bin/ssi ]; then
+    cp ../www/cgi-bin/ssi srv/cgi-bin/
 fi
 
 # dirlisting: gallery has no index, withindex has one
