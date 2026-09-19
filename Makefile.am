@@ -1,7 +1,8 @@
 SUBDIRS                   = src www man tests
 doc_DATA                  = README.md LICENSE ChangeLog.md
 EXTRA_DIST                = README.md LICENSE ChangeLog.md throttle.conf merecat.conf preview.sh
-DISTCHECK_CONFIGURE_FLAGS = --with-systemd=$$dc_install_base/$(systemd)
+DISTCHECK_CONFIGURE_FLAGS = --with-systemd=$$dc_install_base/$(systemd) \
+                            --enable-htaccess --enable-htpasswd
 
 if HAVE_CONFUSE
 dist_sysconf_DATA         = merecat.conf
