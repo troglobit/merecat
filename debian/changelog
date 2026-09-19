@@ -1,4 +1,4 @@
-merecat (3.00~rc2) unstable; urgency=medium
+merecat (3.00~rc1) unstable; urgency=medium
 
   * New upstream release candidate.  Notable changes since v2.31:
     - Support for HTTPS, self-signed certs and Let's Encrypt.  Works with
@@ -36,8 +36,7 @@ merecat (3.00~rc2) unstable; urgency=medium
   * Packaging: use ~rc versioning so the final 3.00 upgrades cleanly over
     release candidates (3.00-rc1 sorted higher than 3.00-1)
 
- -- Joachim Wiberg <troglobit@gmail.com>  Sun, 13 Sep 2026 09:22:44 +0200
-
+ -- Joachim Wiberg <troglobit@gmail.com>  Sun, 19 Sep 2026 08:19:44 +0200
 
 merecat (2.31-3) unstable; urgency=low
 
