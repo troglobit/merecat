@@ -1133,7 +1133,131 @@ static void proxy_rewrite_headers(connecttab *c)
 	c->proxy_resp_len = len;
 }
 
-/* CNST_PROXY_READING: buffer the backend response until the connection closes */
+/* Find header NAME (case-insensitive) in the response header block
+** [buf, buf+hdr_len); return a pointer to its value, or NULL.  The status
+** line never matches a "name:" prefix, so scanning it costs nothing. */
+static const char *proxy_header(const char *buf, size_t hdr_len, const char *name)
+{
+	size_t      nlen = strlen(name);
+	const char *end  = buf + hdr_len;
+	const char *p    = buf;
+
+	while (p + nlen < end) {
+		if (strncasecmp(p, name, nlen) == 0 && p[nlen] == ':')
+			return p + nlen + 1;
+		p = memmem(p, (size_t)(end - p), "\r\n", 2);
+		if (!p)
+			break;
+		p += 2;
+	}
+
+	return NULL;
+}
+
+/* True once a chunked body is fully buffered, i.e. the terminating
+** zero-length chunk and its trailing CRLF are present. */
+static int proxy_chunked_done(const char *body, size_t len)
+{
+	size_t pos = 0;
+
+	for (;;) {
+		const char *nl = memmem(body + pos, len - pos, "\r\n", 2);
+		size_t      line, sz;
+
+		if (!nl)
+			return 0;
+		sz   = strtoul(body + pos, NULL, 16);
+		line = (size_t)(nl - (body + pos)) + 2;
+		if (sz == 0)
+			return pos + line + 2 <= len;	/* final CRLF present */
+		pos += line + sz + 2;
+		if (pos > len)
+			return 0;
+	}
+}
+
+/*
+** We forward the backend response verbatim, so we only need to detect
+** its end, not de-frame it.  An HTTP/1.1 backend may keep the connection
+** open rather than closing, so relying on EOF alone hangs; honour the
+** Content-Length or chunked framing.  With neither we still fall back to
+** the backend closing (handled by the read() == 0 path).
+*/
+static int proxy_response_complete(connecttab *c)
+{
+	char       *buf = c->proxy_resp;
+	size_t      len = c->proxy_resp_len;
+	const char *val;
+	char       *hdr_end;
+	size_t      hdr_len, body_len;
+
+	hdr_end = memmem(buf, len, "\r\n\r\n", 4);
+	if (!hdr_end)
+		return 0;			/* headers still incomplete */
+	hdr_len  = (size_t)(hdr_end - buf) + 4;
+	body_len = len - hdr_len;
+
+	val = proxy_header(buf, hdr_len, "transfer-encoding");
+	if (val) {
+		while (*val == ' ' || *val == '\t')
+			val++;
+		if (strncasecmp(val, "chunked", 7) == 0)
+			return proxy_chunked_done(hdr_end + 4, body_len);
+	}
+
+	val = proxy_header(buf, hdr_len, "content-length");
+	if (val)
+		return body_len >= strtoul(val, NULL, 10);
+
+	return 0;			/* no framing: wait for the backend to close */
+}
+
+/*
+** The full backend response is buffered: note the status for the access
+** log, close the backend, optionally rewrite redirect headers, and hand
+** the response to the client.
+*/
+static void proxy_finish(connecttab *c, struct timeval *tv)
+{
+	struct http_conn *hc = c->hc;
+
+	syslog(LOG_DEBUG, "proxy-pass: %zu byte response from %s for %s",
+	       c->proxy_resp_len, c->proxy_rule->host, hc->encodedurl);
+
+	/* Pick up the backend status code so the completed request is
+	** access logged, see httpd_send_response()
+	*/
+	if (c->proxy_resp_len >= 12) {
+		char   status_line[16];
+		size_t n = c->proxy_resp_len < sizeof(status_line) - 1
+			   ? c->proxy_resp_len : sizeof(status_line) - 1;
+		int    code;
+
+		memcpy(status_line, c->proxy_resp, n);
+		status_line[n] = '\0';
+		if (sscanf(status_line, "HTTP/%*s %d", &code) == 1)
+			hc->status = code;
+	}
+
+	fdwatch_del_fd(c->proxy_fd);
+	close(c->proxy_fd);
+	c->proxy_fd = -1;
+
+	free(c->proxy_req);
+	c->proxy_req = NULL;
+
+	/* Rewrite Location:/Refresh: headers if proxy-redirect is configured */
+	if (c->proxy_rule->redirect_from)
+		proxy_rewrite_headers(c);
+
+	/* Hand the buffered response back to the client */
+	hc->bytes_sent = 0;
+	c->active_at = tv->tv_sec;
+	fdwatch_add_fd(hc->conn_fd, c, FDW_WRITE);
+	c->conn_state = CNST_PROXY_SEND_RESP;
+}
+
+/* CNST_PROXY_READING: buffer the backend response, honouring its framing */
 static void handle_proxy_read(connecttab *c, struct timeval *tv)
 {
 	struct http_conn *hc = c->hc;
@@ -1179,41 +1303,8 @@ static void handle_proxy_read(connecttab *c, struct timeval *tv)
 			return;
 		}
 
-		/* Backend closed the connection — full response is buffered */
-		syslog(LOG_DEBUG, "proxy-pass: %zu byte response from %s for %s",
-		       c->proxy_resp_len, c->proxy_rule->host, hc->encodedurl);
-
-		/* Pick up the backend status code so the completed request
-		** is access logged, see httpd_send_response()
-		*/
-		if (c->proxy_resp_len >= 12) {
-			char   status_line[16];
-			size_t n = c->proxy_resp_len < sizeof(status_line) - 1
-				   ? c->proxy_resp_len : sizeof(status_line) - 1;
-			int    code;
-
-			memcpy(status_line, c->proxy_resp, n);
-			status_line[n] = '\0';
-			if (sscanf(status_line, "HTTP/%*s %d", &code) == 1)
-				hc->status = code;
-		}
-
-		fdwatch_del_fd(c->proxy_fd);
-		close(c->proxy_fd);
-		c->proxy_fd = -1;
-
-		free(c->proxy_req);
-		c->proxy_req = NULL;
-
-		/* Rewrite Location:/Refresh: headers if proxy-redirect is configured */
-		if (c->proxy_rule->redirect_from)
-			proxy_rewrite_headers(c);
-
-		/* Hand the buffered response back to the client */
-		hc->bytes_sent = 0;
-		c->active_at = tv->tv_sec;
-		fdwatch_add_fd(hc->conn_fd, c, FDW_WRITE);
-		c->conn_state = CNST_PROXY_SEND_RESP;
+		/* Backend closed: whatever we have is the full response */
+		proxy_finish(c, tv);
 		return;
 	}
 
@@ -1223,7 +1314,13 @@ static void handle_proxy_read(connecttab *c, struct timeval *tv)
 	if (c->proxy_resp_len > PROXY_RESP_MAX) {
 		syslog(LOG_ERR, "proxy-pass: response exceeds %d bytes", PROXY_RESP_MAX);
 		proxy_error(c, tv);
+		return;
 	}
+
+	/* Finish as soon as the framing says the response is complete, so a
+	** keep-alive backend that does not close does not hang us. */
+	if (proxy_response_complete(c))
+		proxy_finish(c, tv);
 }
 
 /* CNST_PROXY_SEND_RESP: stream the buffered backend response to the client */
