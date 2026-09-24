@@ -40,7 +40,6 @@
 #include <openssl/x509_vfy.h>
 #include <openssl/pem.h>
 #include <openssl/crypto.h>
-#include <openssl/engine.h>
 #include <openssl/evp.h>
 #include <openssl/rand.h>
 
@@ -357,15 +356,6 @@ void httpd_ssl_exit(struct httpd *hs)
 
 	SSL_CTX_free(hs->ctx);
 	hs->ctx = NULL;
-
-	ENGINE_cleanup();
-	CRYPTO_cleanup_all_ex_data();
-	CONF_modules_free();
-	CONF_modules_unload(1);
-// This function is deprecated since OpenSSL 1.1.0, removed in recent versions.
-#if OPENSSL_VERSION_NUMBER < 0x10100000L
-	COMP_zlib_cleanup();
-#endif
 }
 
 /*
