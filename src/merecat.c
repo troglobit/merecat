@@ -2093,11 +2093,10 @@ static void init_signals(void)
 	struct sigaction sa;
 	struct { int signo; void (*cb)(int); } signals[] = {
 		{ SIGTERM,  handle_term },
-		{ SIGTERM,  handle_term },
 		{ SIGINT,   handle_term },
 		{ SIGCHLD,  handle_chld },
 		{ SIGPIPE,  SIG_IGN     }, /* get EPIPE instead */
-		{ SIGHUP,   handle_bus  },
+		{ SIGBUS,   handle_bus  },
 		{ SIGHUP,   handle_hup  },
 		{ SIGUSR1,  handle_usr1 },
 		{ SIGUSR2,  handle_usr2 },
