@@ -58,9 +58,6 @@ int httpd_ssl_pending(struct http_conn *hc);
 /* Close a HTTP/HTTPS connection */
 void httpd_ssl_close(struct http_conn *hc);
 
-/* Called before httpd_ssl_close() to signal connection shut down */
-void httpd_ssl_shutdown(struct http_conn *hc);
-
 /* Reads SSL error log and sends to syslog */
 void httpd_ssl_log_errors(void);
 
@@ -78,7 +75,6 @@ ssize_t httpd_ssl_writev (struct http_conn *hc, struct iovec *iov, int num);
 #define httpd_ssl_want_write(hc)       0
 #define httpd_ssl_pending(hc)          0
 #define httpd_ssl_close(hc)
-#define httpd_ssl_shutdown(hc)
 
 #define httpd_ssl_log_errors()
 

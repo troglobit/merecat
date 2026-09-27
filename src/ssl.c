@@ -468,17 +468,20 @@ int httpd_ssl_open(struct http_conn *hc)
 	return 0;
 }
 
+/* Send close_notify so the peer can tell a finished response from a
+ * truncated one, then free the session.  A connection that never got
+ * through the handshake has nothing to notify.  One SSL_shutdown() is
+ * enough, we are closing the socket and do not wait for the reply.
+ */
 void httpd_ssl_close(struct http_conn *hc)
 {
-	if (hc->ssl)
-		SSL_free(hc->ssl);
-	hc->ssl = NULL;
-}
+	if (!hc->ssl)
+		return;
 
-void httpd_ssl_shutdown(struct http_conn *hc)
-{
-	if (hc->ssl)
+	if (SSL_is_init_finished(hc->ssl))
 		SSL_shutdown(hc->ssl);
+	SSL_free(hc->ssl);
+	hc->ssl = NULL;
 }
 
 static int ssl_error_cb(const char *str, size_t len, void *data)

@@ -2545,7 +2545,6 @@ void httpd_destroy_conn(struct http_conn *hc)
 		free(hc->prevuser);
 		free(hc->prevcryp);
 #endif
-		httpd_ssl_shutdown(hc);
 		hc->initialized = 0;
 	}
 }
