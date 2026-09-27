@@ -403,11 +403,11 @@
 */
 #define LINGER_TIME 500
 
-/* CONFIGURE: How many milliseconds to keep a keep-alive connection
-** alive for pipelining clients before turning it into a lingering
-** connection.
+/* CONFIGURE: How many milliseconds to keep an idle keep-alive
+** connection open, waiting for the client's next request, before
+** closing it.
 */
-#define KEEPALIVE_TIMELIMIT (1 * 1000L)
+#define KEEPALIVE_TIMELIMIT (5 * 1000L)
 
 /* CONFIGURE: Maximum number of symbolic links to follow before
 ** assuming there's a loop.
