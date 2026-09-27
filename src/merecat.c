@@ -183,7 +183,7 @@ static int httpd_conn_count;
 #define CNST_PROXY_BODY      10  /* Buffering request body, conn_fd in fdwatch */
 
 static struct httpd *server_list = NULL;
-int terminate = 0;
+static volatile sig_atomic_t terminate = 0;
 time_t start_time, stats_time;
 long stats_connections;
 off_t stats_bytes;
@@ -1962,13 +1962,13 @@ static void show_stats(arg_t arg, struct timeval *now)
 #endif
 
 
-/* SIGTERM and SIGINT say to exit immediately. */
+/* SIGTERM and SIGINT say to exit.  Only flag it here, the teardown
+ * frees memory and talks to syslog and OpenSSL, none of which is safe
+ * to do on top of whatever the main loop was in the middle of.
+ */
 static void handle_term(int signo)
 {
-	syslog(LOG_NOTICE, "Exiting due to signal %d, dropping %d connections.", signo, num_connects);
-	shut_down();
-	closelog();
-	exit(0);
+	terminate = signo;
 }
 
 
@@ -2620,7 +2620,7 @@ int main(int argc, char **argv)
 
 	/* Main loop. */
 	tmr_prepare_timeval(&tv);
-	while ((!terminate) || num_connects > 0) {
+	while (!terminate) {
 		int got = 0;
 
 		/* Do we need to re-open the log file? */
@@ -2741,9 +2741,8 @@ int main(int argc, char **argv)
 		}
 	}
 
-	/* The main loop terminated. */
+	syslog(LOG_NOTICE, "Exiting due to signal %d, dropping %d connections.", (int)terminate, num_connects);
 	shut_down();
-	syslog(LOG_NOTICE, "Exiting cleanly, all connections completed.");
 	closelog();
 
 	exit(0);
